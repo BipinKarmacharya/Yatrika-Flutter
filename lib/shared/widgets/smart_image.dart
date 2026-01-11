@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/api_client.dart'; // Import your ApiClient
-import '../../ui/components/app_colors.dart';
+import '../../core/api/api_client.dart'; // Import your ApiClient
+import '../../core/theme/app_colors.dart';
 
 class SmartImage extends StatelessWidget {
   final String url;

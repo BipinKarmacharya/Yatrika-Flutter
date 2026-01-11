@@ -1,4 +1,4 @@
-import '../services/api_client.dart';
+import '../core/api/api_client.dart';
 
 class HealthService {
   static Future<Map<String, dynamic>> health() async {

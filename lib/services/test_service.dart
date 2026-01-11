@@ -1,4 +1,4 @@
-import '../services/api_client.dart';
+import '../core/api/api_client.dart';
 
 class TestService {
   static Future<dynamic> public() async =>

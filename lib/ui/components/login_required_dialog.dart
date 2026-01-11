@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../components/app_colors.dart';
-import '../screens/login_screen.dart';
+import '../../core/theme/app_colors.dart';
+import '../../features/auth/ui/login_screen.dart';
 
 class LoginRequiredDialog extends StatelessWidget {
   const LoginRequiredDialog({

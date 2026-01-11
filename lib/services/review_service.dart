@@ -1,5 +1,5 @@
-import '../services/api_client.dart';
-import '../models/review.dart';
+import '../core/api/api_client.dart';
+import '../features/destination/data/review.dart';
 
 class ReviewService {
   static Future<Review> getById(String id) async {
