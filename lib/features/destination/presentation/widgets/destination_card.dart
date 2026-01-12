@@ -358,7 +358,7 @@ class DestinationCard extends StatelessWidget {
                 left: 0,
                 right: 0,
                 child: Container(
-                  height: 80,
+                  constraints: const BoxConstraints(minHeight: 72),
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(16),
@@ -603,7 +603,7 @@ class _FeaturedListViewState extends State<_FeaturedListView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 320, // Increased height for new card design
+          height: 380, // Room for full card content without overflow
           child: PageView.builder(
             controller: _pageController,
             padEnds: false,

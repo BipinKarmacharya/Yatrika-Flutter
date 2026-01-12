@@ -23,8 +23,9 @@ import 'package:tour_guide/features/community/data/models/community_post.dart'
     as CP;
 
 class TourBookHome extends StatefulWidget {
-  const TourBookHome({super.key, this.onProfileTap});
+  const TourBookHome({super.key, this.onProfileTap, this.onNavigateToDiscover});
   final VoidCallback? onProfileTap;
+  final VoidCallback? onNavigateToDiscover;
 
   @override
   State<TourBookHome> createState() => _TourBookHomeState();
@@ -100,10 +101,11 @@ class _TourBookHomeState extends State<TourBookHome> {
       FeatureCardData(
         'Explore',
         Icons.explore_outlined,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const DestinationListScreen()),
-        ),
+        onTap: () {
+          if (widget.onNavigateToDiscover != null) {
+            widget.onNavigateToDiscover!();
+          }
+        },
       ),
       const FeatureCardData('Trip Planner', Icons.event_note_outlined),
       const FeatureCardData('Itineraries', Icons.route_outlined),

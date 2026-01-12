@@ -15,7 +15,7 @@ class TopBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'TourBook',
+            'Yatrika ✈️',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 18,

@@ -141,13 +141,14 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        
         title: const Text(
-          'All Destinations',
+          'Explore Destinations',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        
         automaticallyImplyLeading: false,
       ),
       body: RefreshIndicator(

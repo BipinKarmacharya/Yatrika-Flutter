@@ -87,7 +87,10 @@ class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
 
   List<Widget> get _screens => [
-        TourBookHome(onProfileTap: () => setState(() => _currentIndex = 4)),
+        TourBookHome(
+          onProfileTap: () => setState(() => _currentIndex = 4),
+          onNavigateToDiscover: () => setState(() => _currentIndex = 1),
+        ),
         const DestinationListScreen(),
         PlanScreen(
           onBack: () => setState(() => _currentIndex = 0),
@@ -113,7 +116,7 @@ class _MainNavigatorState extends State<MainNavigator> {
         animationDuration: const Duration(milliseconds: 300),
         items: const [
           CurvedNavigationBarItem(child: Icon(Icons.home_outlined), label: 'Home'),
-          CurvedNavigationBarItem(child: Icon(Icons.search), label: 'Discover'),
+          CurvedNavigationBarItem(child: Icon(Icons.explore_outlined), label: 'Discover'),
           CurvedNavigationBarItem(child: Icon(Icons.add_circle_outline), label: 'Plan'),
           CurvedNavigationBarItem(child: Icon(Icons.article_outlined), label: 'Posts'),
           CurvedNavigationBarItem(child: Icon(Icons.person_outline), label: 'Profile'),
