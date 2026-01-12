@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:tour_guide/features/auth/logic/auth_provider.dart';
 import 'package:tour_guide/features/community/data/services/community_service.dart';
 import 'package:tour_guide/features/community/presentation/widgets/community_post_card.dart';
-import 'package:tour_guide/features/destination/data/destination_service.dart';
-import 'package:tour_guide/features/destination/ui/destination_card.dart';
-import 'package:tour_guide/features/destination/ui/destination_list_screen.dart';
+import 'package:tour_guide/features/destination/data/services/destination_service.dart';
+import 'package:tour_guide/features/destination/presentation/widgets/destination_card.dart';
+import 'package:tour_guide/features/destination/presentation/screens/destination_list_screen.dart';
 import 'package:tour_guide/features/home/presentation/widgets/category_chips.dart';
 import 'package:tour_guide/features/home/presentation/widgets/feature_cards.dart';
 import 'package:tour_guide/features/home/presentation/widgets/plan_header.dart';
@@ -15,10 +15,12 @@ import '../../../../../core/api/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
 
 // 2. Import the MODEL with the MD prefix (to use MD.Destination)
-import 'package:tour_guide/features/destination/data/destination.dart' as MD;
+import 'package:tour_guide/features/destination/data/models/destination.dart'
+    as MD;
 
 // 3. Keep your community import as is
-import 'package:tour_guide/features/community/data/models/community_post.dart' as CP;
+import 'package:tour_guide/features/community/data/models/community_post.dart'
+    as CP;
 
 class TourBookHome extends StatefulWidget {
   const TourBookHome({super.key, this.onProfileTap});
@@ -45,10 +47,7 @@ class _TourBookHomeState extends State<TourBookHome> {
   }
 
   Future<void> _loadHomeData() async {
-    await Future.wait([
-      _loadFeatured(),
-      _loadCommunity(),
-    ]);
+    await Future.wait([_loadFeatured(), _loadCommunity()]);
   }
 
   String? _formatImageUrl(String? path) {
@@ -58,24 +57,34 @@ class _TourBookHomeState extends State<TourBookHome> {
   }
 
   Future<void> _loadFeatured() async {
-    setState(() { _loadingFeatured = true; _featuredError = null; });
+    setState(() {
+      _loadingFeatured = true;
+      _featuredError = null;
+    });
     try {
       final list = await DestinationService.popular();
       if (mounted) setState(() => _featuredDestinations = list);
     } catch (e) {
-      if (mounted) setState(() => _featuredError = "Failed to load destinations");
+      if (mounted) {
+        setState(() => _featuredError = "Failed to load destinations");
+      }
     } finally {
       if (mounted) setState(() => _loadingFeatured = false);
     }
   }
 
   Future<void> _loadCommunity() async {
-    setState(() { _loadingCommunity = true; _communityError = null; });
+    setState(() {
+      _loadingCommunity = true;
+      _communityError = null;
+    });
     try {
       final posts = await CommunityService.trending();
       if (mounted) setState(() => _communityPosts = posts);
     } catch (e) {
-      if (mounted) setState(() => _communityError = "Failed to load community posts");
+      if (mounted) {
+        setState(() => _communityError = "Failed to load community posts");
+      }
     } finally {
       if (mounted) setState(() => _loadingCommunity = false);
     }
@@ -89,9 +98,12 @@ class _TourBookHomeState extends State<TourBookHome> {
 
     final featureCards = [
       FeatureCardData(
-        'Explore', 
+        'Explore',
         Icons.explore_outlined,
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DestinationListScreen())),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const DestinationListScreen()),
+        ),
       ),
       const FeatureCardData('Trip Planner', Icons.event_note_outlined),
       const FeatureCardData('Itineraries', Icons.route_outlined),
@@ -111,25 +123,49 @@ class _TourBookHomeState extends State<TourBookHome> {
                 // TopBar now has access to the user through the provider indirectly
                 TopBar(onProfileTap: widget.onProfileTap),
                 const SizedBox(height: 12),
-                Text("Hello, $userName!", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  "Hello, $userName!",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 12),
-                const CategoryChips(chips: ['Nearby', 'Popular', 'Budget', 'Nature', 'Adventure', 'Luxury']),
+                const CategoryChips(
+                  chips: [
+                    'Nearby',
+                    'Popular',
+                    'Budget',
+                    'Nature',
+                    'Adventure',
+                    'Luxury',
+                  ],
+                ),
                 const SizedBox(height: 16),
                 const PlanHeader(),
                 const SizedBox(height: 12),
                 FeatureCardsRow(cards: featureCards),
                 const SizedBox(height: 22),
-                
-                _buildSectionHeader('Featured destinations', onSeeAll: () {
-                   Navigator.push(context, MaterialPageRoute(builder: (_) => const DestinationListScreen()));
-                }),
+
+                _buildSectionHeader(
+                  'Featured destinations',
+                  onSeeAll: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DestinationListScreen(),
+                      ),
+                    );
+                  },
+                ),
                 _buildFeaturedList(),
-                
+
                 const SizedBox(height: 22),
                 _buildSectionHeader(
-                  'Community posts', 
+                  'Community posts',
                   action: _showAllPosts ? 'Show less' : 'Show more',
-                  onSeeAll: () => setState(() => _showAllPosts = !_showAllPosts)
+                  onSeeAll: () =>
+                      setState(() => _showAllPosts = !_showAllPosts),
                 ),
                 _buildCommunityList(),
               ],
@@ -142,23 +178,58 @@ class _TourBookHomeState extends State<TourBookHome> {
 
   // --- UI Helpers ---
 
-  Widget _buildSectionHeader(String title, {String action = 'See all', required VoidCallback onSeeAll}) {
-    return SectionHeader(title: title, actionText: action, onActionTap: onSeeAll);
+  Widget _buildSectionHeader(
+    String title, {
+    String action = 'See all',
+    required VoidCallback onSeeAll,
+  }) {
+    return SectionHeader(
+      title: title,
+      actionText: action,
+      onActionTap: onSeeAll,
+    );
   }
 
+  // Widget _buildFeaturedList() {
+  //   if (_loadingFeatured) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+  //   if (_featuredError != null) return _buildErrorWidget(_featuredError!, _loadFeatured);
+
+  //   return FeaturedList(
+  //     destinations: _featuredDestinations.map((d) {
+  //       final imgUrl = _formatImageUrl(d.images.isNotEmpty ? d.images.first : null);
+  //       return DestinationCardData(
+  //         title: d.name,
+  //         description: d.shortDescription,
+  //         tags: (d.tags.isNotEmpty ? d.tags.first : 'Dest'),
+  //         // tagColor: AppColors.primary,
+  //         imageUrl: imgUrl ?? "",
+  //         lo: Icons.location_on,
+  //       );
+  //     }).toList(),
+  //   );
+  // }
+  // In your TourBookHome file, keep FeaturedList as is:
   Widget _buildFeaturedList() {
-    if (_loadingFeatured) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-    if (_featuredError != null) return _buildErrorWidget(_featuredError!, _loadFeatured);
-    
+    if (_loadingFeatured) {
+      return const SizedBox(
+        height: 320,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_featuredError != null) {
+      return _buildErrorWidget(_featuredError!, _loadFeatured);
+    }
     return FeaturedList(
       destinations: _featuredDestinations.map((d) {
-        final imgUrl = _formatImageUrl(d.images.isNotEmpty ? d.images.first : null);
+        final imgUrl = _formatImageUrl(
+          d.images.isNotEmpty ? d.images.first : null,
+        );
         return DestinationCardData(
           title: d.name,
-          subtitle: d.shortDescription,
+          location: d.district ?? 'Unknown Location',
           tag: (d.tags.isNotEmpty ? d.tags.first : 'Dest'),
           tagColor: AppColors.primary,
-          imageUrl: imgUrl ?? "", 
+          imageUrl: imgUrl ?? "",
           metaIcon: Icons.location_on,
         );
       }).toList(),
@@ -166,29 +237,35 @@ class _TourBookHomeState extends State<TourBookHome> {
   }
 
   Widget _buildCommunityList() {
-    if (_loadingCommunity) return const Center(child: CircularProgressIndicator());
-    if (_communityError != null) return _buildErrorWidget(_communityError!, _loadCommunity);
-
+    if (_loadingCommunity) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_communityError != null) {
+      return _buildErrorWidget(_communityError!, _loadCommunity);
+    }
     return Column(
-      children: (_showAllPosts ? _communityPosts : _communityPosts.take(2))
-          .map((post) {
-            final String? firstMediaUrl = post.media.isNotEmpty ? post.media.first.mediaUrl : null;
-            final imgUrl = _formatImageUrl(firstMediaUrl);
+      children: (_showAllPosts ? _communityPosts : _communityPosts.take(2)).map(
+        (post) {
+          final String? firstMediaUrl = post.media.isNotEmpty
+              ? post.media.first.mediaUrl
+              : null;
+          final imgUrl = _formatImageUrl(firstMediaUrl);
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: CommunityPostCard(
-                post: CommunityPostData(
-                  title: post.title,
-                  author: post.user?.fullName ?? 'Traveler',
-                  likes: post.totalLikes,
-                  comments: 0,
-                  imageUrl: imgUrl ?? "",
-                  accent: AppColors.primary,
-                ),
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: CommunityPostCard(
+              post: CommunityPostData(
+                title: post.title,
+                author: post.user?.fullName ?? 'Traveler',
+                likes: post.totalLikes,
+                comments: 0,
+                imageUrl: imgUrl ?? "",
+                accent: AppColors.primary,
               ),
-            );
-          }).toList(),
+            ),
+          );
+        },
+      ).toList(),
     );
   }
 

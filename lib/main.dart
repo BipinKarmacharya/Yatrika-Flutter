@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
+import 'package:tour_guide/features/destination/data/repositories/destination_repository.dart';
+import 'package:tour_guide/features/destination/data/services/destination_service.dart';
+import 'package:tour_guide/features/destination/logic/destination_provider.dart';
 
 // Core & Auth Imports
 import 'core/theme/app_colors.dart';
@@ -18,10 +21,12 @@ import 'features/home/presentation/screens/home_screen.dart';
 import 'features/community/presentation/screens/community_screen.dart';
 import 'features/user/ui/profile_screen.dart';
 import 'features/itinerary/presentation/screens/plan_screen.dart';
-import 'features/destination/ui/destination_list_screen.dart';
+import 'features/destination/presentation/screens/destination_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final destinationRepository = DestinationRepository(DestinationService());
 
   // Initialize ApiClient (Loads token from SharedPreferences)
   await ApiClient.init();
@@ -38,6 +43,9 @@ void main() async {
         ),
         ChangeNotifierProvider<CommunityProvider>(
           create: (_) => CommunityProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DestinationProvider(destinationRepository),
         ),
       ],
       child: const MyApp(),
