@@ -6,11 +6,11 @@ import 'package:tour_guide/features/community/presentation/widgets/community_pos
 import 'package:tour_guide/features/destination/data/destination_service.dart';
 import 'package:tour_guide/features/destination/ui/destination_card.dart';
 import 'package:tour_guide/features/destination/ui/destination_list_screen.dart';
-import 'package:tour_guide/ui/components/category_chips.dart';
-import 'package:tour_guide/ui/components/feature_cards.dart';
-import 'package:tour_guide/ui/components/plan_header.dart';
-import 'package:tour_guide/ui/components/section_header.dart';
-import 'package:tour_guide/ui/components/top_bar.dart';
+import 'package:tour_guide/features/home/presentation/widgets/category_chips.dart';
+import 'package:tour_guide/features/home/presentation/widgets/feature_cards.dart';
+import 'package:tour_guide/features/home/presentation/widgets/plan_header.dart';
+import 'package:tour_guide/features/home/presentation/widgets/section_header.dart';
+import 'package:tour_guide/features/home/presentation/widgets/top_bar.dart';
 import '../../../../../core/api/api_client.dart';
 import '../../../../../core/theme/app_colors.dart';
 
@@ -155,7 +155,7 @@ class _TourBookHomeState extends State<TourBookHome> {
         final imgUrl = _formatImageUrl(d.images.isNotEmpty ? d.images.first : null);
         return DestinationCardData(
           title: d.name,
-          subtitle: d.shortDescription ?? '',
+          subtitle: d.shortDescription,
           tag: (d.tags.isNotEmpty ? d.tags.first : 'Dest'),
           tagColor: AppColors.primary,
           imageUrl: imgUrl ?? "", 

@@ -17,7 +17,7 @@ import 'features/community/logic/community_provider.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/community/presentation/screens/community_screen.dart';
 import 'features/user/ui/profile_screen.dart';
-import 'ui/screens/plan_screen.dart';
+import 'features/itinerary/presentation/screens/plan_screen.dart';
 import 'features/destination/ui/destination_list_screen.dart';
 
 void main() async {

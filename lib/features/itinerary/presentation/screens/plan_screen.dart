@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'plan_with_ai_screen.dart';
 
 class PlanScreen extends StatefulWidget {
