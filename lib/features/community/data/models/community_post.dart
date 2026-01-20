@@ -2,6 +2,8 @@ class CommunityPost {
   final int? id;
   final PostUser? user;
   final String title;
+  final String? destination;
+  final List<String> tags;
   final String content;
   final int tripDurationDays;
   final double estimatedCost;
@@ -20,6 +22,8 @@ class CommunityPost {
     this.id,
     this.user,
     required this.title,
+    this.destination,
+    this.tags = const [],
     required this.content,
     required this.tripDurationDays,
     required this.estimatedCost,
@@ -39,6 +43,8 @@ class CommunityPost {
     int? id,
     PostUser? user,
     String? title,
+    String? destination,
+    List<String>? tags,
     String? content,
     int? tripDurationDays,
     double? estimatedCost,
@@ -57,6 +63,8 @@ class CommunityPost {
       id: id ?? this.id,
       user: user ?? this.user,
       title: title ?? this.title,
+      destination: destination ?? this.destination,
+      tags: tags ?? this.tags,
       content: content ?? this.content,
       tripDurationDays: tripDurationDays ?? this.tripDurationDays,
       estimatedCost: estimatedCost ?? this.estimatedCost,
@@ -73,41 +81,61 @@ class CommunityPost {
     );
   }
 
+  // Inside CommunityPost.fromJson
   factory CommunityPost.fromJson(Map<String, dynamic> json) {
-    final userObj = json['user'] != null ? PostUser.fromJson(json['user']) : null;
+    // 1. Correctly map the User
+    final userObj = json['user'] != null
+        ? PostUser.fromJson(json['user'])
+        : null;
+
     return CommunityPost(
       id: json['id'],
       user: userObj,
-      title: json['title'] ?? '',
+      title: json['title'] ?? 'Untitled Trip',
+      // Handle the case where destination might be null in JSON
+      destination: json['destination'] as String?,
+      // Safely parse tags list
+      tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
       content: json['content'] ?? '',
-      tripDurationDays: json['tripDurationDays'] ?? 0,
+      tripDurationDays: json['tripDurationDays'] ?? 1,
       estimatedCost: (json['estimatedCost'] ?? 0).toDouble(),
+      // We prepend the base URL later in the UI or here
       coverImageUrl: json['coverImageUrl'] ?? '',
       isPublic: json['isPublic'] ?? true,
-      isLiked: json['isLiked'] ?? false,
+      isLiked: json['isLikedByCurrentUser'] ?? false, // Matches your JSON key
       totalLikes: json['totalLikes'] ?? 0,
       totalViews: json['totalViews'] ?? 0,
-      media: (json['media'] as List?)?.map((m) => PostMedia.fromJson(m)).toList() ?? [],
-      days: (json['days'] as List?)?.map((d) => PostDay.fromJson(d)).toList() ?? [],
-      authorName: userObj?.fullName ?? 'Traveler', // satisfying the required param
-      authorAvatar: userObj?.profileImage,         // satisfying the required param
+      // Safely parse nested lists
+      media:
+          (json['media'] as List?)
+              ?.map((m) => PostMedia.fromJson(m))
+              .toList() ??
+          [],
+      days:
+          (json['days'] as List?)?.map((d) => PostDay.fromJson(d)).toList() ??
+          [],
+      authorName: userObj?.fullName ?? 'Traveler',
+      authorAvatar: userObj?.profileImage,
       createdAt: json['createdAt'],
     );
   }
 
   Map<String, dynamic> toJson() => {
     "title": title,
+    "destination": destination,
+    "tags": tags,
     "content": content,
     "tripDurationDays": tripDurationDays,
     "estimatedCost": estimatedCost,
     "coverImageUrl": coverImageUrl,
     "isPublic": isPublic,
     "media": media.map((m) => m.toJson()).toList(),
-    "days": days.map((d) => d.toJson()).toList(),
+    "days": days.map((d) => d.toJson()).toList(), // Fixed null check error here
   };
 }
 
-// --- Helper Model: User ---
+// --- RESTORED HELPER CLASSES ---
+
 class PostUser {
   final String username;
   final String fullName;
@@ -119,12 +147,12 @@ class PostUser {
     return PostUser(
       username: json['username'] ?? 'Traveler',
       fullName: json['fullName'] ?? 'Guest',
-      profileImage: json['profileImageUrl'],
+      // FIX: Match the 'profileImageUrl' key from your JSON response
+      profileImage: json['profileImageUrl'] ?? json['profileImage'], 
     );
   }
 }
 
-// --- Helper Model: Media ---
 class PostMedia {
   final String mediaUrl;
   final String mediaType;
@@ -134,41 +162,54 @@ class PostMedia {
   PostMedia({required this.mediaUrl, this.mediaType = "IMAGE", this.caption, this.dayNumber = 1});
 
   factory PostMedia.fromJson(Map<String, dynamic> json) => PostMedia(
-    mediaUrl: json['mediaUrl'],
+    // Ensure mediaUrl isn't null
+    mediaUrl: json['mediaUrl'] ?? '',
     mediaType: json['mediaType'] ?? "IMAGE",
-    caption: json['caption'],
+    caption: json['caption'] as String?,
     dayNumber: json['dayNumber'] ?? 1,
   );
+
 
   Map<String, dynamic> toJson() => {
     "mediaUrl": mediaUrl,
     "mediaType": mediaType,
     "caption": caption,
     "dayNumber": dayNumber,
-    "displayOrder": 0
   };
 }
 
-// --- Helper Model: Days (Itinerary) ---
 class PostDay {
   final int dayNumber;
   final String description;
   final String activities;
+  final String? accommodation;
+  final String? food;
+  final String? transportation;
 
-  PostDay({required this.dayNumber, required this.description, required this.activities});
+  PostDay({
+    required this.dayNumber,
+    required this.description,
+    required this.activities,
+    this.accommodation,
+    this.food,
+    this.transportation,
+  });
 
   factory PostDay.fromJson(Map<String, dynamic> json) => PostDay(
     dayNumber: json['dayNumber'] ?? 1,
     description: json['description'] ?? '',
     activities: json['activities'] ?? '',
+    accommodation: json['accommodation'],
+    food: json['food'],
+    transportation: json['transportation'],
   );
 
   Map<String, dynamic> toJson() => {
     "dayNumber": dayNumber,
     "description": description,
     "activities": activities,
-    "accommodation": "N/A",
-    "food": "N/A",
-    "transportation": "N/A"
+    "accommodation": accommodation ?? "Standard",
+    "food": food ?? "Local",
+    "transportation": transportation ?? "Public",
   };
 }

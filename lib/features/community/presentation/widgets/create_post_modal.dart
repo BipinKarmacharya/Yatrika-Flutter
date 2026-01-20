@@ -2,11 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../data/services/community_service.dart';
-import '../../data/services/file_upload_service.dart';
-import '../../logic/community_provider.dart';
-import '../../../auth/logic/auth_provider.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
+import 'package:tour_guide/features/auth/logic/auth_provider.dart';
+import 'package:tour_guide/features/community/data/services/file_upload_service.dart';
+import 'package:tour_guide/features/community/logic/community_provider.dart';
 
 class CreatePostModal extends StatefulWidget {
   const CreatePostModal({super.key});
@@ -16,61 +15,54 @@ class CreatePostModal extends StatefulWidget {
 }
 
 class _CreatePostModalState extends State<CreatePostModal> {
+  // 1. Controllers
   final _titleCtrl = TextEditingController();
+  final _destinationCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
   final _costCtrl = TextEditingController();
-  
+
   final List<_DayController> _days = [_DayController(dayNumber: 1)];
   final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
-  bool _isSubmitting = false;
+  
+  final List<String> _availableTags = ["Adventure", "Beach", "Cultural", "Food", "Hiking", "Historical", "Mountains", "Nature"];
+  final Set<String> _selectedTags = {};
 
   @override
   void dispose() {
     _titleCtrl.dispose();
+    _destinationCtrl.dispose();
     _contentCtrl.dispose();
     _costCtrl.dispose();
-    for (var d in _days) { d.dispose(); }
+    for (var d in _days) {
+      d.dispose();
+    }
     super.dispose();
   }
 
-  // --- LOGIC METHODS ---
-
-  Future<void> _pickImages() async {
-    if (_selectedImages.length >= 5) {
-      _showSnack("Maximum 5 photos allowed");
-      return;
-    }
-    try {
-      final picked = await _picker.pickMultiImage();
-      if (picked.isNotEmpty) {
-        setState(() {
-          int spaceLeft = 5 - _selectedImages.length;
-          _selectedImages.addAll(picked.take(spaceLeft));
-        });
-      }
-    } catch (e) {
-      debugPrint("Picker Error: $e");
-    }
-  }
-
+  // 2. Main Logic Method
   Future<void> _handlePost() async {
-    if (_titleCtrl.text.isEmpty || _selectedImages.isEmpty) {
-      _showSnack("Title and at least one image are required");
+    // Validation
+    if (_titleCtrl.text.isEmpty || _destinationCtrl.text.isEmpty || _selectedImages.isEmpty) {
+      _showSnack("Please provide a title, destination, and at least one photo.");
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    // Access Providers
+    final commProvider = context.read<CommunityProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final token = authProvider.token;
+
+    if (token == null) {
+      _showSnack("Session expired. Please login again.");
+      return;
+    }
+
+    // Start loading state via Provider if you have it, or local state
+    setState(() {}); // Trigger build to show loading if needed
 
     try {
-      final authProvider = context.read<AuthProvider>();
-      // ✅ Check if your AuthProvider has 'token' or 'user?.token'
-      // I'm assuming 'token' based on our previous setup. 
-      // If this still errors, change to authProvider.user?.token
-      final token = authProvider.token; 
-      
-      if (token == null) throw Exception("Session expired. Please login again.");
-
+      // Step A: Upload Images
       final files = _selectedImages.map((x) => File(x.path)).toList();
       final uploadedUrls = await FileUploadService.uploadFiles(
         files: files,
@@ -80,11 +72,14 @@ class _CreatePostModalState extends State<CreatePostModal> {
 
       if (uploadedUrls.isEmpty) throw Exception("Failed to upload images.");
 
-      final payload = {
+      // Step B: Construct Payload (This is the 'payload' that was missing!)
+      final Map<String, dynamic> payload = {
         "title": _titleCtrl.text.trim(),
+        "destination": _destinationCtrl.text.trim(),
         "content": _contentCtrl.text.trim(),
+        "tags": _selectedTags.toList(),
         "tripDurationDays": _days.length,
-        "estimatedCost": double.tryParse(_costCtrl.text) ?? 0,
+        "estimatedCost": double.tryParse(_costCtrl.text) ?? 0.0,
         "coverImageUrl": uploadedUrls.first,
         "isPublic": true,
         "media": uploadedUrls.asMap().entries.map((e) => {
@@ -103,52 +98,63 @@ class _CreatePostModalState extends State<CreatePostModal> {
         }).toList(),
       };
 
-      await CommunityService.createRaw(payload);
+      // Step C: Send to Provider (This method refreshes the list automatically)
+      final success = await commProvider.createPostFromRaw(payload);
 
-      if (mounted) {
-        context.read<CommunityProvider>().refreshPosts();
+      if (mounted && success) {
         Navigator.pop(context);
-        _showSnack("Adventure shared!");
+        _showSnack("Adventure shared successfully!");
       }
     } catch (e) {
       _showSnack(e.toString().replaceAll("Exception: ", ""));
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  void _showSnack(String msg) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
-  // --- UI BUILDER METHODS ---
-
+  // 3. UI Build
   @override
   Widget build(BuildContext context) {
+    final isCreating = context.watch<CommunityProvider>().isCreating;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF9FAFB),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
-          _buildHeader(),
-          if (_isSubmitting) const LinearProgressIndicator(color: AppColors.primary),
+          _buildTopBar(),
+          if (isCreating) const LinearProgressIndicator(color: AppColors.primary),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _sectionLabel("TRIP OVERVIEW"),
-                _customField(_titleCtrl, "Where did you go?"),
-                _customField(_contentCtrl, "Describe the experience...", maxLines: 3),
-                _customField(_costCtrl, "Total Budget (\$)", isNumber: true),
-                const SizedBox(height: 20),
-                _sectionLabel("PHOTOS"),
-                _buildImageGrid(),
-                const SizedBox(height: 20),
-                _buildItineraryHeader(),
-                ..._days.map((d) => _buildDayItem(d)),
-                const SizedBox(height: 40),
-              ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildSectionCard("Trip Overview", [
+                    _inputLabel("Trip Title *"),
+                    _customField(_titleCtrl, "e.g., Swiss Alps"),
+                    _inputLabel("Destination *"),
+                    _customField(_destinationCtrl, "e.g., Switzerland"),
+                    _inputLabel("Description"),
+                    _customField(_contentCtrl, "Highlights...", maxLines: 3),
+                    _inputLabel("Total Budget"),
+                    _customField(_costCtrl, "e.g., 2000", isNumber: true),
+                    _inputLabel("Tags"),
+                    _buildTagWrap(),
+                  ]),
+                  const SizedBox(height: 16),
+                  _buildSectionCard("Photos", [_buildImageUploader()]),
+                  const SizedBox(height: 16),
+                  _buildItinerarySection(),
+                  const SizedBox(height: 32),
+                  _buildActionButton(isCreating),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ],
@@ -156,134 +162,90 @@ class _CreatePostModalState extends State<CreatePostModal> {
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
+  // --- UI COMPONENT METHODS ---
+
+  Widget _buildTopBar() {
+    return Container(
       padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB)))),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          const Text("New Adventure", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ElevatedButton(
-            onPressed: _isSubmitting ? null : _handlePost,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-            child: const Text("Post"),
-          ),
+          const Text("Create Post", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
         ],
       ),
     );
   }
 
-  Widget _sectionLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, top: 12),
-    child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.grey)),
-  );
+  Widget _buildSectionCard(String title, List<Widget> children) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E7EB))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        ...children,
+      ]),
+    );
+  }
+
+  Widget _inputLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 8, top: 8), child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)));
 
   Widget _customField(TextEditingController ctrl, String hint, {int maxLines = 1, bool isNumber = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: ctrl,
-        maxLines: maxLines,
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: Colors.grey[50],
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-        ),
-      ),
+    return TextField(
+      controller: ctrl,
+      maxLines: maxLines,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(hintText: hint, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
     );
   }
 
-  Widget _buildImageGrid() {
-    return Column(
-      children: [
-        if (_selectedImages.isNotEmpty)
-          SizedBox(
-            height: 110,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _selectedImages.length,
-              itemBuilder: (_, i) => _imagePreview(i),
-            ),
-          ),
-        InkWell(
-          onTap: _pickImages,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(12), color: Colors.grey[50]),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary), SizedBox(width: 8), Text("Add Trip Photos", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600))],
-            ),
-          ),
-        ),
-      ],
+  Widget _buildTagWrap() {
+    return Wrap(
+      spacing: 8,
+      children: _availableTags.map((tag) {
+        final isSelected = _selectedTags.contains(tag);
+        return ChoiceChip(
+          label: Text(tag),
+          selected: isSelected,
+          onSelected: (val) => setState(() => val ? _selectedTags.add(tag) : _selectedTags.remove(tag)),
+          selectedColor: AppColors.primary,
+        );
+      }).toList(),
     );
   }
 
-  Widget _imagePreview(int index) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 12, top: 8),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(File(_selectedImages[index].path), width: 90, height: 90, fit: BoxFit.cover),
-          ),
-          Positioned(
-            top: -5,
-            right: -5,
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedImages.removeAt(index)),
-              child: Container(decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), padding: const EdgeInsets.all(4), child: const Icon(Icons.close, size: 12, color: Colors.white)),
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _buildImageUploader() {
+    return Column(children: [
+      if (_selectedImages.isNotEmpty)
+        SizedBox(height: 80, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _selectedImages.length, itemBuilder: (ctx, i) => Image.file(File(_selectedImages[i].path), width: 80))),
+      ElevatedButton.icon(onPressed: () async {
+        final picked = await _picker.pickMultiImage();
+        if (picked.isNotEmpty) setState(() => _selectedImages.addAll(picked));
+      }, icon: const Icon(Icons.add_a_photo), label: const Text("Add Photos"))
+    ]);
   }
 
-  Widget _buildItineraryHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _sectionLabel("ITINERARY"),
-        TextButton.icon(
-          onPressed: () => setState(() => _days.add(_DayController(dayNumber: _days.length + 1))),
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text("Add Day"),
-        ),
-      ],
-    );
+  Widget _buildItinerarySection() {
+    return _buildSectionCard("Itinerary", [
+      ..._days.map((d) => ExpansionTile(title: Text("Day ${d.dayNumber}"), children: [
+        _customField(d.activities, "Activities"),
+        _customField(d.description, "Description"),
+      ])),
+      TextButton(onPressed: () => setState(() => _days.add(_DayController(dayNumber: _days.length + 1))), child: const Text("Add Day"))
+    ]);
   }
 
-  Widget _buildDayItem(_DayController day) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Day ${day.dayNumber}", style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-              if (_days.length > 1)
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-                  onPressed: () => setState(() { day.dispose(); _days.remove(day); }),
-                ),
-            ],
-          ),
-          _customField(day.description, "What did you see?"),
-          _customField(day.activities, "Activities (Hiking, Dinner, etc.)"),
-        ],
+  Widget _buildActionButton(bool loading) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: loading ? null : _handlePost,
+        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF047857), padding: const EdgeInsets.symmetric(vertical: 16)),
+        child: loading ? const CircularProgressIndicator(color: Colors.white) : const Text("Publish Trip", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
