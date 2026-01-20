@@ -12,9 +12,9 @@ abstract class IDestinationRepository {
 }
 
 class DestinationRepository implements IDestinationRepository {
-  final DestinationService _service;
+  // final DestinationService _service;
 
-  DestinationRepository(this._service);
+  // DestinationRepository(this._service);
 
   @override
   Future<List<Destination>> getPopularDestinations() async {

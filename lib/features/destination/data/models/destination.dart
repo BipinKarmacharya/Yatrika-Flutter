@@ -1,120 +1,55 @@
-// class Destination {
-//   final String id;
-//   final String name;
-//   final String? description;
-//   final List<String> tags;
-//   final List<String> images;
-//   final String? district;
-//   final double? lat;
-//   final double? lng;
-
-//   Destination({
-//     required this.id,
-//     required this.name,
-//     this.description,
-//     this.tags = const [],
-//     required this.images,
-//     this.district,
-//     this.lat,
-//     this.lng,
-//   });
-
-//   factory Destination.fromJson(Map<String, dynamic> json) {
-//     return Destination(
-//       id: json['id']?.toString() ?? '',
-//       name: json['name']?.toString() ?? 'Unknown Destination',
-//       // Check 'short_description' first as seen in your logs
-//       description:
-//           json['short_description']?.toString() ??
-//           json['description']?.toString() ??
-//           '',
-//       tags: _parseTags(json['tags']),
-//       // Use the helper to check 'images' list AND 'cover_image_url'
-//       images: _parseImages(json),
-//       district: json['district']?.toString(),
-//       // Logic: Hibernate uses 'latitude'/'longitude', Flutter uses 'lat'/'lng'
-//       lat: (json['latitude'] as num?)?.toDouble(),
-//       lng: (json['longitude'] as num?)?.toDouble(),
-//     );
-//   }
-
-//   static List<String> _parseTags(dynamic tagsJson) {
-//     if (tagsJson == null) return [];
-//     if (tagsJson is String) {
-//       return tagsJson.split(',').map((e) => e.trim()).toList();
-//     }
-//     if (tagsJson is List) {
-//       return tagsJson.map((e) => e.toString()).toList();
-//     }
-//     return [];
-//   }
-
-//   // FIXED: Logic moved to this helper method
-//   static List<String> _parseImages(Map<String, dynamic> json) {
-//     if (json['images'] is List && (json['images'] as List).isNotEmpty) {
-//       return (json['images'] as List).map((e) => e.toString()).toList();
-//     }
-//     // Checking backend variants found in your logs
-//     if (json['cover_image_url'] != null) {
-//       return [json['cover_image_url'].toString()];
-//     }
-//     if (json['image_url'] != null) return [json['image_url'].toString()];
-//     return [];
-//   }
-
-//   Map<String, dynamic> toJson() => {
-//     'id': id,
-//     'name': name,
-//     if (description != null) 'description': description,
-//     'tags': tags,
-//     'images': images,
-//     if (district != null) 'district': district,
-//     if (lat != null) 'lat': lat,
-//     if (lng != null) 'lng': lng,
-//   };
-
-//   String get shortDescription => description ?? '';
-// }
-
-
-// lib/features/destination/data/models/destination.dart
 import 'package:flutter/foundation.dart';
+import 'package:tour_guide/core/api/api_client.dart';
 
 @immutable
 class Destination {
   final String id;
   final String name;
+  final String shortDescription; // Added
   final String? description;
+  final String? district;
   final List<String> tags;
   final List<String> images;
-  final String? district;
   final double? lat;
   final double? lng;
+  final double averageRating; // Added
+  final double cost; // Added (using entranceFeeLocal)
+  final int totalReviews; // From "totalReviews" in your JSON
+  final String difficultyLevel; // For the tags
+  final String bestTime;
 
-  Destination({
+  const Destination({
     required this.id,
     required this.name,
+    required this.shortDescription,
     this.description,
+    this.district,
     this.tags = const [],
     required this.images,
-    this.district,
     this.lat,
     this.lng,
+    this.averageRating = 0.0,
+    this.cost = 0.0,
+    this.totalReviews = 0,
+    this.difficultyLevel = 'MODERATE',
+    this.bestTime = 'All Year',
   });
 
   factory Destination.fromJson(Map<String, dynamic> json) {
     return Destination(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? 'Unknown Destination',
-      description:
-          json['short_description']?.toString() ??
-          json['description']?.toString() ??
-          '',
+      name: json['name']?.toString() ?? 'Unknown',
+      shortDescription: json['shortDescription']?.toString() ?? '',
+      description: json['description']?.toString(),
+      district: json['district']?.toString(),
       tags: _parseTags(json['tags']),
       images: _parseImages(json),
-      district: json['district']?.toString(),
       lat: (json['latitude'] as num?)?.toDouble(),
       lng: (json['longitude'] as num?)?.toDouble(),
+      averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0.0,
+      cost: (json['entranceFeeLocal'] as num?)?.toDouble() ?? 0.0,
+      totalReviews: json['totalReviews'] ?? 0,
+      difficultyLevel: json['difficultyLevel'] ?? 'EASY',
     );
   }
 
@@ -130,14 +65,33 @@ class Destination {
   }
 
   static List<String> _parseImages(Map<String, dynamic> json) {
-    if (json['images'] is List && (json['images'] as List).isNotEmpty) {
-      return (json['images'] as List).map((e) => e.toString()).toList();
+    List<String> result = [];
+
+    if (json['images'] is List) {
+      for (var item in json['images']) {
+        String? path;
+        if (item is Map) {
+          path = item['imageUrl']?.toString();
+        } else {
+          path = item.toString();
+        }
+
+        if (path != null && path.isNotEmpty) {
+          result.add(ApiClient.getFullImageUrl(path));
+        }
+      }
     }
-    if (json['cover_image_url'] != null) {
-      return [json['cover_image_url'].toString()];
+
+    // 2. Fallback for single image fields
+    if (result.isEmpty) {
+      String? singleImage =
+          json['imageUrl'] ?? json['image_url'] ?? json['cover_image_url'];
+      if (singleImage != null && singleImage.isNotEmpty) {
+        result.add(ApiClient.getFullImageUrl(singleImage));
+      }
     }
-    if (json['image_url'] != null) return [json['image_url'].toString()];
-    return [];
+
+    return result;
   }
 
   Map<String, dynamic> toJson() => {
@@ -151,7 +105,7 @@ class Destination {
     if (lng != null) 'lng': lng,
   };
 
-  String get shortDescription => description ?? '';
+  // String get escription => description ?? '';
 }
 
 class Review {

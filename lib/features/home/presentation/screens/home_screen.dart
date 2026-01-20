@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/features/auth/logic/auth_provider.dart';
 import 'package:tour_guide/features/community/data/services/community_service.dart';
-import 'package:tour_guide/features/community/presentation/widgets/community_post_card.dart';
 import 'package:tour_guide/features/destination/data/services/destination_service.dart';
 import 'package:tour_guide/features/destination/presentation/widgets/destination_card.dart';
 import 'package:tour_guide/features/destination/presentation/screens/destination_list_screen.dart';
@@ -100,10 +99,11 @@ class _TourBookHomeState extends State<TourBookHome> {
       FeatureCardData(
         'Explore',
         Icons.explore_outlined,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const DestinationListScreen()),
-        ),
+        // ,
+        // onTap: () => Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (_) => const DestinationListScreen()),
+        // ),
       ),
       const FeatureCardData('Trip Planner', Icons.event_note_outlined),
       const FeatureCardData('Itineraries', Icons.route_outlined),
@@ -190,25 +190,6 @@ class _TourBookHomeState extends State<TourBookHome> {
     );
   }
 
-  // Widget _buildFeaturedList() {
-  //   if (_loadingFeatured) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-  //   if (_featuredError != null) return _buildErrorWidget(_featuredError!, _loadFeatured);
-
-  //   return FeaturedList(
-  //     destinations: _featuredDestinations.map((d) {
-  //       final imgUrl = _formatImageUrl(d.images.isNotEmpty ? d.images.first : null);
-  //       return DestinationCardData(
-  //         title: d.name,
-  //         description: d.shortDescription,
-  //         tags: (d.tags.isNotEmpty ? d.tags.first : 'Dest'),
-  //         // tagColor: AppColors.primary,
-  //         imageUrl: imgUrl ?? "",
-  //         lo: Icons.location_on,
-  //       );
-  //     }).toList(),
-  //   );
-  // }
-  // In your TourBookHome file, keep FeaturedList as is:
   Widget _buildFeaturedList() {
     if (_loadingFeatured) {
       return const SizedBox(
@@ -219,21 +200,7 @@ class _TourBookHomeState extends State<TourBookHome> {
     if (_featuredError != null) {
       return _buildErrorWidget(_featuredError!, _loadFeatured);
     }
-    return FeaturedList(
-      destinations: _featuredDestinations.map((d) {
-        final imgUrl = _formatImageUrl(
-          d.images.isNotEmpty ? d.images.first : null,
-        );
-        return DestinationCardData(
-          title: d.name,
-          location: d.district ?? 'Unknown Location',
-          tag: (d.tags.isNotEmpty ? d.tags.first : 'Dest'),
-          tagColor: AppColors.primary,
-          imageUrl: imgUrl ?? "",
-          metaIcon: Icons.location_on,
-        );
-      }).toList(),
-    );
+    return FeaturedList(destinations: _featuredDestinations);
   }
 
   Widget _buildCommunityList() {
@@ -243,29 +210,66 @@ class _TourBookHomeState extends State<TourBookHome> {
     if (_communityError != null) {
       return _buildErrorWidget(_communityError!, _loadCommunity);
     }
-    return Column(
-      children: (_showAllPosts ? _communityPosts : _communityPosts.take(2)).map(
-        (post) {
-          final String? firstMediaUrl = post.media.isNotEmpty
-              ? post.media.first.mediaUrl
-              : null;
-          final imgUrl = _formatImageUrl(firstMediaUrl);
+    // Take only top 3 posts for the Home Screen
+    final displayedPosts = _communityPosts.take(3).toList();
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: CommunityPostCard(
-              post: CommunityPostData(
-                title: post.title,
-                author: post.user?.fullName ?? 'Traveler',
-                likes: post.totalLikes,
-                comments: 0,
-                imageUrl: imgUrl ?? "",
-                accent: AppColors.primary,
+    return Column(
+      children: displayedPosts.map((post) {
+        final imgUrl = _formatImageUrl(
+          post.coverImageUrl.isNotEmpty
+              ? post.coverImageUrl
+              : (post.media.isNotEmpty ? post.media.first.mediaUrl : null),
+        );
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  imgUrl ?? "https://via.placeholder.com/100",
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-          );
-        },
-      ).toList(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "by ${post.authorName} • ${post.tripDurationDays} days",
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 

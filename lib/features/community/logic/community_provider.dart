@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:tour_guide/core/api/api_client.dart';
 import '../data/services/community_service.dart';
-import '../data/models/community_post.dart'; // Import the API model directly
+import '../data/models/community_post.dart';
 
 class CommunityProvider extends ChangeNotifier {
-  // Use the API model list directly
   List<CommunityPost> _posts = [];
   bool _isLoading = false;
   String? _errorMessage;
   bool _isCreating = false;
-  bool get isCreating => _isCreating;
 
   List<CommunityPost> get posts => _posts;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isCreating => _isCreating;
 
   /// Loads posts from the server
   Future<void> loadPosts() async {
-    if (_posts.isNotEmpty) return; 
+    // FIX: Remove the 'if (_posts.isNotEmpty) return;' to ensure 
+    // we can actually fetch data if the app state needs it.
     await refreshPosts();
   }
 
@@ -28,26 +27,46 @@ class CommunityProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // CommunityService already returns List<CommunityPost>
+      // Ensure this service method fetches the latest from your Spring Boot backend
       _posts = await CommunityService.getPublicPosts();
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = "Could not load posts. Please try again.";
+      debugPrint("Load Error: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Toggles the like status of a post
-  Future<void> toggleLike(int postId) async { // Changed to int to match CommunityPost ID
+  /// Create a post using the Raw Payload from the Modal
+  /// This ensures the destination, tags, and itinerary are actually saved.
+  Future<bool> createPostFromRaw(Map<String, dynamic> payload) async {
+    _isCreating = true;
+    notifyListeners();
+
+    try {
+      // Call the service that talks to your Spring Boot backend
+      await CommunityService.createRaw(payload);
+      
+      // SUCCESS: Refresh the list so the new post appears at the top
+      await refreshPosts(); 
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isCreating = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> toggleLike(int postId) async {
     final index = _posts.indexWhere((p) => p.id == postId);
     if (index == -1) return;
 
     final post = _posts[index];
     final wasLiked = post.isLiked;
 
-    // Optimistic Update
-    // Note: CommunityPost must have a copyWith method for this to work
     _posts[index] = post.copyWith(
       isLiked: !wasLiked,
       totalLikes: wasLiked ? post.totalLikes - 1 : post.totalLikes + 1,
@@ -61,37 +80,7 @@ class CommunityProvider extends ChangeNotifier {
         await CommunityService.like(postId.toString());
       }
     } catch (e) {
-      // Revert if server fails
       _posts[index] = post;
-      notifyListeners();
-    }
-  }
-
-  Future<bool> createPost(String content, List<String> images) async {
-    _isCreating = true;
-    notifyListeners();
-
-    try {
-      final response = await ApiClient.post(
-        '/api/community/posts',
-        body: {
-          'content': content,
-          'images': images,
-          'createdAt': DateTime.now().toIso8601String(),
-        },
-      );
-
-      if (response != null) {
-        // Optionally fetch latest posts again to refresh the feed
-        await refreshPosts(); 
-        return true;
-      }
-      return false;
-    } catch (e) {
-      _errorMessage = e.toString();
-      return false;
-    } finally {
-      _isCreating = false;
       notifyListeners();
     }
   }

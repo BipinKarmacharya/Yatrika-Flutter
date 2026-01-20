@@ -1,11 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
 import 'package:tour_guide/features/destination/data/repositories/destination_repository.dart';
-import 'package:tour_guide/features/destination/data/services/destination_service.dart';
 import 'package:tour_guide/features/destination/logic/destination_provider.dart';
+import 'package:tour_guide/features/user/logic/profile_provider.dart';
 
 // Core & Auth Imports
 import 'core/theme/app_colors.dart';
@@ -19,14 +20,15 @@ import 'features/community/logic/community_provider.dart';
 // Screen Imports
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/community/presentation/screens/community_screen.dart';
-import 'features/user/ui/profile_screen.dart';
+import 'features/user/presentation/screens/profile_screen.dart';
 import 'features/itinerary/presentation/screens/plan_screen.dart';
 import 'features/destination/presentation/screens/destination_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = MyHttpOverrides();
 
-  final destinationRepository = DestinationRepository(DestinationService());
+  final destinationRepository = DestinationRepository();
 
   // Initialize ApiClient (Loads token from SharedPreferences)
   await ApiClient.init();
@@ -41,6 +43,7 @@ void main() async {
             return auth;
           },
         ),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider<CommunityProvider>(
           create: (_) => CommunityProvider(),
         ),
@@ -52,6 +55,15 @@ void main() async {
     ),
   );
 }
+
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -113,7 +125,7 @@ class _MainNavigatorState extends State<MainNavigator> {
         animationDuration: const Duration(milliseconds: 300),
         items: const [
           CurvedNavigationBarItem(child: Icon(Icons.home_outlined), label: 'Home'),
-          CurvedNavigationBarItem(child: Icon(Icons.search), label: 'Discover'),
+          CurvedNavigationBarItem(child: Icon(Icons.explore_outlined), label: 'Explore'),
           CurvedNavigationBarItem(child: Icon(Icons.add_circle_outline), label: 'Plan'),
           CurvedNavigationBarItem(child: Icon(Icons.article_outlined), label: 'Posts'),
           CurvedNavigationBarItem(child: Icon(Icons.person_outline), label: 'Profile'),
