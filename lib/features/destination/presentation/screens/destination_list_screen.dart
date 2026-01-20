@@ -235,6 +235,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        
         title: const Text(
           'Explore',
           style: TextStyle(fontWeight: FontWeight.bold),

@@ -22,8 +22,9 @@ import 'package:tour_guide/features/community/data/models/community_post.dart'
     as CP;
 
 class TourBookHome extends StatefulWidget {
-  const TourBookHome({super.key, this.onProfileTap});
+  const TourBookHome({super.key, this.onProfileTap, this.onNavigateToDiscover});
   final VoidCallback? onProfileTap;
+  final VoidCallback? onNavigateToDiscover;
 
   @override
   State<TourBookHome> createState() => _TourBookHomeState();

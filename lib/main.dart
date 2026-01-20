@@ -99,7 +99,10 @@ class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
 
   List<Widget> get _screens => [
-        TourBookHome(onProfileTap: () => setState(() => _currentIndex = 4)),
+        TourBookHome(
+          onProfileTap: () => setState(() => _currentIndex = 4),
+          onNavigateToDiscover: () => setState(() => _currentIndex = 1),
+        ),
         const DestinationListScreen(),
         PlanScreen(
           onBack: () => setState(() => _currentIndex = 0),
