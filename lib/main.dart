@@ -22,6 +22,7 @@ import 'features/community/presentation/screens/community_screen.dart';
 import 'features/user/ui/profile_screen.dart';
 import 'features/itinerary/presentation/screens/plan_screen.dart';
 import 'features/destination/presentation/screens/destination_list_screen.dart';
+import 'ui/screens/animated_splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,8 +71,11 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.ubuntuTextTheme(),
         useMaterial3: true,
       ),
-      // ✅ Now pointing to AuthWrapper instead of MainNavigator
-      home: const AuthWrapper(), 
+      // ✅ Now showing animated splash screen first
+      home: const AnimatedSplashScreen(
+        duration: Duration(seconds: 3),
+        child: AuthWrapper(),
+      ), 
     );
   }
 }
