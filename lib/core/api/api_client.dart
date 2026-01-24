@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,7 +12,18 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  static const String baseUrl = 'https://zebralike-inquirable-almeda.ngrok-free.dev';
+
+  static String get baseUrl {
+  if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+    return 'http://127.0.0.1:8080';
+  }
+  if (Platform.isAndroid) {
+    return 'http://10.0.2.2:8080';
+  }
+  return 'http://localhost:8080';
+}
+
+  // static const String baseUrl = 'https://yatrika-ympz.onrender.com'; // Render
 
   static final http.Client _http = http.Client();
   static String? _authToken;
