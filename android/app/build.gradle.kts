@@ -43,10 +43,9 @@ flutter {
     source = "../.."
 }
 
-// Rename produced APKs to include the desired app name.
-// This registers a simple task that looks for APKs in common Flutter/Android output
-// directories and renames them to start with `Yatrika-A smart trip planner-`.
-tasks.register("renameApk") {
+// Copy produced APKs to a friendlier filename while keeping the originals.
+// This avoids breaking tools that expect the default app-*.apk path.
+tasks.register("copyApkWithCustomName") {
     doLast {
         val apkDirs = listOf(
             File(buildDir, "app/outputs/flutter-apk"),
@@ -54,15 +53,20 @@ tasks.register("renameApk") {
             File(buildDir, "app/outputs/apk"),
             File(buildDir, "outputs/apk")
         )
+        val prefix = "Yatrika-A smart trip planner-"
         apkDirs.forEach { dir ->
             if (dir.exists()) {
                 dir.listFiles { f -> f.extension == "apk" }?.forEach { file ->
-                    val safeName = "Yatrika-A smart trip planner-${file.name}"
-                    val dest = File(file.parentFile, safeName)
-                    if (file.renameTo(dest)) {
-                        println("Renamed ${file.name} -> ${dest.name}")
-                    } else {
-                        println("Failed to rename ${file.absolutePath} -> ${dest.absolutePath}")
+                    // Skip if it's already using our custom prefix
+                    if (file.name.startsWith(prefix)) return@forEach
+                    // Keep the original file, and also create a copy with a custom prefix
+                    val customName = prefix + file.name
+                    val dest = File(file.parentFile, customName)
+                    try {
+                        file.copyTo(dest, overwrite = true)
+                        println("Copied ${file.name} -> ${dest.name}")
+                    } catch (e: Exception) {
+                        println("Failed to copy ${file.absolutePath} -> ${dest.absolutePath}: ${e.message}")
                     }
                 }
             }
@@ -70,9 +74,10 @@ tasks.register("renameApk") {
     }
 }
 
-// Run the rename after common assemble tasks so the final APK has the requested name.
+// Run the copy after common assemble tasks so the final APK keeps its default name
+// and we also get a custom-named copy beside it.
 listOf("assembleRelease", "assembleDebug").forEach { taskName ->
     tasks.matching { it.name == taskName }.configureEach {
-        finalizedBy("renameApk")
+        finalizedBy("copyApkWithCustomName")
     }
 }
