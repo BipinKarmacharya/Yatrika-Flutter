@@ -6,6 +6,7 @@ import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
 import 'package:tour_guide/features/destination/data/repositories/destination_repository.dart';
 import 'package:tour_guide/features/destination/logic/destination_provider.dart';
+import 'package:tour_guide/features/home/presentation/screens/home_screen.dart';
 import 'package:tour_guide/features/user/logic/profile_provider.dart';
 
 // Core & Auth Imports
@@ -18,7 +19,6 @@ import 'features/auth/ui/auth_wrapper.dart'; // ✅ Added this
 import 'features/community/logic/community_provider.dart';
 
 // Screen Imports
-import 'features/home/presentation/screens/home_screen.dart';
 import 'features/community/presentation/screens/community_screen.dart';
 import 'features/user/presentation/screens/profile_screen.dart';
 import 'features/itinerary/presentation/screens/plan_screen.dart';
