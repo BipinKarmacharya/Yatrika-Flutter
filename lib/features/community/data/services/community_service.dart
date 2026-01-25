@@ -2,9 +2,7 @@ import '../../../../core/api/api_client.dart';
 import '../models/community_post.dart';
 
 class CommunityService {
-  // We don't need a hardcoded baseUrl here anymore because ApiClient handles it
 
-  /// Helper to handle both simple Lists and Spring Boot Page objects ('content' key)
   static List<CommunityPost> _mapResponse(dynamic data) {
     if (data == null) return [];
 
