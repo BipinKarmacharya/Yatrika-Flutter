@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart'; // Ensure intl is in pubspec.yaml
 import 'package:tour_guide/features/community/logic/community_provider.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -12,9 +13,55 @@ class CommunityPostDetailScreen extends StatelessWidget {
   const CommunityPostDetailScreen({super.key, required this.post});
 
   String _getImageUrl(String? path) {
-    if (path == null || path.isEmpty)
-      return "https://via.placeholder.com/600x400";
+    if (path == null || path.isEmpty) return "https://via.placeholder.com/600x400";
     return path.startsWith('http') ? path : '${ApiClient.baseUrl}$path';
+  }
+
+  // --- 1. Dynamic Date Formatter ---
+  String _formatFullDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return "Recently";
+    try {
+      DateTime dateTime = DateTime.parse(dateStr);
+      return DateFormat('MMMM d, yyyy').format(dateTime); // Result: January 25, 2026
+    } catch (e) {
+      return "Recently";
+    }
+  }
+
+  // --- 2. Full Screen Image Viewer ---
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                panEnabled: true, 
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.3),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -23,13 +70,15 @@ class CommunityPostDetailScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
-          // 1. Image Carousel Header
           SliverAppBar(
             expandedHeight: 350,
             pinned: true,
-            leading: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.5),
-              child: const BackButton(color: Colors.black),
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.7),
+                child: const BackButton(color: Colors.black),
+              ),
             ),
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
@@ -38,16 +87,20 @@ class CommunityPostDetailScreen extends StatelessWidget {
                   PageView.builder(
                     itemCount: post.media.isNotEmpty ? post.media.length : 1,
                     itemBuilder: (context, index) {
-                      final url = post.media.isNotEmpty
+                      final url = _getImageUrl(post.media.isNotEmpty
                           ? post.media[index].mediaUrl
-                          : post.coverImageUrl;
-                      return CachedNetworkImage(
-                        imageUrl: _getImageUrl(url),
-                        fit: BoxFit.cover,
+                          : post.coverImageUrl);
+                      
+                      // Wrapped in GestureDetector for Pop-out view
+                      return GestureDetector(
+                        onTap: () => _showFullScreenImage(context, url),
+                        child: CachedNetworkImage(
+                          imageUrl: url,
+                          fit: BoxFit.cover,
+                        ),
                       );
                     },
                   ),
-                  // Pagination dots could be added here
                 ],
               ),
             ),
@@ -59,7 +112,6 @@ class CommunityPostDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 2. Author and Actions
                   Row(
                     children: [
                       CircleAvatar(
@@ -73,49 +125,33 @@ class CommunityPostDetailScreen extends StatelessWidget {
                         children: [
                           Text(
                             post.authorName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
+                          // Updated Dynamic Date
                           Text(
-                            post.createdAt?.substring(0, 10) ?? "Recently",
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
+                            _formatFullDate(post.createdAt),
+                            style: const TextStyle(color: Colors.grey, fontSize: 12),
                           ),
                         ],
                       ),
                       const Spacer(),
-
-                      // DYNAMIC LIKE BUTTON
+                      
+                      // Like button logic remains the same...
                       Consumer<CommunityProvider>(
                         builder: (context, provider, child) {
-                          // Find the most up-to-date version of this post from the provider
                           final currentPost = provider.posts.firstWhere(
                             (p) => p.id == post.id,
                             orElse: () => post,
                           );
-
                           return IconButton(
                             icon: Icon(
-                              currentPost.isLiked
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: currentPost.isLiked
-                                  ? Colors.red
-                                  : Colors.black,
+                              currentPost.isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: currentPost.isLiked ? Colors.red : Colors.black,
                             ),
-                            onPressed: () {
-                              if (currentPost.id != null) {
-                                provider.toggleLike(currentPost.id!);
-                              }
-                            },
+                            onPressed: () => provider.toggleLike(currentPost.id!),
                           );
                         },
                       ),
-
                       const SizedBox(width: 5),
                       const Icon(Icons.bookmark_border, color: Colors.green),
                       const SizedBox(width: 5),
@@ -124,58 +160,36 @@ class CommunityPostDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // 3. Title and Content
                   Text(
                     post.title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     post.content,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      height: 1.5,
-                      color: Colors.black87,
-                    ),
+                    style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
                   ),
 
                   const SizedBox(height: 20),
-                  // Tags
                   Wrap(
                     spacing: 8,
-                    children: post.tags
-                        .map(
-                          (tag) => Chip(
-                            label: Text(
-                              tag,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            backgroundColor: Colors.grey[100],
-                            side: BorderSide.none,
-                          ),
-                        )
-                        .toList(),
+                    children: post.tags.map((tag) => Chip(
+                      label: Text(tag, style: const TextStyle(fontSize: 12)),
+                      backgroundColor: Colors.grey[100],
+                      side: BorderSide.none,
+                    )).toList(),
                   ),
 
                   const SizedBox(height: 30),
-                  const Text(
-                    "Itinerary",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+                  const Text("Itinerary", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
 
-                  // 4. Itinerary Days
                   ...post.days.map((day) => _buildDayCard(day)),
 
                   const SizedBox(height: 30),
-                  // 5. Trip Summary Card
                   _buildTripSummaryCard(),
 
                   const SizedBox(height: 40),
-                  // 6. ACTION BUTTON: "Use This Plan"
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -183,18 +197,9 @@ class CommunityPostDetailScreen extends StatelessWidget {
                       onPressed: () => _handleUsePlan(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text(
-                        "Use This Plan",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text("Use This Plan", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 50),

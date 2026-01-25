@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/features/auth/logic/auth_provider.dart';
+import 'package:tour_guide/features/community/presentation/widgets/community_search_delegate.dart';
 import 'package:tour_guide/features/community/presentation/widgets/create_post_modal.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../logic/community_provider.dart';
@@ -31,7 +32,8 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   void _onScroll() {
     // If user is 200 pixels from the bottom, fetch next page
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       // Logic for provider.loadMorePosts() can go here if you implement paging
       // For now, it ensures the controller is ready for future paging updates
     }
@@ -77,16 +79,27 @@ class _CommunityScreenState extends State<CommunityScreen> {
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text(
-          'Yatrika Community',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
+          'Community Stories',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black54),
-            onPressed: () {
-              // TODO: Implement Search Overlay calling CommunityService.search
+            onPressed: () async {
+              await showSearch(
+                context: context,
+                delegate: CommunitySearchDelegate(),
+              );
+              // Optional: Refresh original feed after closing search
+              if (context.mounted) {
+                context.read<CommunityProvider>().refreshPosts();
+              }
             },
           ),
           const SizedBox(width: 8),
@@ -124,7 +137,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
           children: [
             const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            Text(provider.errorMessage!, style: const TextStyle(color: Colors.black54)),
+            Text(
+              provider.errorMessage!,
+              style: const TextStyle(color: Colors.black54),
+            ),
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: () => provider.refreshPosts(),
@@ -157,12 +173,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
     // Case 4: Data List
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.only(top: 8, bottom: 80), 
+      padding: const EdgeInsets.only(top: 8, bottom: 80),
       itemCount: provider.posts.length,
       itemBuilder: (context, index) {
-        return CommunityPostFeedCard(
-          post: provider.posts[index],
-        );
+        return CommunityPostFeedCard(post: provider.posts[index]);
       },
     );
   }
@@ -195,7 +209,11 @@ class _SkeletonCard extends StatelessWidget {
               children: [
                 const Row(
                   children: [
-                    ShimmerLoading(width: 28, height: 28, borderRadius: BorderRadius.all(Radius.circular(14))),
+                    ShimmerLoading(
+                      width: 28,
+                      height: 28,
+                      borderRadius: BorderRadius.all(Radius.circular(14)),
+                    ),
                     SizedBox(width: 8),
                     ShimmerLoading(width: 100, height: 14),
                   ],

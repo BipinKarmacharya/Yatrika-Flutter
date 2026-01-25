@@ -13,12 +13,16 @@ class CommunityService {
     // Check for Spring Boot Pagination wrapper
     if (data is Map<String, dynamic> && data.containsKey('content')) {
       final List list = data['content'];
-      return list.map((e) => CommunityPost.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => CommunityPost.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
 
     // Check if it's a direct list
     if (data is List) {
-      return data.map((e) => CommunityPost.fromJson(e as Map<String, dynamic>)).toList();
+      return data
+          .map((e) => CommunityPost.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
 
     return [];
@@ -27,7 +31,10 @@ class CommunityService {
   static Future<List<CommunityPost>> getPublicPosts({
     Map<String, dynamic>? query,
   }) async {
-    final data = await ApiClient.get('/api/community/posts/public', query: query);
+    final data = await ApiClient.get(
+      '/api/community/posts/public',
+      query: query,
+    );
     return _mapResponse(data);
   }
 
@@ -41,11 +48,23 @@ class CommunityService {
     return _mapResponse(data);
   }
 
-  static Future<List<CommunityPost>> search({
-    Map<String, dynamic>? query,
-  }) async {
-    final data = await ApiClient.get('/api/community/posts/search', query: query);
-    return _mapResponse(data);
+  static Future<List<CommunityPost>> search(String query) async {
+    try {
+      // We pass the query as a URL parameter
+      final response = await ApiClient.get(
+        '/api/community/posts/search',
+        query: {'query': query},
+      );
+
+      if (response.data is List) {
+        return (response.data as List)
+            .map((json) => CommunityPost.fromJson(json))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
   }
 
   static Future<CommunityPost> getById(String id) async {
@@ -88,10 +107,7 @@ class CommunityService {
 
   /// ✅ UPDATED: Now uses ApiClient to handle the Token and URL automatically
   static Future<CommunityPost> createRaw(Map<String, dynamic> payload) async {
-    final data = await ApiClient.post(
-      '/api/community/posts',
-      body: payload,
-    );
+    final data = await ApiClient.post('/api/community/posts', body: payload);
 
     // ApiClient already decodes the JSON and handles errors (401, 403, etc.)
     return CommunityPost.fromJson(data as Map<String, dynamic>);

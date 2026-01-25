@@ -7,6 +7,7 @@ class CommunityProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isCreating = false;
+  String _searchQuery = "";
 
   List<CommunityPost> get posts => _posts;
   bool get isLoading => _isLoading;
@@ -22,6 +23,30 @@ class CommunityProvider extends ChangeNotifier {
       _posts = await CommunityService.getPublicPosts();
     } catch (e) {
       _errorMessage = "Could not load posts. Please try again.";
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> searchPosts(String query) async {
+    if (query.isEmpty) {
+      await refreshPosts(); // Go back to normal feed if search is cleared
+      return;
+    }
+
+    _searchQuery = query;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Assuming your CommunityService has a search method
+      // If not, it usually calls the same list endpoint with a ?search= parameter
+      final results = await CommunityService.search(query);
+      _posts = results;
+    } catch (e) {
+      _errorMessage = "Search failed. Please try again.";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -66,7 +91,7 @@ class CommunityProvider extends ChangeNotifier {
 
     try {
       await CommunityService.createRaw(payload);
-      await refreshPosts(); 
+      await refreshPosts();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
