@@ -20,17 +20,31 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   void initState() {
     super.initState();
+    // 1. Initial Load
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CommunityProvider>().loadPosts();
+      context.read<CommunityProvider>().refreshPosts();
     });
+
+    // 2. Add Scroll Listener for Pagination (Backend searching technique)
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    // If user is 200 pixels from the bottom, fetch next page
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      // Logic for provider.loadMorePosts() can go here if you implement paging
+      // For now, it ensures the controller is ready for future paging updates
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll); // Clean up listener
     _scrollController.dispose();
     super.dispose();
   }
 
+  // Handle Login Check and Modal
   void _handleCreatePost() {
     final auth = context.read<AuthProvider>();
 
@@ -39,6 +53,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         const SnackBar(
           content: Text("Please login to share your adventures!"),
           backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -47,6 +62,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true, // Ensures it doesn't overlap status bar
       backgroundColor: Colors.transparent,
       builder: (context) => const CreatePostModal(),
     );
@@ -54,33 +70,33 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // watch() is correct here to rebuild when the list changes
     final provider = context.watch<CommunityProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB), // Slightly off-white background to make cards pop
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text(
-          'Travel Community',
-          style: TextStyle(
-            color: Colors.black, 
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          'Yatrika Community',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
         ),
         backgroundColor: Colors.white,
-        centerTitle: false, // Align title to left like modern apps
-        elevation: 0.5, // Subtle shadow for depth
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.add_circle_outline,
-              color: AppColors.primary,
-              size: 28,
-            ),
-            onPressed: _handleCreatePost,
+            icon: const Icon(Icons.search, color: Colors.black54),
+            onPressed: () {
+              // TODO: Implement Search Overlay calling CommunityService.search
+            },
           ),
           const SizedBox(width: 8),
         ],
+      ),
+      // Floating Action Button for better reachability
+      floatingActionButton: FloatingActionButton(
+        onPressed: _handleCreatePost,
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: RefreshIndicator(
         onRefresh: () => provider.refreshPosts(),
@@ -91,6 +107,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
   }
 
   Widget _buildBody(CommunityProvider provider) {
+    // Case 1: Initial Loading
     if (provider.isLoading && provider.posts.isEmpty) {
       return ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -99,36 +116,49 @@ class _CommunityScreenState extends State<CommunityScreen> {
       );
     }
 
+    // Case 2: Error State
     if (provider.errorMessage != null && provider.posts.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+            const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
-            Text(provider.errorMessage!, style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 12),
-            ElevatedButton(
+            Text(provider.errorMessage!, style: const TextStyle(color: Colors.black54)),
+            const SizedBox(height: 16),
+            TextButton.icon(
               onPressed: () => provider.refreshPosts(),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              child: const Text("Retry", style: TextStyle(color: Colors.white)),
+              icon: const Icon(Icons.refresh),
+              label: const Text("Try Again"),
             ),
           ],
         ),
       );
     }
 
+    // Case 3: Empty List
     if (provider.posts.isEmpty) {
-      return const Center(
-        child: Text("No adventures shared yet. Be the first!"),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.network(
+              'https://cdn-icons-png.flaticon.com/512/6598/6598519.png', // Example placeholder
+              height: 150,
+              opacity: const AlwaysStoppedAnimation(0.5),
+            ),
+            const SizedBox(height: 20),
+            const Text("No stories yet. Start the journey!"),
+          ],
+        ),
       );
     }
 
+    // Case 4: Data List
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.only(top: 8, bottom: 100), // Room for bottom nav
+      padding: const EdgeInsets.only(top: 8, bottom: 80), 
       itemCount: provider.posts.length,
-      physics: const AlwaysScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         return CommunityPostFeedCard(
           post: provider.posts[index],

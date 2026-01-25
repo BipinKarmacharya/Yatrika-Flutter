@@ -130,7 +130,7 @@ class CommunityPost {
     "coverImageUrl": coverImageUrl,
     "isPublic": isPublic,
     "media": media.map((m) => m.toJson()).toList(),
-    "days": days.map((d) => d.toJson()).toList(), // Fixed null check error here
+    "days": days.map((d) => d.toJson()).toList(),
   };
 }
 

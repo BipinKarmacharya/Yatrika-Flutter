@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/core/theme/app_colors.dart';
-import 'package:tour_guide/features/auth/logic/auth_provider.dart';
 import 'package:tour_guide/features/community/data/services/file_upload_service.dart';
 import 'package:tour_guide/features/community/logic/community_provider.dart';
 
@@ -41,6 +40,8 @@ class _CreatePostModalState extends State<CreatePostModal> {
   }
 
   // 2. Main Logic Method
+
+  // 2. Main Logic Method
   Future<void> _handlePost() async {
     // Validation
     if (_titleCtrl.text.isEmpty || _destinationCtrl.text.isEmpty || _selectedImages.isEmpty) {
@@ -48,31 +49,22 @@ class _CreatePostModalState extends State<CreatePostModal> {
       return;
     }
 
-    // Access Providers
     final commProvider = context.read<CommunityProvider>();
-    final authProvider = context.read<AuthProvider>();
-    final token = authProvider.token;
-
-    if (token == null) {
-      _showSnack("Session expired. Please login again.");
-      return;
-    }
-
-    // Start loading state via Provider if you have it, or local state
-    setState(() {}); // Trigger build to show loading if needed
+    // Note: We no longer need to manually extract the token here for the upload service
+    // because FileUploadService now uses ApiClient.getToken() internally.
 
     try {
-      // Step A: Upload Images
+      // Step A: Upload Images 
+      // REMOVED 'token: token' as it is no longer a parameter in our updated Service
       final files = _selectedImages.map((x) => File(x.path)).toList();
       final uploadedUrls = await FileUploadService.uploadFiles(
         files: files,
         type: UploadType.post,
-        token: token,
       );
 
       if (uploadedUrls.isEmpty) throw Exception("Failed to upload images.");
 
-      // Step B: Construct Payload (This is the 'payload' that was missing!)
+      // Step B: Construct Payload
       final Map<String, dynamic> payload = {
         "title": _titleCtrl.text.trim(),
         "destination": _destinationCtrl.text.trim(),
@@ -80,13 +72,14 @@ class _CreatePostModalState extends State<CreatePostModal> {
         "tags": _selectedTags.toList(),
         "tripDurationDays": _days.length,
         "estimatedCost": double.tryParse(_costCtrl.text) ?? 0.0,
-        "coverImageUrl": uploadedUrls.first,
+        "coverImageUrl": uploadedUrls.first, // Uses the first uploaded image as cover
         "isPublic": true,
         "media": uploadedUrls.asMap().entries.map((e) => {
           "mediaUrl": e.value,
           "mediaType": "IMAGE",
-          "dayNumber": 1,
+          "dayNumber": 1, 
           "displayOrder": e.key,
+          "caption": "Trip Image",
         }).toList(),
         "days": _days.map((d) => {
           "dayNumber": d.dayNumber,
@@ -98,17 +91,87 @@ class _CreatePostModalState extends State<CreatePostModal> {
         }).toList(),
       };
 
-      // Step C: Send to Provider (This method refreshes the list automatically)
+      // Step C: Send to Provider
       final success = await commProvider.createPostFromRaw(payload);
 
       if (mounted && success) {
         Navigator.pop(context);
         _showSnack("Adventure shared successfully!");
+      } else if (mounted) {
+        _showSnack(commProvider.errorMessage ?? "Failed to create post");
       }
     } catch (e) {
       _showSnack(e.toString().replaceAll("Exception: ", ""));
     }
   }
+  // Future<void> _handlePost() async {
+  //   // Validation
+  //   if (_titleCtrl.text.isEmpty || _destinationCtrl.text.isEmpty || _selectedImages.isEmpty) {
+  //     _showSnack("Please provide a title, destination, and at least one photo.");
+  //     return;
+  //   }
+
+  //   // Access Providers
+  //   final commProvider = context.read<CommunityProvider>();
+  //   final authProvider = context.read<AuthProvider>();
+  //   final token = authProvider.token;
+
+  //   if (token == null) {
+  //     _showSnack("Session expired. Please login again.");
+  //     return;
+  //   }
+
+  //   // Start loading state via Provider if you have it, or local state
+  //   setState(() {}); // Trigger build to show loading if needed
+
+  //   try {
+  //     // Step A: Upload Images
+  //     final files = _selectedImages.map((x) => File(x.path)).toList();
+  //     final uploadedUrls = await FileUploadService.uploadFiles(
+  //       files: files,
+  //       type: UploadType.post,
+  //       token: token,
+  //     );
+
+  //     if (uploadedUrls.isEmpty) throw Exception("Failed to upload images.");
+
+  //     // Step B: Construct Payload (This is the 'payload' that was missing!)
+  //     final Map<String, dynamic> payload = {
+  //       "title": _titleCtrl.text.trim(),
+  //       "destination": _destinationCtrl.text.trim(),
+  //       "content": _contentCtrl.text.trim(),
+  //       "tags": _selectedTags.toList(),
+  //       "tripDurationDays": _days.length,
+  //       "estimatedCost": double.tryParse(_costCtrl.text) ?? 0.0,
+  //       "coverImageUrl": uploadedUrls.first,
+  //       "isPublic": true,
+  //       "media": uploadedUrls.asMap().entries.map((e) => {
+  //         "mediaUrl": e.value,
+  //         "mediaType": "IMAGE",
+  //         "dayNumber": 1,
+  //         "displayOrder": e.key,
+  //       }).toList(),
+  //       "days": _days.map((d) => {
+  //         "dayNumber": d.dayNumber,
+  //         "description": d.description.text.trim(),
+  //         "activities": d.activities.text.trim(),
+  //         "accommodation": "Standard",
+  //         "food": "Local",
+  //         "transportation": "Public",
+  //       }).toList(),
+  //     };
+
+  //     // Step C: Send to Provider (This method refreshes the list automatically)
+  //     final success = await commProvider.createPostFromRaw(payload);
+
+  //     if (mounted && success) {
+  //       Navigator.pop(context);
+  //       _showSnack("Adventure shared successfully!");
+  //     }
+  //   } catch (e) {
+  //     _showSnack(e.toString().replaceAll("Exception: ", ""));
+  //   }
+  // }
 
   void _showSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));

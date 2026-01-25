@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Add this package
+import 'package:provider/provider.dart';
+import 'package:tour_guide/features/community/logic/community_provider.dart';
 import '../../../../core/api/api_client.dart';
 import '../../data/models/community_post.dart';
 import '../screens/community_post_detail_screen.dart';
@@ -191,33 +193,13 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
+                      const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text(
-                        "${widget.post.tripDurationDays} days",
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 13,
-                        ),
-                      ),
+                      Text("${widget.post.tripDurationDays} days", style: const TextStyle(color: Colors.grey, fontSize: 13)),
                       const SizedBox(width: 12),
-                      const Icon(
-                        Icons.remove_red_eye_outlined,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
+                      const Icon(Icons.remove_red_eye_outlined, size: 14, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text(
-                        "${widget.post.totalViews} views",
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 13,
-                        ),
-                      ),
+                      Text("${widget.post.totalViews} views", style: const TextStyle(color: Colors.grey, fontSize: 13)),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -226,6 +208,44 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(height: 1.4, color: Colors.black87),
+                  ),
+                  
+                  // --- ADDED ACTION BAR HERE ---
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      // Like Button
+                      GestureDetector(
+                        onTap: () {
+                          if (widget.post.id != null) {
+                            context.read<CommunityProvider>().toggleLike(widget.post.id!);
+                          }
+                        },
+                        child: Row(
+                          children: [
+                            Icon(
+                              widget.post.isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: widget.post.isLiked ? Colors.red : Colors.grey,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "${widget.post.totalLikes}",
+                              style: TextStyle(
+                                color: widget.post.isLiked ? Colors.red : Colors.grey[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      // Share button (visual only for now)
+                      const Icon(Icons.share_outlined, size: 20, color: Colors.grey),
+                      const Spacer(),
+                      // Bookmark button (visual only for now)
+                      const Icon(Icons.bookmark_border, size: 22, color: Colors.grey),
+                    ],
                   ),
                 ],
               ),
