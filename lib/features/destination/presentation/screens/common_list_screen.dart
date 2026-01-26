@@ -21,6 +21,7 @@ class CommonListScreen extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 0,
       ),
+      // Change ListView to GridView for a professional look
       body: FutureBuilder<List<dynamic>>(
         future: future,
         builder: (context, snapshot) {
@@ -30,24 +31,32 @@ class CommonListScreen extends StatelessWidget {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          final items = snapshot.data ?? [];
 
-          return ListView.builder(
+          // Ensure we are working with the correct model type
+          final List<Destination> items = (snapshot.data ?? [])
+              .map(
+                (e) => e is Destination
+                    ? e
+                    : Destination.fromJson(e as Map<String, dynamic>),
+              )
+              .toList();
+
+          if (items.isEmpty)
+            return const Center(child: Text("No destinations found"));
+
+          return GridView.builder(
             padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, // 2 columns
+              childAspectRatio: 0.7, // Important: Gives height to the cards
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
             itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-
-              // If future returns a list of Destination models:
-              if (item is Destination) {
-                return DestinationCard(destination: item);
-              }
-
-              // If it returns raw JSON (Map):
-              return DestinationCard(
-                destination: Destination.fromJson(item as Map<String, dynamic>),
-              );
-            },
+            itemBuilder: (context, index) => DestinationCard(
+              destination: items[index],
+              isGrid: true, // We will add this variable in Step 2
+            ),
           );
         },
       ),

@@ -8,11 +8,15 @@ class CommunityProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _isCreating = false;
   String _searchQuery = "";
+  List<CommunityPost> _myPosts = [];
+  Map<String, dynamic>? _userStats;
 
   List<CommunityPost> get posts => _posts;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isCreating => _isCreating;
+  List<CommunityPost> get myPosts => _myPosts;
+  Map<String, dynamic>? get userStats => _userStats;
 
   Future<void> refreshPosts() async {
     _isLoading = true;
@@ -26,6 +30,26 @@ class CommunityProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> fetchMyPosts() async {
+    try {
+      // Assuming your service has a getMyPosts method using the /api/community/posts/my
+      _myPosts = await CommunityService.getMyPosts();
+      notifyListeners();
+    } catch (e) {
+      print("Error fetching my posts: $e");
+    }
+  }
+
+  // NEW: Fetch user stats (likes, post count)
+  Future<void> fetchUserStats(String userId) async {
+    try {
+      _userStats = await CommunityService.userStats(userId);
+      notifyListeners();
+    } catch (e) {
+      print("Error fetching stats: $e");
     }
   }
 

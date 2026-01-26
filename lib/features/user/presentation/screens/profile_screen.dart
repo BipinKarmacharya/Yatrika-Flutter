@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tour_guide/features/auth/ui/login_screen.dart';
+import 'package:tour_guide/features/community/logic/community_provider.dart';
+import 'package:tour_guide/features/user/presentation/widgets/my_stories_tab_view.dart';
 
 // Ensure these paths match your project structure
 import '../../../../core/theme/app_colors.dart';
@@ -10,12 +12,34 @@ import '../widgets/profile_stats_row.dart';
 import '../widgets/settings_tab_view.dart';
 import '../widgets/my_trips_tab_view.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  
+  @override
+  void initState() {
+    super.initState();
+    // ✅ This code runs EXACTLY ONCE when the screen is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      final community = context.read<CommunityProvider>();
+      
+      if (auth.isLoggedIn && auth.user != null) {
+        community.fetchUserStats(auth.user!.id.toString());
+        community.fetchMyPosts();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final community = context.watch<CommunityProvider>();
 
     // 1. Handle Guest View
     if (!auth.isLoggedIn) return const _GuestProfileView();
@@ -24,16 +48,47 @@ class ProfileScreen extends StatelessWidget {
     final fullName = "${user?.firstName ?? 'User'} ${user?.lastName ?? ''}";
 
     return DefaultTabController(
-      length: 4,
+      length: 3, // Matches the tabs: Trips, Stories, Saved
       child: Scaffold(
         backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+          title: const Text(
+            "Profile",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings_outlined, color: Colors.black),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => Container(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(25),
+                      ),
+                    ),
+                    child: SettingsTabView(email: user?.email ?? ""),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
         body: SafeArea(
           child: NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     // 2. Profile Avatar
                     Center(
                       child: CircleAvatar(
@@ -77,7 +132,9 @@ class ProfileScreen extends StatelessWidget {
                         _OutlinedButton(
                           icon: Icons.edit_outlined,
                           label: "Edit Profile",
-                          onTap: () {},
+                          onTap: () {
+                            // Handle Edit
+                          },
                         ),
                         const SizedBox(width: 12),
                         _OutlinedButton(
@@ -88,9 +145,15 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 15),
-                    // 5. Statistics Row (From your widgets folder)
-                    ProfileStatsRow(),
+                    const SizedBox(height: 20),
+                    // 5. Statistics Row - Using Real Data from Provider
+                    ProfileStatsRow(
+                      postCount: community.userStats?['postCount'] ?? 0,
+                      totalLikes:
+                          community.userStats?['totalLikesReceived'] ?? 0,
+                      reviewsCount:
+                          0, // Update this when you have ReviewProvider
+                    ),
                     const SizedBox(height: 10),
                   ],
                 ),
@@ -100,38 +163,30 @@ class ProfileScreen extends StatelessWidget {
                 pinned: true,
                 delegate: _SliverAppBarDelegate(
                   TabBar(
-                    isScrollable: true,
+                    isScrollable: false, // Better look for 3 tabs
                     indicatorColor: AppColors.primary,
-                    labelColor: Colors.black,
+                    labelColor: AppColors.primary,
                     unselectedLabelColor: Colors.grey,
-                    tabAlignment: TabAlignment.start,
                     tabs: [
                       _TabItem(
                         icon: Icons.location_on_outlined,
-                        label: "My Trips (1)",
-                      ),
-                      _TabItem(icon: Icons.bookmark_border, label: "Saved (3)"),
-                      _TabItem(
-                        icon: Icons.favorite_border,
-                        label: "Preferences",
+                        label: "Trips",
                       ),
                       _TabItem(
-                        icon: Icons.settings_outlined,
-                        label: "Settings",
+                        icon: Icons.auto_awesome_mosaic_outlined,
+                        label: "Stories",
                       ),
+                      _TabItem(icon: Icons.bookmark_border, label: "Saved"),
                     ],
                   ),
                 ),
               ),
             ],
-            body: TabBarView(
+            body: const TabBarView(
               children: [
-                const MyTripsTabView(),
-                const Center(child: Text("Saved Content")),
-                const Center(child: Text("Preferences Content")),
-                SettingsTabView(
-                  email: user?.email ?? "",
-                ), // From your widgets folder
+                MyTripsTabView(),
+                MyStoriesTabView(), // Now correctly displays user's grid
+                Center(child: Text("Saved Content coming soon!")),
               ],
             ),
           ),

@@ -3,29 +3,96 @@ import '../../../../core/api/api_client.dart';
 import '../models/destination.dart'; // Updated import
 
 class DestinationService {
-
   /// Helper to extract data from the ApiClient response and handle Pagination
   static List<Destination> _mapResponse(dynamic response) {
-    // 1. Safety check
     if (response == null) return [];
 
     List<dynamic> list = [];
 
-    // 2. Extract the list based on Spring Boot's response structure
+    // 1. Extract the list from various possible Spring Boot structures
     if (response is Map<String, dynamic>) {
       if (response.containsKey('content')) {
-        list = response['content']; // Standard Spring Pageable
+        // This is a Spring Data Page object (Common in paged lists)
+        list = response['content'];
       } else if (response.containsKey('data')) {
-        list = response['data']; // Generic wrapper
+        // This is your custom wrapper (if you use one)
+        final dataField = response['data'];
+        if (dataField is List) {
+          list = dataField;
+        } else if (dataField is Map && dataField.containsKey('content')) {
+          list = dataField['content'];
+        }
       }
     } else if (response is List) {
-      list = response; // Direct list
+      // This is a direct list (Common in 'popular' or 'top' endpoints)
+      list = response;
     }
 
-    // 3. Map to objects (The Model handles the Image URL logic now!)
-    return list
-        .map((e) => Destination.fromJson(e as Map<String, dynamic>))
-        .toList();
+    // 2. Map to objects
+    try {
+      return list
+          .map((e) => Destination.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint("MAPPING ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<List<Destination>> getRecommendations() async {
+    try {
+      final response = await ApiClient.get('/api/destinations/recommendations');
+      
+      // Using your existing _mapResponse helper to handle pagination/mapping
+      return _mapResponse(response is Map ? response : response.data);
+    } catch (e) {
+      debugPrint("Error fetching recommendations: $e");
+      // Fallback to popular if recommendations fail or user is guest
+      return popular(); 
+    }
+  }
+
+  static Future<List<Destination>> getFiltered({
+    String? search,
+    List<String>? tags,
+    String? budget,
+    String? sort,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParams = {};
+
+      if (search != null && search.isNotEmpty) {
+        queryParams['name'] = search; // Matches DestinationSearchRequest
+      }
+
+      if (tags != null && tags.isNotEmpty) {
+        // Most Spring Boot @ModelAttribute setups prefer repeating the key: tags=A&tags=B
+        queryParams['tags'] = tags;
+      }
+
+      // Budget Mapping
+      if (budget != "Any budget") {
+        if (budget == "Under \$100") {
+          queryParams['maxPrice'] = 100;
+        } else if (budget == "\$100 - \$200") {
+          queryParams['minPrice'] = 100;
+          queryParams['maxPrice'] = 200;
+        } else if (budget == "Over \$200") {
+          queryParams['minPrice'] = 200;
+        }
+      }
+
+      final response = await ApiClient.get(
+        '/api/destinations/search',
+        query: queryParams,
+      );
+
+      // IMPORTANT: If ApiClient returns a Dio Response object, pass response.data
+      return _mapResponse(response is Map ? response : response.data);
+    } catch (e) {
+      debugPrint("Error in getFiltered: $e");
+      return [];
+    }
   }
 
   static Future<List<Destination>> popular() async {

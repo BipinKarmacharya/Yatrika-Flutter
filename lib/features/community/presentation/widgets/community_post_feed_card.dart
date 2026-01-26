@@ -20,8 +20,9 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
   final PageController _pageController = PageController();
 
   String _getImageUrl(String? path) {
-    if (path == null || path.isEmpty)
+    if (path == null || path.isEmpty) {
       return "https://via.placeholder.com/400x300";
+    }
     if (path.startsWith('http')) return path;
     return '${ApiClient.baseUrl}$path';
   }

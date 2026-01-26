@@ -26,5 +26,7 @@ class AuthService {
     return UserModel.fromJson(response);
   }
 
+  
+
   static Future<void> logout() async => await ApiClient.logout();
 }

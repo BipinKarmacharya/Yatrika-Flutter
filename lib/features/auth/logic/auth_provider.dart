@@ -127,6 +127,47 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Updates user profile details (Names, Username, Interests)
+  Future<bool> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required List<String> interests,
+  }) async {
+    _setLoading(true);
+    _error = null;
+
+    try {
+      // 1. Update general info (Name & Username)
+      // Note: Adjust the endpoint path to match your Spring Boot controller
+      final profileResponse = await ApiClient.put(
+        '/api/users/${_user?.id}',
+        body: {
+          'firstName': firstName,
+          'lastName': lastName,
+          'username': username,
+        },
+      );
+
+      // 2. Update Interests
+      // We already created this endpoint earlier
+      await ApiClient.put('/api/users/${_user?.id}/interests', body: interests);
+
+      // 3. Refresh the local user data
+      // Instead of manual mapping, we fetch the fresh user object from the server
+      _user = await AuthService.getMe();
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      debugPrint("Update Profile Error: $_error");
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> logout() async {
     await ApiClient.logout();
     _user = null;

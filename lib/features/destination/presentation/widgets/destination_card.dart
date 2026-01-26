@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:tour_guide/features/destination/data/models/destination.dart';
 import 'package:url_launcher/url_launcher.dart';
-// 1. Import your detail screen
 import '../screens/destination_detail_screen.dart';
 
 class DestinationCard extends StatelessWidget {
-  const DestinationCard({super.key, required this.destination});
+  const DestinationCard({
+    super.key,
+    required this.destination,
+    this.isGrid = false,
+  });
 
   final Destination destination;
+  final bool isGrid;
 
-  // Re-integrated: We will call this from a long press or a specific button
+  // Fix: Fixed the Google Maps URL template string
   Future<void> _openMap() async {
     if (destination.lat != null && destination.lng != null) {
       final Uri url = Uri.parse(
@@ -27,99 +31,134 @@ class DestinationCard extends StatelessWidget {
 
     return InkWell(
       onTap: () => Navigator.push(
-        context, 
-        MaterialPageRoute(builder: (_) => DestinationDetailScreen(destination: destination))
+        context,
+        MaterialPageRoute(builder: (_) => DestinationDetailScreen(destination: destination)),
       ),
-      // Added long press to trigger the map since the button is gone in this style
-      onLongPress: _openMap, 
+      onLongPress: _openMap,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        margin: isGrid ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 5))
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, 
           children: [
-            Stack(
-              children: [
-                Hero(
-                  tag: 'dest_image_${destination.id}',
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: imageUrl == null 
-                      ? _buildPlaceholder(Icons.image) 
-                      : Image.network(
-                          imageUrl, 
-                          height: 220, 
-                          width: double.infinity, 
-                          fit: BoxFit.cover, 
-                          headers: const {"ngrok-skip-browser-warning": "true"}
+            // IMAGE SECTION
+            AspectRatio(
+              // Reduced aspect ratio for a shallower card on mobile
+              aspectRatio: isGrid ? 1.4 : 2.0, 
+              child: Stack(
+                children: [
+                  Hero(
+                    tag: 'dest_image_${destination.id}',
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      child: imageUrl == null
+                          ? _buildPlaceholder()
+                          : Image.network(
+                              imageUrl,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                            ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                          stops: const [0.5, 1.0],
                         ),
-                  ),
-                ),
-                Positioned(
-                  top: 15, 
-                  right: 15, 
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white.withOpacity(0.9), 
-                    radius: 18, 
-                    child: const Icon(Icons.bookmark_border, size: 20, color: Colors.black)
-                  )
-                ),
-                Positioned(
-                  bottom: 20, 
-                  left: 20,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        destination.name, 
-                        style: const TextStyle(
-                          color: Colors.white, 
-                          fontSize: 18, 
-                          fontWeight: FontWeight.bold, 
-                          // shadows: [Shadow(blurRadius: 10, color: Colors.black)]
-                        )
                       ),
-                      Text(
-                        destination.district ?? "Location", 
-                        style: const TextStyle(color: Colors.white70, fontSize: 16)
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _buildActionButton(Icons.bookmark_border),
+                  ),
+                  Positioned(
+                    bottom: 10,
+                    left: 10,
+                    right: 10,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          destination.name,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: isGrid ? 14 : 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          destination.district ?? "Location",
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+            
+            // DETAILS SECTION
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    destination.shortDescription, 
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
+                  if (!isGrid) ...[
+                    Text(
+                      destination.shortDescription,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.attach_money, color: Colors.teal[700], size: 18),
-                      // Fixed the string interpolation here (was a space between $ and {)
-                      Text(" ~\$${destination.cost.toInt()}/day", style: const TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 15),
-                      Icon(Icons.star, color: Colors.amber[700], size: 18),
-                      Text(" ${destination.averageRating} Rating"),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            destination.averageRating.toStringAsFixed(1),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "\$${destination.cost.toInt()}/day",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF009688),
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    children: destination.tags.take(3).map((tag) => _buildTagBadge(tag, Colors.teal)).toList(),
-                  )
+                  const SizedBox(height: 8),
+                  // TAGS SECTION - Works for both Grid and Home
+                  _buildTagsRow(),
                 ],
               ),
             ),
@@ -129,32 +168,69 @@ class DestinationCard extends StatelessWidget {
     );
   }
 
-  // ONLY KEEP THE HELPERS YOU ACTUALLY USE
-  Widget _buildPlaceholder(IconData icon) {
-    return Container(
-      height: 220,
-      width: double.infinity,
-      color: Colors.grey[200],
-      child: Icon(icon, color: Colors.grey, size: 40),
+  Widget _buildTagsRow() {
+    const int maxVisible = 2;
+    final tags = destination.tags;
+    final visibleTags = tags.take(maxVisible).toList();
+    final remaining = tags.length - maxVisible;
+
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ...visibleTags.map((tag) => _buildTagBadge(tag)),
+        if (remaining > 0)
+          Text(
+            "+$remaining",
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildTagBadge(String text, Color color) {
+  Widget _buildTagBadge(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF009688).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
+        style: const TextStyle(
+          color: Color(0xFF009688),
+          fontWeight: FontWeight.w600,
+          fontSize: 9,
+        ),
       ),
+    );
+  }
+
+  Widget _buildActionButton(IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, size: 16, color: Colors.black),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: Colors.grey[100],
+      child: const Icon(Icons.image_outlined, color: Colors.grey, size: 30),
     );
   }
 }
 
-// Keep FeaturedList for home screen carousel
+// --- FEATURED LIST ---
 
 class FeaturedList extends StatefulWidget {
   final List<Destination> destinations;
@@ -172,7 +248,7 @@ class _FeaturedListState extends State<FeaturedList> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.9);
+    _pageController = PageController(viewportFraction: 0.85);
   }
 
   @override
@@ -183,30 +259,26 @@ class _FeaturedListState extends State<FeaturedList> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.destinations.isEmpty) return const SizedBox.shrink();
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Increased height from 320 to 420 to prevent overflow
         SizedBox(
-          height: 380,
+          height: 340, // Reduced height to fit comfortably
           child: PageView.builder(
             controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPage = index;
-              });
-            },
+            onPageChanged: (index) => setState(() => _currentPage = index),
             itemCount: widget.destinations.length,
             itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              return AnimatedScale(
+                scale: _currentPage == index ? 1.0 : 0.9,
+                duration: const Duration(milliseconds: 300),
                 child: DestinationCard(destination: widget.destinations[index]),
               );
             },
           ),
         ),
-        const SizedBox(height: 16),
-        // Indicator Dots
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
@@ -214,13 +286,11 @@ class _FeaturedListState extends State<FeaturedList> {
             (index) => AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               margin: const EdgeInsets.symmetric(horizontal: 4),
-              height: 8,
-              width: _currentPage == index ? 24 : 8,
+              height: 6,
+              width: _currentPage == index ? 18 : 6,
               decoration: BoxDecoration(
-                color: _currentPage == index
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(4),
+                color: _currentPage == index ? const Color(0xFF009688) : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
