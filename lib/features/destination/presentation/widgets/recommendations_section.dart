@@ -10,7 +10,7 @@ class RecommendationsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return FutureBuilder<List<Destination>>(
       // This calls the new endpoint we set up
-      future: DestinationService.getRecommendations(), 
+      future: DestinationService.getRecommendations(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -41,7 +41,10 @@ class RecommendationsSection extends StatelessWidget {
                     onPressed: () {
                       // Navigate to a full list if needed
                     },
-                    child: const Text("See All", style: TextStyle(color: Color(0xFF009688))),
+                    child: const Text(
+                      "See All",
+                      style: TextStyle(color: Color(0xFF009688)),
+                    ),
                   ),
                 ],
               ),
