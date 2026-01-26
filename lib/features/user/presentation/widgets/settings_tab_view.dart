@@ -286,7 +286,7 @@ class _SettingsTabViewState extends State<SettingsTabView> {
       trailing: Switch(
         value: v,
         onChanged: onChanged,
-        activeColor: const Color(0xFF10B981),
+        activeThumbColor: const Color(0xFF10B981),
       ),
     );
   }

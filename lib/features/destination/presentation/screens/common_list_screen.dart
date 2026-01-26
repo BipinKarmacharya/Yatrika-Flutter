@@ -41,8 +41,9 @@ class CommonListScreen extends StatelessWidget {
               )
               .toList();
 
-          if (items.isEmpty)
+          if (items.isEmpty) {
             return const Center(child: Text("No destinations found"));
+          }
 
           return GridView.builder(
             padding: const EdgeInsets.all(16),

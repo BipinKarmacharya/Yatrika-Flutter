@@ -34,7 +34,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
   String _searchQuery = "";
   List<String> _appliedTags = [];
   String _appliedBudget = "Any budget";
-  String _sortBy = "Name";
+  final String _sortBy = "Name";
 
   final List<String> _availableTags = [
     "Adventure",
