@@ -3,7 +3,7 @@ import 'package:tour_guide/features/destination/data/models/destination.dart';
 import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/features/destination/presentation/screens/trip_planner_screen.dart';
-import 'package:tour_guide/features/itinerary/data/models/itinerary_model.dart';
+import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 import '../../../auth/logic/auth_provider.dart';
 
 class DestinationDetailScreen extends StatelessWidget {
@@ -183,8 +183,8 @@ class DestinationDetailScreen extends StatelessWidget {
                   _buildContentCard(
                     title: "Suggested Itineraries",
                     icon: Icons.auto_awesome_outlined,
-                    child: FutureBuilder<List<ItineraryResponse>>(
-                      future: _itineraryService.getItinerariesByDestination(
+                    child: FutureBuilder<List<Itinerary>>(
+                      future: ItineraryService.getItinerariesByDestination(
                         int.parse(destination.id.toString()),
                       ),
                       builder: (context, snapshot) {
@@ -429,7 +429,7 @@ class DestinationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildItineraryCard(ItineraryResponse itinerary) {
+  Widget _buildItineraryCard(Itinerary itinerary) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -445,28 +445,14 @@ class DestinationDetailScreen extends StatelessWidget {
         ],
       ),
       child: Theme(
-        data: ThemeData().copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          // The Dropdown Icon
-          trailing: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: Colors.teal,
-            size: 28,
-          ),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  itinerary.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Color(0xFF2D3142),
-                  ),
-                ),
-              ),
-              // Moved Theme tag here for better layout
+      data: ThemeData().copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(itinerary.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            if (itinerary.theme != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -474,88 +460,66 @@ class DestinationDetailScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  itinerary.theme,
-                  style: const TextStyle(
-                    color: Colors.teal,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  itinerary.theme!,
+                  style: const TextStyle(color: Colors.teal, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
-            ],
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4.0),
-            child: Text(
-              itinerary.items.isNotEmpty
-                  ? "${itinerary.items.length} Activities • Day ${itinerary.items.first.dayNumber}"
-                  : "No activities scheduled",
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          children: [
-            const Divider(height: 1),
-            // List of Activities
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                children: itinerary.items.asMap().entries.map((entry) {
-                  int idx = entry.key;
-                  var item = entry.value;
-                  bool isLast = idx == itinerary.items.length - 1;
-
-                  return _buildActivityItem(item, isLast);
-                }).toList(),
-              ),
-            ),
           ],
         ),
+        subtitle: Text(
+          "${itinerary.totalDays ?? 0} Days Plan",
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        children: [
+           Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Text(itinerary.description ?? "Explore this curated journey."),
+          ),
+          // We can add a button here to "View Full Plan"
+        ],
       ),
+    ),
     );
   }
 
   // Separate helper for the expanded activity list items
-  Widget _buildActivityItem(ItineraryItem item, bool isLast) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Minimalist Timeline Visual
-        Column(
-          children: [
-            const Icon(Icons.circle, size: 10, color: Colors.teal),
-            if (!isLast)
-              Container(width: 1, height: 40, color: Colors.grey.shade300),
-          ],
-        ),
-        const SizedBox(width: 12),
-        // Time and Detail
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "${item.startTime.substring(0, 5)} - ${item.title}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                if (item.description != null)
-                  Text(
-                    item.description!,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildActivityItem(ItineraryItem item, bool isLast) {
+  //   return Row(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       // Minimalist Timeline Visual
+  //       Column(
+  //         children: [
+  //           const Icon(Icons.circle, size: 10, color: Colors.teal),
+  //           if (!isLast)
+  //             Container(width: 1, height: 40, color: Colors.grey.shade300),
+  //         ],
+  //       ),
+  //       const SizedBox(width: 12),
+  //       // Time and Detail
+  //       Expanded(
+  //         child: Padding(
+  //           padding: const EdgeInsets.only(bottom: 16.0),
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               Text(
+  //                 "${item.startTime.substring(0, 5)} - ${item.title}",
+  //                 style: const TextStyle(
+  //                   fontWeight: FontWeight.bold,
+  //                   fontSize: 14,
+  //                 ),
+  //               ),
+  //               if (item.description != null)
+  //                 Text(
+  //                   item.description!,
+  //                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
+  //                 ),
+  //             ],
+  //           ),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 }

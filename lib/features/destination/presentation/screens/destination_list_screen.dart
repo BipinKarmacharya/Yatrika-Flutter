@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
+import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/public_trip_card.dart';
 
 // Service Imports
 import '../../data/services/destination_service.dart';
-import 'package:tour_guide/features/trips/date/services/trip_service.dart';
 
 // Model Imports
 import '../../data/models/destination.dart';
-import 'package:tour_guide/features/trips/date/models/trip.dart';
 
 // Widget Imports
 import '../widgets/destination_card.dart';
-import 'package:tour_guide/features/trips/presentation/widgets/public_trip_card.dart';
+
+// 1. Define the Enum outside the class
+enum ExploreTab { destinations, expertPlans, community }
 
 class DestinationListScreen extends StatefulWidget {
   const DestinationListScreen({super.key});
@@ -23,30 +26,22 @@ class DestinationListScreen extends StatefulWidget {
 class _DestinationListScreenState extends State<DestinationListScreen> {
   // 1. Data Lists
   List<Destination> _destinations = [];
-  List<Trip> _publicTrips = []; // Now uses the Trip model
+  List<Itinerary> _itineraries = []; 
 
   // 2. UI States
   bool _isLoading = true;
-  bool _isDestinationView = true;
+  ExploreTab _selectedTab = ExploreTab.destinations;
   Timer? _debounce;
 
-  // 3. Filter States (Synced with Backend)
+  // 3. Filter States
   String _searchQuery = "";
   List<String> _appliedTags = [];
   String _appliedBudget = "Any budget";
   final String _sortBy = "Name";
 
   final List<String> _availableTags = [
-    "Adventure",
-    "Beach",
-    "Cultural",
-    "Food",
-    "Hiking",
-    "Historical",
-    "Mountains",
-    "Nature",
-    "Nightlife",
-    "Wellness",
+    "Adventure", "Beach", "Cultural", "Food", "Hiking",
+    "Historical", "Mountains", "Nature", "Nightlife", "Wellness",
   ];
 
   @override
@@ -61,29 +56,31 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     super.dispose();
   }
 
-  /// Unified fetch method that calls the backend based on current filters
   Future<void> _refreshData() async {
     setState(() => _isLoading = true);
     try {
-      if (_isDestinationView) {
-        List<Destination> data;
-        // If no filters are active, get the default popular list
-        if (_searchQuery.isEmpty &&
-            _appliedTags.isEmpty &&
-            _appliedBudget == "Any budget") {
-          data = await DestinationService.popular();
-        } else {
-          data = await DestinationService.getFiltered(
+      switch (_selectedTab) {
+        case ExploreTab.destinations:
+          final data = (_searchQuery.isEmpty && _appliedTags.isEmpty)
+              ? await DestinationService.popular()
+              : await DestinationService.getFiltered(
+                  search: _searchQuery,
+                  tags: _appliedTags,
+                );
+          setState(() => _destinations = data);
+          break;
+
+        case ExploreTab.expertPlans:
+          final data = await ItineraryService.getExpertTemplates();
+          setState(() => _itineraries = data);
+          break;
+
+        case ExploreTab.community:
+          final data = await ItineraryService.getCommunityTrips(
             search: _searchQuery,
-            tags: _appliedTags,
-            budget: _appliedBudget,
-            sort: _sortBy,
           );
-        }
-        setState(() => _destinations = data);
-      } else {
-        final data = await TripService.getPublicTrips(search: _searchQuery);
-        setState(() => _publicTrips = data);
+          setState(() => _itineraries = data);
+          break;
       }
     } catch (e) {
       debugPrint("Error fetching data: $e");
@@ -102,9 +99,6 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final int crossAxisCount = screenWidth < 600 ? 1 : 2;
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -126,24 +120,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF009688)),
                   )
-                : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      // Adjusted aspect ratio for the new Trip cards
-                      childAspectRatio: _isDestinationView ? 0.65 : 0.82,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: _isDestinationView
-                        ? _destinations.length
-                        : _publicTrips.length,
-                    itemBuilder: (context, index) {
-                      return _isDestinationView
-                          ? DestinationCard(destination: _destinations[index])
-                          : PublicTripCard(trip: _publicTrips[index]);
-                    },
-                  ),
+                : _buildGrid(),
           ),
         ],
       ),
@@ -152,7 +129,29 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
 
   // --- HELPER WIDGETS ---
 
+  Widget _buildGrid() {
+    final bool isDest = _selectedTab == ExploreTab.destinations;
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: MediaQuery.of(context).size.width < 600 ? 1 : 2,
+        childAspectRatio: isDest ? 0.65 : 1.1,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: isDest ? _destinations.length : _itineraries.length,
+      itemBuilder: (context, index) {
+        if (isDest) {
+          return DestinationCard(destination: _destinations[index]);
+        } else {
+          return PublicTripCard(itinerary: _itineraries[index]);
+        }
+      },
+    );
+  }
+
   Widget _buildSearchBar() {
+    final bool isDest = _selectedTab == ExploreTab.destinations;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
@@ -161,9 +160,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
             child: TextField(
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: _isDestinationView
-                    ? "Search destinations..."
-                    : "Search trips...",
+                hintText: isDest ? "Search destinations..." : "Search trips...",
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.grey.shade100,
@@ -175,7 +172,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          if (_isDestinationView) // Filters only apply to Destinations in this logic
+          if (isDest) 
             _buildIconButton(Icons.tune, _showFilterModal),
         ],
       ),
@@ -196,98 +193,60 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
   }
 
   Widget _buildTabToggle() {
-    return Padding(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          _toggleButton("Destinations", _isDestinationView, () {
-            setState(() => _isDestinationView = true);
-            _refreshData();
-          }),
-          const SizedBox(width: 12),
-          _toggleButton("Public Trips", !_isDestinationView, () {
-            setState(() => _isDestinationView = false);
-            _refreshData();
-          }, count: _publicTrips.length),
+          _toggleButton("Destinations", ExploreTab.destinations),
+          const SizedBox(width: 8),
+          _toggleButton("Expert Plans", ExploreTab.expertPlans),
+          const SizedBox(width: 8),
+          _toggleButton("Community", ExploreTab.community, 
+            count: _selectedTab == ExploreTab.community ? _itineraries.length : null),
         ],
       ),
     );
   }
 
-  Widget _toggleButton(
-    String label,
-    bool isSelected,
-    VoidCallback onTap, {
-    int? count,
-  }) {
+  Widget _toggleButton(String label, ExploreTab tab, {int? count}) {
+    final bool isSelected = _selectedTab == tab;
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
+      onTap: () {
+        setState(() => _selectedTab = tab);
+        _refreshData();
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF009688).withOpacity(0.1)
-              : Colors.transparent,
+          color: isSelected ? const Color(0xFF009688).withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF009688) : Colors.grey.shade300,
-          ),
+          border: Border.all(color: isSelected ? const Color(0xFF009688) : Colors.grey.shade300),
         ),
-        child: Row(
-          children: [
-            if (label == "Public Trips")
-              const Icon(
-                Icons.explore_outlined,
-                size: 18,
-                color: Colors.black87,
-              ),
-            if (label == "Public Trips") const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF009688) : Colors.black87,
-              ),
-            ),
-            if (count != null && count > 0) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF009688)
-                      : Colors.grey.shade200,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  count.toString(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isSelected ? Colors.white : Colors.black87,
-                  ),
-                ),
-              ),
-            ],
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? const Color(0xFF009688) : Colors.black87,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildResultHeader() {
-    int count = _isDestinationView ? _destinations.length : _publicTrips.length;
+    final bool isDest = _selectedTab == ExploreTab.destinations;
+    int count = isDest ? _destinations.length : _itineraries.length;
+    String type = isDest ? 'destinations' : 'trips';
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          "$count ${_isDestinationView ? 'destinations' : 'public trips'} found",
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          "$count $type found",
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w500),
         ),
       ),
     );
@@ -305,9 +264,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.8,
-              ),
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -319,22 +276,13 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "Filters",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text("Filters", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       TextButton(
                         onPressed: () => setModalState(() {
                           tempTags.clear();
                           tempBudget = "Any budget";
                         }),
-                        child: const Text(
-                          "Clear All",
-                          style: TextStyle(color: Colors.red),
-                        ),
+                        child: const Text("Clear All", style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
@@ -344,10 +292,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Categories",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          const Text("Categories", style: TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 12),
                           Wrap(
                             spacing: 8,
@@ -356,42 +301,20 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                               return FilterChip(
                                 label: Text(tag),
                                 selected: isSelected,
-                                onSelected: (s) => setModalState(
-                                  () => s
-                                      ? tempTags.add(tag)
-                                      : tempTags.remove(tag),
-                                ),
-                                selectedColor: const Color(
-                                  0xFF009688,
-                                ).withOpacity(0.1),
+                                onSelected: (s) => setModalState(() => s ? tempTags.add(tag) : tempTags.remove(tag)),
+                                selectedColor: const Color(0xFF009688).withOpacity(0.1),
                                 checkmarkColor: const Color(0xFF009688),
                               );
                             }).toList(),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "Budget",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          const Text("Budget", style: TextStyle(fontWeight: FontWeight.bold)),
                           DropdownButton<String>(
                             value: tempBudget,
                             isExpanded: true,
-                            items:
-                                [
-                                      "Any budget",
-                                      "Under \$100",
-                                      "\$100 - \$200",
-                                      "Over \$200",
-                                    ]
-                                    .map(
-                                      (e) => DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (v) =>
-                                setModalState(() => tempBudget = v!),
+                            items: ["Any budget", "Under \$100", "\$100 - \$200", "Over \$200"]
+                                .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                            onChanged: (v) => setModalState(() => tempBudget = v!),
                           ),
                         ],
                       ),
@@ -400,9 +323,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF009688),
-                      ),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF009688)),
                       onPressed: () {
                         setState(() {
                           _appliedTags = tempTags;
@@ -411,10 +332,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                         _refreshData();
                         Navigator.pop(context);
                       },
-                      child: const Text(
-                        "Apply Filters",
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: const Text("Apply Filters", style: TextStyle(color: Colors.white)),
                     ),
                   ),
                 ],
@@ -425,4 +343,4 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
       },
     );
   }
-}
+} // End of class
