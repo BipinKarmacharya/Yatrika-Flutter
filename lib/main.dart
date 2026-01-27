@@ -25,6 +25,8 @@ import 'features/itinerary/presentation/screens/plan_screen.dart';
 import 'features/destination/presentation/screens/destination_list_screen.dart';
 import 'shared/ui/screens/animated_splash_screen.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
@@ -33,6 +35,11 @@ void main() async {
 
   // Initialize ApiClient (Loads token from SharedPreferences)
   await ApiClient.init();
+
+  Future<void> main() async {
+    await dotenv.load(fileName: ".env"); // Load the .env file
+    runApp(MyApp());
+  }
 
   runApp(
     MultiProvider(
@@ -61,10 +68,10 @@ class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
   }
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -87,7 +94,7 @@ class MyApp extends StatelessWidget {
       home: const AnimatedSplashScreen(
         duration: Duration(seconds: 3),
         child: AuthWrapper(),
-      ), 
+      ),
     );
   }
 }
@@ -103,26 +110,23 @@ class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
 
   List<Widget> get _screens => [
-        TourBookHome(
-          onProfileTap: () => setState(() => _currentIndex = 4),
-          onNavigateToDiscover: () => setState(() => _currentIndex = 1),
-        ),
-        const DestinationListScreen(),
-        PlanScreen(
-          onBack: () => setState(() => _currentIndex = 0),
-          onNavigateToDiscover: () => setState(() => _currentIndex = 1),
-        ),
-        const CommunityScreen(),
-        const ProfileScreen(),
-      ];
+    TourBookHome(
+      onProfileTap: () => setState(() => _currentIndex = 4),
+      onNavigateToDiscover: () => setState(() => _currentIndex = 1),
+    ),
+    const DestinationListScreen(),
+    PlanScreen(
+      onBack: () => setState(() => _currentIndex = 0),
+      onNavigateToDiscover: () => setState(() => _currentIndex = 1),
+    ),
+    const CommunityScreen(),
+    const ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: const Color.fromARGB(0, 8, 2, 2),
         color: Colors.white,
@@ -131,11 +135,26 @@ class _MainNavigatorState extends State<MainNavigator> {
         index: _currentIndex,
         animationDuration: const Duration(milliseconds: 300),
         items: const [
-          CurvedNavigationBarItem(child: Icon(Icons.home_outlined), label: 'Home'),
-          CurvedNavigationBarItem(child: Icon(Icons.explore_outlined), label: 'Explore'),
-          CurvedNavigationBarItem(child: Icon(Icons.add_circle_outline), label: 'Plan'),
-          CurvedNavigationBarItem(child: Icon(Icons.article_outlined), label: 'Posts'),
-          CurvedNavigationBarItem(child: Icon(Icons.person_outline), label: 'Profile'),
+          CurvedNavigationBarItem(
+            child: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
+          CurvedNavigationBarItem(
+            child: Icon(Icons.explore_outlined),
+            label: 'Explore',
+          ),
+          CurvedNavigationBarItem(
+            child: Icon(Icons.add_circle_outline),
+            label: 'Plan',
+          ),
+          CurvedNavigationBarItem(
+            child: Icon(Icons.article_outlined),
+            label: 'Posts',
+          ),
+          CurvedNavigationBarItem(
+            child: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
         ],
         onTap: (index) => setState(() => _currentIndex = index),
       ),
