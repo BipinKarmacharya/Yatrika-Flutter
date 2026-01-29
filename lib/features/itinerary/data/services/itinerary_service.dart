@@ -28,8 +28,8 @@ class ItineraryService {
       // Adjust path to match your Spring Boot controller (e.g., /api/v1/destinations)
       final dynamic response = await ApiClient.get('/api/destinations');
       if (response is Map && response.containsKey('content')) {
-      return response['content'] as List<dynamic>;
-    }
+        return response['content'] as List<dynamic>;
+      }
       return response as List<dynamic>;
     } catch (e) {
       debugPrint("Error fetching all destinations: $e");
@@ -104,16 +104,45 @@ class ItineraryService {
   static Future<void> toggleItemVisited(
     int itineraryId,
     int itemId,
-    bool visited,
+    bool isVisited,
   ) async {
+    debugPrint(
+      "📡 Calling: PATCH /itineraries/$itineraryId/items/$itemId/toggle-visited?visited=$isVisited",
+    );
+
     try {
+      // ✅ Use query parameter as shown in backend: @RequestParam Boolean visited
       await ApiClient.patch(
         '$_featurePath/$itineraryId/items/$itemId/toggle-visited',
-        query: {'visited': visited.toString()},
+        query: {'visited': isVisited}, // This becomes ?visited=true/false
       );
+
+      debugPrint("✅ Visited status toggled to: $isVisited");
     } catch (e) {
-      debugPrint("Error toggling visited status: $e");
-      throw Exception("Failed to update activity status");
+      debugPrint("❌ Toggle failed: $e");
+      throw Exception("Could not update visited status: $e");
+    }
+  }
+
+  /// UPDATE: Update itinerary item details (e.g., notes, time)
+  static Future<void> updateItineraryItem(
+    int itineraryId,
+    int itemId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      debugPrint("Updating item: $itineraryId/$itemId");
+      debugPrint("Data: $data");
+
+      final response = await ApiClient.put(
+        '$_featurePath/$itineraryId/items/$itemId',
+        body: data,
+      );
+
+      debugPrint("Update response: $response");
+    } catch (e) {
+      debugPrint("Update error: $e");
+      throw Exception("Could not update activity");
     }
   }
 
@@ -149,14 +178,6 @@ class ItineraryService {
     }
   }
 
-  static Future<void> updateItineraryItem(int itineraryId, int itemId, Map<String, dynamic> data) async {
-  // Change 'data: data' to 'body: data'
-  await ApiClient.patch(
-    '$_featurePath/$itineraryId/items/$itemId', 
-    body: data, 
-  );
-}
-
   // Update full itinerary including items
   static Future<Itinerary> updateFullItinerary(
     int id,
@@ -173,5 +194,37 @@ class ItineraryService {
   // Delete trip
   static Future<void> deleteItinerary(int id) async {
     await ApiClient.delete('$_featurePath/$id');
+  }
+
+  // Test All APIs
+  // Add this to itinerary_service.dart
+  static Future<void> testAllApis(int itineraryId, int itemId) async {
+    debugPrint("🧪 TESTING ALL APIS");
+
+    // Test 1: Toggle visited
+    try {
+      await toggleItemVisited(itineraryId, itemId, true);
+      debugPrint("✅ Test 1: toggle-visited PASSED");
+    } catch (e) {
+      debugPrint("❌ Test 1: toggle-visited FAILED: $e");
+    }
+
+    // Test 2: Update notes
+    try {
+      await updateItineraryItem(itineraryId, itemId, {
+        'notes': 'Test note ${DateTime.now().toIso8601String()}',
+      });
+      debugPrint("✅ Test 2: update-item PASSED");
+    } catch (e) {
+      debugPrint("❌ Test 2: update-item FAILED: $e");
+    }
+
+    // Test 3: Get details (should always work)
+    try {
+      await getItineraryDetails(itineraryId);
+      debugPrint("✅ Test 3: get-details PASSED");
+    } catch (e) {
+      debugPrint("❌ Test 3: get-details FAILED: $e");
+    }
   }
 }

@@ -54,7 +54,7 @@ class ItineraryItem {
       endTime: json['endTime'],
       dayNumber: json['dayNumber'] ?? 1,
       orderInDay: json['orderInDay'] ?? 0,
-      isVisited: json['isVisited'] ?? false,
+      isVisited: json['is_visited'] ?? json['visited'] ?? false,
       destinationId: json['destinationId'] ?? (json['destination'] != null ? json['destination']['id'] : null),
       destination: json['destination'],
     );

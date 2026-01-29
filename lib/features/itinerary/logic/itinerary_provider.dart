@@ -57,66 +57,54 @@ class ItineraryProvider extends ChangeNotifier {
 
   /// Toggle activity progress and update local state
   Future<void> toggleActivityProgress(
-  int itineraryId,
-  int itemId,
-  bool isVisited,
-) async {
-  try {
-    debugPrint("🔄 toggleActivityProgress: itemId=$itemId, isVisited=$isVisited");
-    
-    await ItineraryService.toggleItemVisited(itineraryId, itemId, isVisited);
+    int itineraryId,
+    int itemId,
+    bool isVisited,
+  ) async {
+    try {
+      debugPrint(
+        "🔄 toggleActivityProgress: itemId=$itemId, visited=$isVisited",
+      );
 
-    // FIND the plan in the list
-    int planIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
-    if (planIndex != -1) {
-      final plan = _myPlans[planIndex];
-      
-      debugPrint("📋 Plan found. Items count: ${plan.items?.length ?? 0}");
-      
-      // 1. Update the specific item's isVisited status
-      if (plan.items != null) {
-        List<ItineraryItem> updatedItems = List.from(plan.items!);
-        int itemIndex = updatedItems.indexWhere((item) => item.id == itemId);
-        
-        if (itemIndex != -1) {
-          debugPrint("✅ Found item at index $itemIndex, updating isVisited to $isVisited");
-          
-          updatedItems[itemIndex] = updatedItems[itemIndex].copyWith(
-            isVisited: isVisited,
-          );
-          
-          // Update the plan with new items
-          _myPlans[planIndex] = plan.copyWith(
-            items: updatedItems,
-          );
-          
-          debugPrint("🔄 Updated plan items count: ${_myPlans[planIndex].items?.length ?? 0}");
-        } else {
-          debugPrint("❌ Item not found in plan items!");
+      // Call the service
+      await ItineraryService.toggleItemVisited(itineraryId, itemId, isVisited);
+
+      // Update local state
+      int planIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
+      if (planIndex != -1) {
+        final plan = _myPlans[planIndex];
+        if (plan.items != null) {
+          List<ItineraryItem> updatedItems = List.from(plan.items!);
+          int itemIndex = updatedItems.indexWhere((item) => item.id == itemId);
+          if (itemIndex != -1) {
+            updatedItems[itemIndex] = updatedItems[itemIndex].copyWith(
+              isVisited: isVisited,
+            );
+
+            _myPlans[planIndex] = plan.copyWith(items: updatedItems);
+
+            // Update summary
+            int visitedCount = updatedItems
+                .where((item) => item.isVisited)
+                .length;
+            if (plan.summary != null) {
+              _myPlans[planIndex] = _myPlans[planIndex].copyWith(
+                summary: plan.summary!.copyWith(
+                  completedActivities: visitedCount,
+                ),
+              );
+            }
+
+            notifyListeners();
+            debugPrint("✅ Updated: $visitedCount visited activities");
+          }
         }
       }
-      
-      // 2. Update the summary completedActivities count
-      if (plan.summary != null) {
-        int currentCompleted = plan.summary!.completedActivities ?? 0;
-        int newCount = isVisited ? currentCompleted + 1 : currentCompleted - 1;
-        
-        _myPlans[planIndex] = _myPlans[planIndex].copyWith(
-          summary: plan.summary!.copyWith(
-            completedActivities: newCount,
-          ),
-        );
-        
-        debugPrint("📊 Updated summary: $newCount completed");
-      }
-      
-      notifyListeners(); // This triggers UI rebuild
-      debugPrint("🔔 notifyListeners() called");
+    } catch (e) {
+      debugPrint("❌ Progress Sync Error: $e");
+      throw Exception("Failed to update progress: $e");
     }
-  } catch (e) {
-    debugPrint("❌ Progress Sync Error: $e");
   }
-}
 
   /// Deletes a trip and updates the local list instantly (Optimistic UI)
   Future<bool> deletePlan(int itineraryId) async {
