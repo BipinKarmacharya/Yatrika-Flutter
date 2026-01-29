@@ -148,10 +148,10 @@ class TimelineActivityCard extends StatelessWidget {
   }
 
   Widget _buildNotesSection() {
-    return const Padding(
-      padding: EdgeInsets.only(top: 8.0),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
       child: Text(
-        "Explore this location",
+          item.notes ?? "Explore this location",
         style: TextStyle(
           color: Colors.grey,
           fontSize: 13,

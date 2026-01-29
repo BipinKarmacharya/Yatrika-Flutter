@@ -150,8 +150,6 @@ class ItineraryProvider extends ChangeNotifier {
             'description': updatedItinerary.description,
             'items': itemsJson,
           });
-      debugPrint("Server returned ${response.items?.length} items");
-      // CRITICAL: Find and replace the entire object in the list
       int index = _myPlans.indexWhere((p) => p.id == updatedItinerary.id);
       if (index != -1) {
         _myPlans[index] = response;
