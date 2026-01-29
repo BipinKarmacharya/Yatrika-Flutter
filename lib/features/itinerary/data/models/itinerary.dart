@@ -74,7 +74,7 @@ class Itinerary {
           : null,
       items: json['items'] != null
           ? (json['items'] as List).map((i) => ItineraryItem.fromJson(i)).toList()
-          : [],
+          : null,
     );
   }
 

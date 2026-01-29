@@ -29,11 +29,11 @@ class StandardTimeline extends StatelessWidget {
               order: index + 1,
               canEdit: isOwner,
               isEditing: isEditing,
-              onToggleVisited: () => onToggleVisited(item.id!, item.isVisited),
-              onEditNotes: () {}, // Not available in standard mode
-              onDeleteActivity: () {}, // Not available in standard mode
-              onChangeTime: () {}, // Not available in standard mode
-              onReorder: () {}, // Not available in standard mode
+              onToggleVisited: (newValue) => onToggleVisited(item.id!, newValue), 
+              onEditNotes: () {},
+              onDeleteActivity: () {},
+              onChangeTime: () {},
+              onReorder: () {},
             );
           },
           childCount: dailyItems.length,

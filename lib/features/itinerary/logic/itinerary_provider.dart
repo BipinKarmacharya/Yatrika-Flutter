@@ -23,6 +23,17 @@ class ItineraryProvider extends ChangeNotifier {
 
     try {
       _myPlans = await ItineraryService.getMyPlans();
+
+      // DEBUG: Check what was parsed
+      debugPrint("📦 fetchMyPlans completed - Got ${_myPlans.length} plans");
+      for (var plan in _myPlans) {
+        debugPrint("   Plan ${plan.id}: ${plan.items?.length ?? 0} items");
+        if (plan.items != null) {
+          for (var item in plan.items!) {
+            debugPrint("     Item ${item.id}: isVisited=${item.isVisited}");
+          }
+        }
+      }
     } catch (e) {
       _errorMessage = "Failed to load your trips. Please try again.";
       debugPrint("FetchMyPlans Error: $e");
@@ -73,36 +84,60 @@ class ItineraryProvider extends ChangeNotifier {
       int planIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
       if (planIndex != -1) {
         final plan = _myPlans[planIndex];
-        if (plan.items != null) {
-          List<ItineraryItem> updatedItems = List.from(plan.items!);
-          int itemIndex = updatedItems.indexWhere((item) => item.id == itemId);
-          if (itemIndex != -1) {
-            updatedItems[itemIndex] = updatedItems[itemIndex].copyWith(
-              isVisited: isVisited,
+
+        // If items is null, we need to fetch them or initialize empty list
+        List<ItineraryItem> updatedItems = plan.items != null
+            ? List.from(plan.items!)
+            : [];
+
+        int itemIndex = updatedItems.indexWhere((item) => item.id == itemId);
+        if (itemIndex != -1) {
+          updatedItems[itemIndex] = updatedItems[itemIndex].copyWith(
+            isVisited: isVisited,
+          );
+
+          _myPlans[planIndex] = plan.copyWith(items: updatedItems);
+
+          // Update summary
+          int visitedCount = updatedItems
+              .where((item) => item.isVisited)
+              .length;
+          if (plan.summary != null) {
+            _myPlans[planIndex] = _myPlans[planIndex].copyWith(
+              summary: plan.summary!.copyWith(
+                completedActivities: visitedCount,
+              ),
             );
-
-            _myPlans[planIndex] = plan.copyWith(items: updatedItems);
-
-            // Update summary
-            int visitedCount = updatedItems
-                .where((item) => item.isVisited)
-                .length;
-            if (plan.summary != null) {
-              _myPlans[planIndex] = _myPlans[planIndex].copyWith(
-                summary: plan.summary!.copyWith(
-                  completedActivities: visitedCount,
-                ),
-              );
-            }
-
-            notifyListeners();
-            debugPrint("✅ Updated: $visitedCount visited activities");
           }
+
+          notifyListeners();
+          debugPrint("✅ Updated: $visitedCount visited activities");
+        } else {
+          debugPrint("❌ Item not found in provider: $itemId");
+          // Item not in provider, need to refresh from API
+          await _refreshPlanFromApi(itineraryId);
         }
       }
     } catch (e) {
       debugPrint("❌ Progress Sync Error: $e");
       throw Exception("Failed to update progress: $e");
+    }
+  }
+
+  // Helper method to refresh a single plan
+  Future<void> _refreshPlanFromApi(int itineraryId) async {
+    try {
+      final data = await ItineraryService.getItineraryDetails(itineraryId);
+      final updatedItinerary = Itinerary.fromJson(data);
+
+      int planIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
+      if (planIndex != -1) {
+        _myPlans[planIndex] = updatedItinerary;
+        notifyListeners();
+        debugPrint("✅ Refreshed plan $itineraryId from API");
+      }
+    } catch (e) {
+      debugPrint("❌ Failed to refresh plan: $e");
     }
   }
 

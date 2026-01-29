@@ -6,7 +6,7 @@ class TimelineActivityCard extends StatelessWidget {
   final int order;
   final bool canEdit;
   final bool isEditing;
-  final VoidCallback onToggleVisited;
+  final Function(bool) onToggleVisited; 
   final VoidCallback onEditNotes;
   final VoidCallback onDeleteActivity;
   final VoidCallback onChangeTime;
@@ -124,7 +124,11 @@ class TimelineActivityCard extends StatelessWidget {
             child: Checkbox(
               activeColor: const Color(0xFF009688),
               value: item.isVisited,
-              onChanged: (val) => onToggleVisited(),
+              onChanged: (val) {
+                // debugPrint("✅ Checkbox tapped! Item ID: ${item.id}, Current: ${item.isVisited}, New: $val");
+                onToggleVisited(val ?? false);
+              },
+
             ),
           ),
       ],

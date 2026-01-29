@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/progress_stats.dart';
 
 class MyTripsTabView extends StatelessWidget {
   const MyTripsTabView({super.key});
@@ -258,32 +259,36 @@ class MyTripsTabView extends StatelessWidget {
   }
 
   Widget _buildProgressBar(Itinerary trip) {
-    final total = trip.summary?.activityCount ?? 0;
-    final completed = trip.summary?.completedActivities ?? 0;
-
-    // Calculate actual percentage
-    double progress = total > 0 ? completed / total : 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(
-            value: progress, 
-            backgroundColor: Colors.grey[200],
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-            minHeight: 6,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "$completed of $total activities visited",
-          style: const TextStyle(fontSize: 10, color: Colors.grey),
-        ),
-      ],
-    );
+    return ProgressStats.forTripCard(itinerary: trip);
   }
+
+  // Widget _buildProgressBar(Itinerary trip) {
+  //   final total = trip.summary?.activityCount ?? 0;
+  //   final completed = trip.summary?.completedActivities ?? 0;
+
+  //   // Calculate actual percentage
+  //   double progress = total > 0 ? completed / total : 0;
+
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       ClipRRect(
+  //         borderRadius: BorderRadius.circular(10),
+  //         child: LinearProgressIndicator(
+  //           value: progress,
+  //           backgroundColor: Colors.grey[200],
+  //           valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+  //           minHeight: 6,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 4),
+  //       Text(
+  //         "$completed of $total activities visited",
+  //         style: const TextStyle(fontSize: 10, color: Colors.grey),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildEmptyState() {
     return Center(

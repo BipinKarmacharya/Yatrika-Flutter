@@ -42,40 +42,84 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     super.initState();
     _currentTitle = widget.itinerary.title;
     _currentDescription = widget.itinerary.description;
+
+    // Add a post-frame callback to setup provider listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupProviderListener();
+    });
+
     _fetchFullDetails();
+  }
+
+  void _setupProviderListener() {
+    final provider = context.read<ItineraryProvider>();
+
+    // Listen to provider changes
+    provider.addListener(() {
+      if (mounted && !_isEditing && !_isLoading) {
+        _syncWithProvider();
+      }
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Add a flag to prevent multiple syncs
-    if (!_isLoading && !_isSyncing) {
-      _isSyncing = true;
-      _syncItemsWithProvider();
-      // Reset flag after delay
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) _isSyncing = false;
-      });
+    // Always sync with provider when not editing and mounted
+    if (mounted && !_isEditing && !_isLoading) {
+      _syncWithProvider();
     }
   }
 
-  // Add this variable
-  bool _isSyncing = false;
-
-  void _syncItemsWithProvider() {
+  void _syncWithProvider() {
     final provider = context.read<ItineraryProvider>();
     final providerPlan = provider.myPlans.firstWhere(
       (p) => p.id == widget.itinerary.id,
       orElse: () => widget.itinerary,
     );
 
-    if (providerPlan.items != null &&
-        providerPlan.items!.isNotEmpty &&
-        mounted) {
-      setState(() => _tempItems = List.from(providerPlan.items!));
+    debugPrint(
+      "🔄 Syncing: Provider has ${providerPlan.items?.length ?? 0} items, Local has ${_tempItems.length} items",
+    );
+
+    if (providerPlan.items != null && providerPlan.items!.isNotEmpty) {
+      final providerItems = providerPlan.items!;
+
+      // Debug: Print visited status
+      for (int i = 0; i < providerItems.length; i++) {
+        if (i < _tempItems.length) {
+          if (providerItems[i].isVisited != _tempItems[i].isVisited) {
+            debugPrint(
+              "   Item ${providerItems[i].id}: Provider=${providerItems[i].isVisited}, Local=${_tempItems[i].isVisited}",
+            );
+          }
+        }
+      }
+
+      // Always update when provider has items
+      if (mounted) {
+        setState(() {
+          _tempItems = List.from(providerItems);
+        });
+        debugPrint("✅ Updated _tempItems from provider");
+      }
     }
   }
+
+  // void _syncItemsWithProvider() {
+  //   final provider = context.read<ItineraryProvider>();
+  //   final providerPlan = provider.myPlans.firstWhere(
+  //     (p) => p.id == widget.itinerary.id,
+  //     orElse: () => widget.itinerary,
+  //   );
+
+  //   if (providerPlan.items != null &&
+  //       providerPlan.items!.isNotEmpty &&
+  //       mounted) {
+  //     setState(() => _tempItems = List.from(providerPlan.items!));
+  //   }
+  // }
 
   Future<void> _fetchFullDetails() async {
     try {
@@ -98,38 +142,56 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
 
   // ========== EVENT HANDLERS ==========
 
-  void _onToggleVisited(int itemId, bool isCurrentlyVisited) async {
-    // Update UI immediately
+  void _onToggleVisited(int itemId, bool newVisitedStatus) async {
+    debugPrint(
+      "🔘 _onToggleVisited called: itemId=$itemId, newVisitedStatus=$newVisitedStatus",
+    );
+
+    // Update local state IMMEDIATELY for UI responsiveness
     setState(() {
       int index = _tempItems.indexWhere((i) => i.id == itemId);
       if (index != -1) {
-        _tempItems[index] = _tempItems[index].copyWith(
-          isVisited: !isCurrentlyVisited,
+        debugPrint(
+          "🔄 Updating local _tempItems index $index to $newVisitedStatus",
         );
+        _tempItems[index] = _tempItems[index].copyWith(
+          isVisited: newVisitedStatus,
+        );
+      } else {
+        debugPrint("❌ Item not found in _tempItems: $itemId");
       }
     });
 
     try {
+      debugPrint("📡 Calling provider.toggleActivityProgress");
+      // Update provider
       await context.read<ItineraryProvider>().toggleActivityProgress(
         widget.itinerary.id,
         itemId,
-        !isCurrentlyVisited,
+        newVisitedStatus,
       );
 
-      // Show success
+      debugPrint("✅ Provider call completed");
+
+      // Optional: Refresh from API to ensure sync
+      await _refreshItineraryDetails();
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Status updated!"),
-          duration: Duration(seconds: 1),
+        SnackBar(
+          content: Text(
+            newVisitedStatus ? "Marked as visited!" : "Marked as not visited",
+          ),
+          duration: const Duration(seconds: 1),
         ),
       );
     } catch (e) {
+      debugPrint("❌ Error in _onToggleVisited: $e");
       // Revert on error
       setState(() {
         int index = _tempItems.indexWhere((i) => i.id == itemId);
         if (index != -1) {
           _tempItems[index] = _tempItems[index].copyWith(
-            isVisited: isCurrentlyVisited,
+            isVisited: !newVisitedStatus,
           );
         }
       });
@@ -140,6 +202,38 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
           duration: const Duration(seconds: 3),
         ),
       );
+    }
+  }
+
+  Future<void> _refreshItineraryDetails() async {
+    try {
+      // Refresh from API
+      final data = await ItineraryService.getItineraryDetails(
+        widget.itinerary.id,
+      );
+
+      // Update local state
+      if (mounted) {
+        setState(() {
+          final List rawItems = data['items'] ?? [];
+          _tempItems = rawItems
+              .map((json) => ItineraryItem.fromJson(json))
+              .toList();
+        });
+      }
+
+      // Also update provider with fresh data
+      final provider = context.read<ItineraryProvider>();
+      int planIndex = provider.myPlans.indexWhere(
+        (p) => p.id == widget.itinerary.id,
+      );
+      if (planIndex != -1 && mounted) {
+        final updatedItinerary = Itinerary.fromJson(data);
+        provider.myPlans[planIndex] = updatedItinerary;
+        provider.notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Refresh failed: $e");
     }
   }
 
@@ -337,7 +431,46 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                               const SizedBox(height: 20),
                             ],
                           ),
-                        ProgressStats(items: _tempItems, isOwner: isOwner),
+                        Consumer<ItineraryProvider>(
+                          builder: (context, provider, child) {
+                            // Get the latest from provider
+                            final updatedItinerary = provider.myPlans
+                                .firstWhere(
+                                  (p) => p.id == widget.itinerary.id,
+                                  orElse: () => widget.itinerary,
+                                );
+
+                            // Debug
+                            debugPrint(
+                              "📊 Consumer rebuilding - Itinerary ID: ${updatedItinerary.id}",
+                            );
+                            debugPrint(
+                              "📊 Provider items count: ${updatedItinerary.items?.length ?? 0}",
+                            );
+                            debugPrint(
+                              "📊 Local _tempItems count: ${_tempItems.length}",
+                            );
+
+                            if (updatedItinerary.items != null &&
+                                updatedItinerary.items!.isNotEmpty) {
+                              final visitedCount = updatedItinerary.items!
+                                  .where((i) => i.isVisited)
+                                  .length;
+                              final totalCount = updatedItinerary.items!.length;
+                              debugPrint(
+                                "📊 Provider visited: $visitedCount/$totalCount",
+                              );
+                            }
+
+                            // Use provider items if available, otherwise use local _tempItems
+                            final items = updatedItinerary.items ?? _tempItems;
+
+                            return ProgressStats.forDetailScreen(
+                              items: items,
+                              title: "Trip Progress",
+                            );
+                          },
+                        ),
                         QuickStats(itinerary: widget.itinerary),
                         const SizedBox(height: 24),
                         DaySelector(
@@ -363,7 +496,8 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                         dailyItems: dailyItems,
                         isOwner: isOwner,
                         isEditing: _isEditing,
-                        onToggleVisited: _onToggleVisited,
+                        onToggleVisited: (itemId, newValue) =>
+                            _onToggleVisited(itemId, newValue),
                       ),
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
               ],
@@ -398,13 +532,24 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
           ),
         TextButton(
           onPressed: () async {
-            final success = await context
-                .read<ItineraryProvider>()
-                .saveFullItinerary(widget.itinerary, _tempItems);
+            final provider = context.read<ItineraryProvider>();
+
+            // Save to provider
+            final success = await provider.saveFullItinerary(
+              widget.itinerary.copyWith(
+                title: _currentTitle,
+                description: _currentDescription,
+                items: _tempItems,
+              ),
+              _tempItems,
+            );
 
             if (success && mounted) {
               setState(() => _isEditing = false);
-              _syncItemsWithProvider();
+
+              // Force provider to refresh all data
+              await provider.fetchMyPlans();
+
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Trip saved successfully!")),
               );

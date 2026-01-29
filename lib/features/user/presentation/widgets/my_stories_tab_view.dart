@@ -40,7 +40,7 @@ class MyStoriesTabView extends StatelessWidget {
             );
           },
           child: CachedNetworkImage(
-            imageUrl: post.coverImageUrl ?? "https://via.placeholder.com/150",
+            imageUrl: post.coverImageUrl,
             fit: BoxFit.cover,
             placeholder: (context, url) => Container(color: Colors.grey[200]),
             errorWidget: (context, url, error) => const Icon(Icons.error),

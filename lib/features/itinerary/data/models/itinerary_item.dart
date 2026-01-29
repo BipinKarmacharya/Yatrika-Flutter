@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 class ItineraryItem {
   final int? id; // Nullable for new activities added by the user
   final String title;
@@ -46,6 +48,10 @@ class ItineraryItem {
   }
 
   factory ItineraryItem.fromJson(Map<String, dynamic> json) {
+    debugPrint("🔍 Parsing ItineraryItem JSON: ${json.keys.toList()}");
+    debugPrint(
+      "   isVisited field: ${json['isVisited']}, visited: ${json['visited']}, is_visited: ${json['is_visited']}",
+    );
     return ItineraryItem(
       id: json['id'],
       title: json['title'] ?? '',
@@ -54,8 +60,11 @@ class ItineraryItem {
       endTime: json['endTime'],
       dayNumber: json['dayNumber'] ?? 1,
       orderInDay: json['orderInDay'] ?? 0,
-      isVisited: json['is_visited'] ?? json['visited'] ?? false,
-      destinationId: json['destinationId'] ?? (json['destination'] != null ? json['destination']['id'] : null),
+      isVisited:
+          json['isVisited'] ?? json['visited'] ?? json['is_visited'] ?? false,
+      destinationId:
+          json['destinationId'] ??
+          (json['destination'] != null ? json['destination']['id'] : null),
       destination: json['destination'],
     );
   }
@@ -69,7 +78,8 @@ class ItineraryItem {
       'dayNumber': dayNumber,
       'orderInDay': orderInDay,
       'isVisited': isVisited,
-      'destinationId': destinationId ?? (destination != null ? destination!['id'] : null),
+      'destinationId':
+          destinationId ?? (destination != null ? destination!['id'] : null),
       'destination': destination,
     };
   }

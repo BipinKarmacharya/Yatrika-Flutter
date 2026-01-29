@@ -27,7 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // ✅ This code runs EXACTLY ONCE when the screen is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
-      final community = context.read<CommunityProvider>();
+      // final community = context.read<CommunityProvider>();
 
       if (auth.isLoggedIn && auth.user != null) {
         context.read<CommunityProvider>().fetchUserStats(
@@ -195,34 +195,34 @@ class _TabItem extends StatelessWidget {
   }
 }
 
-class _OutlinedButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color color;
-  const _OutlinedButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.color,
-  });
+// class _OutlinedButton extends StatelessWidget {
+//   final IconData icon;
+//   final String label;
+//   final VoidCallback onTap;
+//   final Color color;
+//   const _OutlinedButton({
+//     required this.icon,
+//     required this.label,
+//     required this.onTap,
+//     required this.color,
+//   });
 
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18, color: color),
-      label: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.bold),
-      ),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: Colors.grey.shade300),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return OutlinedButton.icon(
+//       onPressed: onTap,
+//       icon: Icon(icon, size: 18, color: color),
+//       label: Text(
+//         label,
+//         style: TextStyle(color: color, fontWeight: FontWeight.bold),
+//       ),
+//       style: OutlinedButton.styleFrom(
+//         side: BorderSide(color: Colors.grey.shade300),
+//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+//       ),
+//     );
+//   }
+// }
 
 // This class is REQUIRED to make the TabBar stick to the top
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
