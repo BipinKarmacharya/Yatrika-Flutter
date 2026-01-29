@@ -143,24 +143,6 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     }
   }
 
-  // Future<void> _refreshDataAfterToggle() async {
-  //   try {
-  //     final data = await ItineraryService.getItineraryDetails(
-  //       widget.itinerary.id,
-  //     );
-  //     final List rawItems = data['items'] ?? [];
-  //     if (mounted) {
-  //       setState(() {
-  //         _tempItems = rawItems
-  //             .map((json) => ItineraryItem.fromJson(json))
-  //             .toList();
-  //       });
-  //     }
-  //   } catch (e) {
-  //     debugPrint("Refresh failed: $e");
-  //   }
-  // }
-
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
       if (newIndex > oldIndex) newIndex -= 1;
