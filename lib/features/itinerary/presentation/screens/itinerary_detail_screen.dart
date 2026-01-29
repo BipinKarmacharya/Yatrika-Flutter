@@ -1,7 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tour_guide/features/auth/logic/auth_provider.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
+import 'package:tour_guide/features/itinerary/data/models/itinerary_item.dart';
 import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
+import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_map_screen.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/day_selector.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/dialogs/add_activity_dialog.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/dialogs/delete_confirmation_dialog.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/dialogs/edit_trip_dialog.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/dialogs/note_editor_dialog.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/edit_mode_timeline.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/parallax_header.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/progress_stats.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/quick_stats.dart';
+import 'package:tour_guide/features/itinerary/presentation/widgets/standard_timeline.dart';
 
 class ItineraryDetailScreen extends StatefulWidget {
   final Itinerary itinerary;
@@ -12,328 +26,384 @@ class ItineraryDetailScreen extends StatefulWidget {
 }
 
 class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
+  bool _isEditing = false;
+  bool _isLoading = true;
+  List<ItineraryItem> _tempItems = [];
   int selectedDay = 1;
+
+  late String _currentTitle;
+  late String? _currentDescription;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTitle = widget.itinerary.title;
+    _currentDescription = widget.itinerary.description;
+    _fetchFullDetails();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isLoading) _syncItemsWithProvider();
+  }
+
+  void _syncItemsWithProvider() {
+    final provider = context.read<ItineraryProvider>();
+    final providerPlan = provider.myPlans.firstWhere(
+      (p) => p.id == widget.itinerary.id,
+      orElse: () => widget.itinerary,
+    );
+
+    if (providerPlan.items != null && providerPlan.items!.isNotEmpty && mounted) {
+      setState(() => _tempItems = List.from(providerPlan.items!));
+    }
+  }
+
+  Future<void> _fetchFullDetails() async {
+    try {
+      final data = await ItineraryService.getItineraryDetails(widget.itinerary.id);
+      final List rawItems = data['items'] ?? [];
+      if (mounted) {
+        setState(() {
+          _tempItems = rawItems.map((json) => ItineraryItem.fromJson(json)).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ========== EVENT HANDLERS ==========
+
+  void _onToggleVisited(int itemId, bool isCurrentlyVisited) async {
+    setState(() {
+      int index = _tempItems.indexWhere((i) => i.id == itemId);
+      if (index != -1) {
+        _tempItems[index] = _tempItems[index].copyWith(isVisited: !isCurrentlyVisited);
+      }
+    });
+
+    try {
+      await context.read<ItineraryProvider>().toggleActivityProgress(
+        widget.itinerary.id, itemId, !isCurrentlyVisited,
+      );
+      _refreshDataAfterToggle();
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        int index = _tempItems.indexWhere((i) => i.id == itemId);
+        if (index != -1) {
+          _tempItems[index] = _tempItems[index].copyWith(isVisited: isCurrentlyVisited);
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to update: $e"))
+        );
+      }
+    }
+  }
+
+  Future<void> _refreshDataAfterToggle() async {
+    try {
+      final data = await ItineraryService.getItineraryDetails(widget.itinerary.id);
+      final List rawItems = data['items'] ?? [];
+      if (mounted) {
+        setState(() {
+          _tempItems = rawItems.map((json) => ItineraryItem.fromJson(json)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("Refresh failed: $e");
+    }
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      final List<ItineraryItem> dayItems = _tempItems
+          .where((i) => i.dayNumber == selectedDay)
+          .toList()
+        ..sort((a, b) => a.orderInDay.compareTo(b.orderInDay));
+
+      final movedItem = dayItems.removeAt(oldIndex);
+      dayItems.insert(newIndex, movedItem);
+
+      for (int i = 0; i < dayItems.length; i++) {
+        final updated = dayItems[i].copyWith(orderInDay: i + 1);
+        int globalIndex = _tempItems.indexWhere((element) => element.id == updated.id);
+        if (globalIndex != -1) _tempItems[globalIndex] = updated;
+      }
+    });
+  }
+
+  void _selectTime(ItineraryItem item) async {
+    TimeOfDay initialTime = TimeOfDay.now();
+    try {
+      final parts = item.startTime.split(':');
+      initialTime = TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      );
+    } catch (_) {}
+
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+
+    if (picked != null) {
+      final formattedTime =
+          "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}:00";
+
+      setState(() {
+        int index = _tempItems.indexWhere((element) => element.id == item.id);
+        if (index != -1) {
+          _tempItems[index] = _tempItems[index].copyWith(startTime: formattedTime);
+        }
+        _tempItems.sort((a, b) => a.startTime.compareTo(b.startTime));
+        for (int i = 0; i < _tempItems.length; i++) {
+          _tempItems[i] = _tempItems[i].copyWith(orderInDay: i + 1);
+        }
+      });
+    }
+  }
+
+  void _showEditTripDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => EditTripDialog(
+        initialTitle: _currentTitle,
+        initialDescription: _currentDescription,
+        onSave: (title, description) async {
+          final success = await context.read<ItineraryProvider>().updatePlanDetails(
+            widget.itinerary.id, title, description,
+          );
+          if (success && mounted) {
+            setState(() {
+              _currentTitle = title;
+              _currentDescription = description;
+            });
+          }
+        },
+      ),
+    );
+  }
+
+  void _showNoteEditor(ItineraryItem item) {
+    showDialog(
+      context: context,
+      builder: (context) => NoteEditorDialog(
+        item: item,
+        onUpdate: (newNote) async {
+          setState(() {
+            int index = _tempItems.indexOf(item);
+            if (index != -1) _tempItems[index] = item.copyWith(notes: newNote);
+          });
+
+          if (item.id != null) {
+            try {
+              await context.read<ItineraryProvider>().updateActivityNotes(
+                widget.itinerary.id, item.id!, newNote,
+              );
+            } catch (e) {
+              debugPrint("Failed to save note: $e");
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  void _confirmDeleteActivity(ItineraryItem item) {
+    showDialog(
+      context: context,
+      builder: (ctx) => DeleteConfirmationDialog(
+        itemName: item.destination?['name'] ?? item.title,
+        onConfirm: () {
+          setState(() => _tempItems.removeWhere((element) => element == item));
+        },
+      ),
+    );
+  }
+
+  void _showAddActivityDialog() async {
+    try {
+      final allDestinations = await ItineraryService.getAllDestinations();
+      final existingIds = _tempItems.map((i) => i.destinationId).toSet();
+      List<dynamic> available = allDestinations
+          .where((d) => !existingIds.contains(d['id']))
+          .toList();
+
+      showDialog(
+        context: context,
+        builder: (context) => AddActivityDialog(
+          availableDestinations: available,
+          onDestinationSelected: (dest) {
+            setState(() {
+              final newItem = ItineraryItem(
+                id: null,
+                title: dest['name'] ?? 'New Stop',
+                destinationId: dest['id'],
+                dayNumber: selectedDay,
+                orderInDay: _tempItems.where((i) => i.dayNumber == selectedDay).length + 1,
+                startTime: "09:00:00",
+                notes: "Newly added stop",
+                isVisited: false,
+                destination: dest,
+              );
+              _tempItems.add(newItem);
+            });
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint("Load Error: $e");
+    }
+  }
+
+  // ========== BUILD METHOD ==========
 
   @override
   Widget build(BuildContext context) {
+    final isOwner = _checkIsOwner();
+    _tempItems.sort((a, b) => a.startTime.compareTo(b.startTime));
+    final dailyItems = _tempItems.where((i) => i.dayNumber == selectedDay).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: ItineraryService.getItineraryDetails(widget.itinerary.id),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF009688)),
-            );
-          }
-
-          final data = snapshot.data ?? {};
-          final List activities = data['items'] ?? [];
-          // Filter activities for the currently selected day
-          final dailyActivities = activities
-              .where((a) => a['dayNumber'] == selectedDay)
-              .toList();
-
-          return CustomScrollView(
-            slivers: [
-              _buildParallaxHeader(),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildQuickStats(),
-                      const SizedBox(height: 24),
-                      const Text(
-                        "Description",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+      appBar: _isEditing ? _buildEditAppBar() : null,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF009688)))
+          : CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                ParallaxHeader(
+                  title: _currentTitle,
+                  isOwner: isOwner,
+                  isEditing: _isEditing,
+                  onEditPressed: () => setState(() => _isEditing = true),
+                  onSettingsPressed: _showEditTripDialog,
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ProgressStats(items: _tempItems, isOwner: isOwner),
+                        QuickStats(itinerary: widget.itinerary),
+                        const SizedBox(height: 24),
+                        DaySelector(
+                          totalDays: widget.itinerary.totalDays ?? 1,
+                          selectedDay: selectedDay,
+                          onDaySelected: (day) => setState(() => selectedDay = day),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.itinerary.description ??
-                            "Explore this hand-picked journey crafted for the best experience.",
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          height: 1.5,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildDaySelector(widget.itinerary.totalDays ?? 1),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              // Activities List
-              dailyActivities.isEmpty
-                  ? const SliverToBoxAdapter(
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Text("No activities planned for this day."),
-                        ),
+                _isEditing
+                    ? EditModeTimeline(
+                        dailyItems: dailyItems,
+                        onReorder: _onReorder,
+                        onToggleVisited: _onToggleVisited,
+                        onEditNotes: _showNoteEditor,
+                        onDeleteActivity: _confirmDeleteActivity,
+                        onChangeTime: _selectTime,
+                      )
+                    : StandardTimeline(
+                        dailyItems: dailyItems,
+                        isOwner: isOwner,
+                        isEditing: _isEditing,
+                        onToggleVisited: _onToggleVisited,
                       ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _buildTimelineActivity(
-                            dailyActivities[index],
-                            index + 1,
-                          ),
-                          childCount: dailyActivities.length,
-                        ),
-                      ),
-                    ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
-          );
-        },
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              ],
+            ),
+      floatingActionButton: _isEditing
+          ? _buildAddActivityFAB()
+          : _buildMapFAB(dailyItems),
+    );
+  }
+
+  // ========== HELPER METHODS ==========
+
+  PreferredSizeWidget _buildEditAppBar() {
+    return AppBar(
+      title: const Text("Edit Schedule"),
+      backgroundColor: const Color(0xFF009688),
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        onPressed: () => setState(() => _isEditing = false),
       ),
-      floatingActionButton: FutureBuilder<Map<String, dynamic>>(
-        future: ItineraryService.getItineraryDetails(widget.itinerary.id),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const SizedBox.shrink();
+      actions: [
+        TextButton(
+          onPressed: () async {
+            final success = await context.read<ItineraryProvider>().saveFullItinerary(
+              widget.itinerary, _tempItems,
+            );
 
-          final List activities = snapshot.data!['items'] ?? [];
-          final dailyActivities = activities
-              .where((a) => a['dayNumber'] == selectedDay)
-              .toList();
+            if (success && mounted) {
+              setState(() => _isEditing = false);
+              _syncItemsWithProvider();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Trip saved successfully!")),
+              );
+            }
+          },
+          child: const Text(
+            "SAVE",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
 
-          return FloatingActionButton.extended(
-            onPressed: () {
-              final validActivities = dailyActivities.where((a) {
-                final dest = a['destination'];
-                if (dest == null) return false;
+  Widget _buildAddActivityFAB() {
+    return FloatingActionButton.extended(
+      onPressed: _showAddActivityDialog,
+      backgroundColor: const Color(0xFF009688),
+      icon: const Icon(Icons.add_location_alt, color: Colors.white),
+      label: const Text("Add Activity", style: TextStyle(color: Colors.white)),
+    );
+  }
 
-                // Check if lat/lng exists inside the destination object
-                // Adjust 'latitude'/'longitude' to match whatever names your backend uses
-                return dest['latitude'] != null && dest['longitude'] != null;
-              }).toList();
+  Widget _buildMapFAB(List<ItineraryItem> dailyItems) {
+    final validActivities = dailyItems
+        .where((item) => item.destination != null &&
+            item.destination!['latitude'] != null &&
+            item.destination!['longitude'] != null)
+        .map((item) => item.toJson())
+        .toList();
 
-              if (validActivities.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("No coordinates found in destination data."),
-                  ),
-                );
-                return;
-              }
-
-              Navigator.push(
+    return FloatingActionButton.extended(
+      heroTag: 'view_map_fab',
+      onPressed: validActivities.isEmpty
+          ? () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("No GPS coordinates found for today.")),
+              );
+            }
+          : () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      ItineraryMapScreen(activities: validActivities),
+                  builder: (_) => ItineraryMapScreen(activities: validActivities),
                 ),
-              );
-            },
-            backgroundColor: dailyActivities.isEmpty
-                ? Colors.grey
-                : const Color(0xFF009688),
-            icon: const Icon(Icons.directions_outlined, color: Colors.white),
-            label: const Text(
-              "Show Day Route",
-              style: TextStyle(color: Colors.white),
-            ),
-          );
-        },
-      ),
+              ),
+      backgroundColor: validActivities.isEmpty ? Colors.grey : const Color(0xFF009688),
+      label: const Text("Show Route", style: TextStyle(color: Colors.white)),
+      icon: const Icon(Icons.directions_outlined, color: Colors.white),
     );
   }
 
-  Widget _buildParallaxHeader() {
-    return SliverAppBar(
-      expandedHeight: 250,
-      pinned: true,
-      stretch: true,
-      backgroundColor: const Color(0xFF009688),
-      flexibleSpace: FlexibleSpaceBar(
-        title: Text(
-          widget.itinerary.title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Using a hero-style image or destination combination
-            Image.network(
-              "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800",
-              fit: BoxFit.cover,
-            ),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black54],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  bool _checkIsOwner() {
+    final user = context.read<AuthProvider>().user;
+    if (user == null || widget.itinerary.userId == null) return false;
+    return widget.itinerary.userId == int.tryParse(user.id.toString());
   }
-
-  Widget _buildQuickStats() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _statTile(
-            Icons.payments_outlined,
-            "\$${widget.itinerary.estimatedBudget?.toInt()}",
-            "Budget",
-          ),
-          _divider(),
-          _statTile(
-            Icons.star_rounded,
-            "${widget.itinerary.averageRating ?? 'N/A'}",
-            "Rating",
-          ),
-          _divider(),
-          _statTile(
-            Icons.access_time,
-            "${widget.itinerary.totalDays} Days",
-            "Duration",
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineActivity(Map<String, dynamic> act, int order) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // The Numbered Timeline
-        Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Color(0xFF009688),
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                "$order",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            Container(
-              width: 2,
-              height: 120,
-              color: Colors.teal.withOpacity(0.2),
-            ),
-          ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                act['startTime']?.substring(0, 5) ?? "Morning",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF009688),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                act['title'] ?? "Visit Destination",
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                act['notes'] ?? "No additional details.",
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-              if (act['destinationImageUrl'] != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      act['destinationImageUrl'],
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDaySelector(int totalDays) {
-    return SizedBox(
-      height: 40,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: totalDays,
-        itemBuilder: (context, index) {
-          int day = index + 1;
-          bool isSelected = selectedDay == day;
-          return Padding(
-            padding: const EdgeInsets.only(
-              right: 12,
-            ), // Fixed the EdgeInsets error here
-            child: ChoiceChip(
-              label: Text("Day $day"),
-              selected: isSelected,
-              onSelected: (val) => setState(() => selectedDay = day),
-              selectedColor: const Color(0xFF009688),
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _statTile(IconData icon, String value, String label) {
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: const Color(0xFF009688)),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-      ],
-    );
-  }
-
-  Widget _divider() => Container(height: 30, width: 1, color: Colors.grey[300]);
 }

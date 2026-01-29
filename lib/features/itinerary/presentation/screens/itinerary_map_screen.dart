@@ -41,7 +41,8 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
 
     // 1. GET A KEY: Go to https://openrouteservice.org/, sign up (free),
     // and paste the key here.
-    const String apiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImExNzIwNTdkZjc3MzRkYjE5ODllNTI3OTA2OWVhZTYwIiwiaCI6Im11cm11cjY0In0=";
+    const String apiKey =
+        "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImExNzIwNTdkZjc3MzRkYjE5ODllNTI3OTA2OWVhZTYwIiwiaCI6Im11cm11cjY0In0=";
 
     try {
       if (widget.activities.length < 2) {
@@ -124,11 +125,17 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
       isLoading = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Using straight lines (Check API Key/Internet)"),
-      ),
-    );
+    // Wrap in addPostFrameCallback to prevent the lifecycle crash
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Using straight lines (Check API Key/Internet)"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    });
   }
 
   void _showDestinationDetails(Map<String, dynamic> activity) {

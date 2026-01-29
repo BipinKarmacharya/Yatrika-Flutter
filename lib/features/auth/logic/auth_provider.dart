@@ -15,14 +15,23 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _error;
   bool get isGuest => _isGuest;
   bool get isLoggedIn => _user != null;
-
-  // ✅ Fix for CreatePostModal: Added token getter
   String? get token => ApiClient.getToken();
 
+  // --- INTERNAL HELPERS ---
+  
   void _setLoading(bool value) {
+    if (_isLoading == value) return; // Prevent unnecessary UI rebuilds
     _isLoading = value;
     notifyListeners();
   }
+
+  /// Manually clear errors before new actions
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // --- AUTH ACTIONS ---
 
   void continueAsGuest() {
     _isGuest = true;
@@ -31,7 +40,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Loads user session on app start
+  /// Checks for stored credentials on app launch
   Future<void> checkSession() async {
     _setLoading(true);
     _error = null;
@@ -48,13 +57,13 @@ class AuthProvider extends ChangeNotifier {
       _user = await AuthService.getMe();
       _isGuest = false;
     } catch (e) {
-      await logout();
+      debugPrint("Session check failed: $e");
+      await logout(); // Token likely expired
     } finally {
       _setLoading(false);
     }
   }
 
-  /// Handles Login Logic
   Future<bool> login(String email, String password) async {
     _setLoading(true);
     _error = null;
@@ -65,69 +74,69 @@ class AuthProvider extends ChangeNotifier {
         body: {'emailOrUsername': email, 'password': password},
       );
 
-      // 1. Be flexible with the token key (check both 'token' and 'accessToken')
       final String? token = response['token'] ?? response['accessToken'];
 
       if (token != null) {
-        // 2. Clear old session completely before saving new one
-        await ApiClient.setAuthToken(token);
-
-        // 3. Handle the user object safely
+        // Handle cases where user data might not be in the initial response
         if (response['user'] != null) {
           _user = UserModel.fromJson(response['user']);
         } else {
-          // Fallback if user object isn't in login response
+          // If the login response only gives a token, fetch user profile immediately
+          // Temporarily set token manually to allow the getMe() call to work
+          await ApiClient.setAuthToken(token, null); 
           _user = await AuthService.getMe();
         }
 
+        // Save permanent token with the correct User ID
+        await ApiClient.setAuthToken(token, int.tryParse(_user!.id.toString()));
+
         _isGuest = false;
-        _error = null; // Ensure error is null on success
+        _error = null;
         notifyListeners();
         return true;
       }
-      // If we reach here, the server returned 200 OK but no token was found in JSON
-      _error = "Server response missing security token";
+      _error = "Authentication failed: No token received.";
       return false;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll("Exception:", "").trim();
       return false;
     } finally {
       _setLoading(false);
     }
   }
 
-  // ✅ Fix for RegisterScreen: Added register method
   Future<bool> register(Map<String, dynamic> userData) async {
     _setLoading(true);
     _error = null;
 
     try {
-      final response = await ApiClient.post(
-        '/api/auth/register',
-        body: userData,
-      );
-
-      // Check for token or accessToken depending on your backend response
+      final response = await ApiClient.post('/api/auth/register', body: userData);
       final token = response['token'] ?? response['accessToken'];
 
       if (token != null) {
-        await ApiClient.setAuthToken(token);
+        // Set temporary token to fetch full user model
+        await ApiClient.setAuthToken(token, null);
         _user = await AuthService.getMe();
+        
+        // Finalize token storage with ID
+        await ApiClient.setAuthToken(token, int.tryParse(_user!.id.toString()));
+
         _isGuest = false;
         notifyListeners();
         return true;
       }
-      _error = "Registration failed: No token received";
+      _error = "Account created, but could not sign in automatically.";
       return false;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceAll("Exception:", "").trim();
       return false;
     } finally {
       _setLoading(false);
     }
   }
 
-  /// Updates user profile details (Names, Username, Interests)
+  // --- USER PROFILE ACTIONS ---
+
   Future<bool> updateProfile({
     required String firstName,
     required String lastName,
@@ -138,9 +147,8 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      // 1. Update general info (Name & Username)
-      // Note: Adjust the endpoint path to match your Spring Boot controller
-      final profileResponse = await ApiClient.put(
+      // 1. Update basic info
+      await ApiClient.put(
         '/api/users/${_user?.id}',
         body: {
           'firstName': firstName,
@@ -149,19 +157,17 @@ class AuthProvider extends ChangeNotifier {
         },
       );
 
-      // 2. Update Interests
-      // We already created this endpoint earlier
+      // 2. Update interests separately
       await ApiClient.put('/api/users/${_user?.id}/interests', body: interests);
 
-      // 3. Refresh the local user data
-      // Instead of manual mapping, we fetch the fresh user object from the server
+      // 3. Refresh user state from server to ensure local data is 100% accurate
       _user = await AuthService.getMe();
 
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
-      debugPrint("Update Profile Error: $_error");
+      _error = "Failed to update profile. Please try again.";
+      debugPrint("Update Profile Error: $e");
       return false;
     } finally {
       _setLoading(false);
@@ -169,10 +175,14 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await ApiClient.logout();
-    _user = null;
-    _isGuest = false;
-    _error = null;
-    notifyListeners();
+    _setLoading(true);
+    try {
+      await ApiClient.logout();
+    } finally {
+      _user = null;
+      _isGuest = false;
+      _error = null;
+      _setLoading(false);
+    }
   }
 }

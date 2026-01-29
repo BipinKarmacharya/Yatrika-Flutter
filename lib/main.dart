@@ -7,6 +7,7 @@ import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
 import 'package:tour_guide/features/destination/data/repositories/destination_repository.dart';
 import 'package:tour_guide/features/destination/logic/destination_provider.dart';
 import 'package:tour_guide/features/home/presentation/screens/home_screen.dart';
+import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/user/logic/profile_provider.dart';
 
 // Core & Auth Imports
@@ -58,6 +59,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => DestinationProvider(destinationRepository),
         ),
+        ChangeNotifierProvider(create: (_) => ItineraryProvider()),
       ],
       child: const MyApp(),
     ),

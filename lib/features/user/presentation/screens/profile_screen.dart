@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tour_guide/features/auth/ui/login_screen.dart';
 import 'package:tour_guide/features/community/logic/community_provider.dart';
+import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/user/presentation/widgets/my_stories_tab_view.dart';
 
 // Ensure these paths match your project structure
@@ -20,7 +21,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  
   @override
   void initState() {
     super.initState();
@@ -28,10 +28,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       final community = context.read<CommunityProvider>();
-      
+
       if (auth.isLoggedIn && auth.user != null) {
-        community.fetchUserStats(auth.user!.id.toString());
-        community.fetchMyPosts();
+        context.read<CommunityProvider>().fetchUserStats(
+          auth.user!.id.toString(),
+        );
+        context.read<CommunityProvider>().fetchMyPosts();
+        context.read<ItineraryProvider>().fetchMyPlans();
       }
     });
   }
@@ -125,34 +128,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // 4. Action Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _OutlinedButton(
-                          icon: Icons.edit_outlined,
-                          label: "Edit Profile",
-                          onTap: () {
-                            // Handle Edit
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        _OutlinedButton(
-                          icon: Icons.logout,
-                          label: "Sign Out",
-                          color: Colors.red,
-                          onTap: () => auth.logout(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
                     // 5. Statistics Row - Using Real Data from Provider
                     ProfileStatsRow(
-                      postCount: community.userStats?['postCount'] ?? 0,
+                      postCount: community.myPosts.length,
                       totalLikes:
                           community.userStats?['totalLikesReceived'] ?? 0,
-                      reviewsCount:
-                          0, // Update this when you have ReviewProvider
+                      reviewsCount: 1,
                     ),
                     const SizedBox(height: 10),
                   ],
@@ -223,7 +204,7 @@ class _OutlinedButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color = Colors.black,
+    required this.color,
   });
 
   @override

@@ -69,8 +69,9 @@ class _TourBookHomeState extends State<TourBookHome> {
       if (mounted) setState(() => _recommendedDestinations = list);
     } catch (e) {
       debugPrint("Recommendation Error: $e"); // DEBUG PRINT
-      if (mounted)
+      if (mounted) {
         setState(() => _recommendedError = "Failed to load recommendations");
+      }
     } finally {
       if (mounted) setState(() => _loadingRecommended = false);
     }
@@ -87,8 +88,9 @@ class _TourBookHomeState extends State<TourBookHome> {
       final list = await DestinationService.popular();
       if (mounted) setState(() => _featuredDestinations = list);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => _featuredError = "Failed to load destinations");
+      }
     } finally {
       if (mounted) setState(() => _loadingFeatured = false);
     }
@@ -104,8 +106,9 @@ class _TourBookHomeState extends State<TourBookHome> {
       final posts = await CommunityService.trending();
       if (mounted) setState(() => _communityPosts = posts);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => _communityError = "Failed to load community posts");
+      }
     } finally {
       if (mounted) setState(() => _loadingCommunity = false);
     }
@@ -253,17 +256,20 @@ class _TourBookHomeState extends State<TourBookHome> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
-    if (_featuredError != null)
+    if (_featuredError != null) {
       return _buildErrorWidget(_featuredError!, _loadFeatured);
+    }
 
     return FeaturedList(destinations: _featuredDestinations);
   }
 
   Widget _buildCommunityList() {
-    if (_loadingCommunity)
+    if (_loadingCommunity) {
       return const Center(child: CircularProgressIndicator());
-    if (_communityError != null)
+    }
+    if (_communityError != null) {
       return _buildErrorWidget(_communityError!, _loadCommunity);
+    }
 
     final displayedPosts = _showAllPosts
         ? _communityPosts

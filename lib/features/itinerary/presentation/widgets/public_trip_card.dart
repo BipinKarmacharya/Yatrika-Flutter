@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tour_guide/features/auth/logic/auth_provider.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
+import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
+import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 
 class PublicTripCard extends StatelessWidget {
@@ -121,38 +125,138 @@ class PublicTripCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Estimated",
-              style: TextStyle(color: Colors.grey, fontSize: 10),
-            ),
-            Text(
-              "\$${itinerary.summary?.totalEstimatedBudget.toStringAsFixed(0) ?? '0'}",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF009688),
-                fontSize: 16,
+        _buildPriceInfo(), // This is the method we are defining below
+        Consumer<ItineraryProvider>(
+          builder: (context, itineraryProvider, child) {
+            final bool isAlreadyCopied = itineraryProvider.myPlans.any(
+              (p) => p.sourceId == itinerary.id,
+            );
+
+            return ElevatedButton(
+              onPressed: isAlreadyCopied
+                  ? () => _navigateToExistingCopy(
+                      context,
+                      itineraryProvider,
+                      itinerary.id,
+                    )
+                  : () => _handleCopy(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isAlreadyCopied
+                    ? Colors.grey.shade200
+                    : const Color(0xFF009688),
+                foregroundColor: isAlreadyCopied
+                    ? Colors.grey.shade700
+                    : Colors.white,
+                elevation: isAlreadyCopied ? 0 : 2,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-            ),
-          ],
-        ),
-        ElevatedButton(
-          onPressed: () {
-            // We will implement the Copy logic here later
+              child: Text(
+                isAlreadyCopied ? "View Plan" : "Copy",
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF009688),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text("Copy", style: TextStyle(fontSize: 12)),
         ),
       ],
+    );
+  }
+
+  // Extracted Price Info Widget
+  Widget _buildPriceInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Estimated",
+          style: TextStyle(color: Colors.grey, fontSize: 10),
+        ),
+        Text(
+          "\$${itinerary.summary?.totalEstimatedBudget.toStringAsFixed(0) ?? '0'}",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF009688),
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _handleCopy(BuildContext context) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    final itineraryProvider = Provider.of<ItineraryProvider>(
+      context,
+      listen: false,
+    );
+    // 1. Guest Check: Prevent guest users from copying
+    if (!auth.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please sign in to save trips to your profile"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Saving to your trips..."),
+        duration: Duration(milliseconds: 800),
+      ),
+    );
+
+    try {
+      final newCopy = await ItineraryService.copyItinerary(itinerary.id);
+
+      // 2. State Sync: Tell the AuthProvider to refresh the list of "My Plans"
+      // This makes the button change from "Copy" to "View Plan" instantly
+      await itineraryProvider.fetchMyPlans();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Trip saved! You can now customize it."),
+          ),
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItineraryDetailScreen(itinerary: newCopy),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _navigateToExistingCopy(
+    BuildContext context,
+    ItineraryProvider provider,
+    int originalId,
+  ) {
+    final existingItinerary = provider.myPlans.firstWhere(
+      (p) => p.sourceId == originalId,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ItineraryDetailScreen(itinerary: existingItinerary),
+      ),
     );
   }
 
