@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
+import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 import 'package:tour_guide/features/itinerary/presentation/widgets/public_trip_card.dart';
 
 // Service Imports
@@ -141,12 +142,27 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
       ),
       itemCount: isDest ? _destinations.length : _itineraries.length,
       itemBuilder: (context, index) {
-        if (isDest) {
-          return DestinationCard(destination: _destinations[index]);
-        } else {
-          return PublicTripCard(itinerary: _itineraries[index]);
-        }
+  if (isDest) {
+    return DestinationCard(destination: _destinations[index]);
+  } else {
+    final itinerary = _itineraries[index];
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItineraryDetailScreen(
+              itinerary: itinerary,
+              // If we are on the Expert Plans tab, set isReadOnly to true
+              isReadOnly: _selectedTab == ExploreTab.expertPlans, 
+            ),
+          ),
+        );
       },
+      child: PublicTripCard(itinerary: itinerary),
+    );
+  }
+},
     );
   }
 

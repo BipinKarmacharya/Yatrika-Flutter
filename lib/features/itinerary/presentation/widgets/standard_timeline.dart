@@ -21,23 +21,28 @@ class StandardTimeline extends StatelessWidget {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final item = dailyItems[index];
-            return TimelineActivityCard(
-              item: item,
-              order: index + 1,
-              canEdit: isOwner,
-              isEditing: isEditing,
-              onToggleVisited: (newValue) => onToggleVisited(item.id!, newValue), 
-              onEditNotes: () {},
-              onDeleteActivity: () {},
-              onChangeTime: () {},
-              onReorder: () {},
-            );
-          },
-          childCount: dailyItems.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final item = dailyItems[index]; // item is defined HERE
+
+          return TimelineActivityCard(
+            item: item,
+            order: index + 1,
+            canEdit: isOwner,
+            isEditing: isEditing,
+            // Logic must stay inside this block to access 'item'
+            onToggleVisited: isOwner
+                ? (bool? newValue) {
+                    if (item.id != null && newValue != null) {
+                      onToggleVisited(item.id!, newValue);
+                    }
+                  }
+                : null,
+            onEditNotes: () {},
+            onDeleteActivity: () {},
+            onChangeTime: () {},
+            onReorder: () {},
+          );
+        }, childCount: dailyItems.length),
       ),
     );
   }

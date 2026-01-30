@@ -21,7 +21,12 @@ import 'package:tour_guide/features/itinerary/presentation/widgets/trip_descript
 
 class ItineraryDetailScreen extends StatefulWidget {
   final Itinerary itinerary;
-  const ItineraryDetailScreen({super.key, required this.itinerary});
+  final bool isReadOnly;
+  const ItineraryDetailScreen({
+    super.key,
+    required this.itinerary,
+    this.isReadOnly = false,
+  });
 
   @override
   State<ItineraryDetailScreen> createState() => _ItineraryDetailScreenState();
@@ -73,6 +78,10 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
   }
 
   void _syncWithProvider() {
+    if (widget.isReadOnly) {
+      debugPrint("🚫 Read-only mode: Skipping provider sync.");
+      return;
+    }
     final provider = context.read<ItineraryProvider>();
     final providerPlan = provider.myPlans.firstWhere(
       (p) => p.id == widget.itinerary.id,
@@ -106,20 +115,6 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
       }
     }
   }
-
-  // void _syncItemsWithProvider() {
-  //   final provider = context.read<ItineraryProvider>();
-  //   final providerPlan = provider.myPlans.firstWhere(
-  //     (p) => p.id == widget.itinerary.id,
-  //     orElse: () => widget.itinerary,
-  //   );
-
-  //   if (providerPlan.items != null &&
-  //       providerPlan.items!.isNotEmpty &&
-  //       mounted) {
-  //     setState(() => _tempItems = List.from(providerPlan.items!));
-  //   }
-  // }
 
   Future<void> _fetchFullDetails() async {
     try {
@@ -392,7 +387,7 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isOwner = _checkIsOwner();
+    final isOwner = _checkIsOwner() && !widget.isReadOnly;
     _tempItems.sort((a, b) => a.startTime.compareTo(b.startTime));
     final dailyItems = _tempItems
         .where((i) => i.dayNumber == selectedDay)

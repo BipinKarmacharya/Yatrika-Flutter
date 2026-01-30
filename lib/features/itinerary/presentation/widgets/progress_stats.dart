@@ -14,7 +14,7 @@ class ProgressStats extends StatelessWidget {
   final BorderRadiusGeometry? borderRadius;
 
   const ProgressStats({
-    Key? key,
+    super.key,
     required this.visitedCount,
     required this.totalCount,
     this.title,
@@ -24,7 +24,7 @@ class ProgressStats extends StatelessWidget {
     this.showPercentage = true,
     this.showCountText = true,
     this.borderRadius,
-  }) : super(key: key);
+  });
 
   factory ProgressStats.forDetailScreen({
     required List<ItineraryItem> items,

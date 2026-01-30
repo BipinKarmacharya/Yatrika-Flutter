@@ -22,7 +22,7 @@ import 'features/community/logic/community_provider.dart';
 // Screen Imports
 import 'features/community/presentation/screens/community_screen.dart';
 import 'features/user/presentation/screens/profile_screen.dart';
-import 'features/itinerary/presentation/screens/plan_screen.dart';
+import 'features/itinerary/presentation/screens/plan_screen/plan_screen.dart';
 import 'features/destination/presentation/screens/destination_list_screen.dart';
 import 'shared/ui/screens/animated_splash_screen.dart';
 

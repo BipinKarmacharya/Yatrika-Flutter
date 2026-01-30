@@ -6,7 +6,7 @@ class TimelineActivityCard extends StatelessWidget {
   final int order;
   final bool canEdit;
   final bool isEditing;
-  final Function(bool) onToggleVisited; 
+  final Function(bool)? onToggleVisited;
   final VoidCallback onEditNotes;
   final VoidCallback onDeleteActivity;
   final VoidCallback onChangeTime;
@@ -18,7 +18,7 @@ class TimelineActivityCard extends StatelessWidget {
     required this.order,
     required this.canEdit,
     required this.isEditing,
-    required this.onToggleVisited,
+    this.onToggleVisited,
     required this.onEditNotes,
     required this.onDeleteActivity,
     required this.onChangeTime,
@@ -37,9 +37,7 @@ class TimelineActivityCard extends StatelessWidget {
           const SizedBox(width: 20),
 
           // Right Side: Content Card
-          Expanded(
-            child: _buildActivityCard(),
-          ),
+          Expanded(child: _buildActivityCard()),
         ],
       ),
     );
@@ -124,11 +122,9 @@ class TimelineActivityCard extends StatelessWidget {
             child: Checkbox(
               activeColor: const Color(0xFF009688),
               value: item.isVisited,
-              onChanged: (val) {
-                // debugPrint("✅ Checkbox tapped! Item ID: ${item.id}, Current: ${item.isVisited}, New: $val");
-                onToggleVisited(val ?? false);
-              },
-
+              onChanged: onToggleVisited != null
+                  ? (val) => onToggleVisited!(val ?? false)
+                  : null,
             ),
           ),
       ],
@@ -155,7 +151,7 @@ class TimelineActivityCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 8.0),
       child: Text(
-          item.notes ?? "Explore this location",
+        item.notes ?? "Explore this location",
         style: TextStyle(
           color: Colors.grey,
           fontSize: 13,
@@ -181,11 +177,7 @@ class TimelineActivityCard extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            icon: Icon(
-              Icons.edit_note,
-              color: Colors.teal[300],
-              size: 22,
-            ),
+            icon: Icon(Icons.edit_note, color: Colors.teal[300], size: 22),
             onPressed: onEditNotes,
             tooltip: "Edit Notes",
           ),

@@ -15,6 +15,83 @@ class ItineraryProvider extends ChangeNotifier {
 
   // --- ACTIONS ---
 
+  /// Create a quick empty trip (just title and destination)
+  Future<Itinerary?> createQuickTrip({
+    required String title,
+    required String destination,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final newTrip = await ItineraryService.createNewItinerary({
+        'title': title,
+        'description': 'Trip to $destination',
+        'destination': destination,
+        'is_quick_start': true,
+      });
+
+      if (newTrip != null) {
+        _myPlans.insert(0, newTrip); // Add to beginning of list
+        notifyListeners();
+        return newTrip;
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Create Quick Trip Error: $e");
+      _errorMessage = "Failed to create trip. Please try again.";
+      notifyListeners();
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Create a detailed trip with all parameters
+  Future<Itinerary?> createDetailedTrip({
+    required String title,
+    required String destination,
+    int? totalDays,
+    int? travelers,
+    double? budget,
+    String? notes,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final Map<String, dynamic> tripData = {
+        'title': title,
+        'description': notes ?? 'Trip to $destination',
+        'destination': destination,
+        'is_quick_start': false,
+      };
+
+      // Add optional fields if provided
+      if (totalDays != null) tripData['total_days'] = totalDays;
+      if (travelers != null) tripData['travelers'] = travelers;
+      if (budget != null) tripData['budget'] = budget;
+
+      final newTrip = await ItineraryService.createNewItinerary(tripData);
+
+      if (newTrip != null) {
+        _myPlans.insert(0, newTrip);
+        notifyListeners();
+        return newTrip;
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Create Detailed Trip Error: $e");
+      _errorMessage = "Failed to create detailed trip. Please try again.";
+      notifyListeners();
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Fetches personal plans from the database
   Future<void> fetchMyPlans() async {
     _isLoading = true;
@@ -42,7 +119,7 @@ class ItineraryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-
+ /// Update plan basic details
   Future<bool> updatePlanDetails(
     int id,
     String title,
@@ -143,8 +220,6 @@ class ItineraryProvider extends ChangeNotifier {
 
   /// Deletes a trip and updates the local list instantly (Optimistic UI)
   Future<bool> deletePlan(int itineraryId) async {
-    // We don't set global _isLoading to true here to avoid flickering the whole list.
-    // Instead, we handle the specific deletion.
     try {
       await ItineraryService.deleteItinerary(itineraryId);
 
@@ -166,7 +241,6 @@ class ItineraryProvider extends ChangeNotifier {
     try {
       final itemsJson = items.map((item) => item.toJson()).toList();
 
-      // The backend now returns the FRESH itinerary with FRESH database IDs
       final response =
           await ItineraryService.updateFullItinerary(updatedItinerary.id, {
             'title': updatedItinerary.title,
@@ -193,7 +267,6 @@ class ItineraryProvider extends ChangeNotifier {
   ) async {
     try {
       // 1. Call the service to update the database
-      // Ensure your ItineraryService has an 'updateItem' or similar method
       await ItineraryService.updateItineraryItem(itineraryId, itemId, {
         'notes': newNote,
       });
@@ -232,4 +305,7 @@ class ItineraryProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
+
+  /// Create New Trip from Scratch
+  
 }
