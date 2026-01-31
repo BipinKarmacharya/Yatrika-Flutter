@@ -190,37 +190,27 @@ class PublicTripCard extends StatelessWidget {
 
   void _handleCopy(BuildContext context) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-
     final itineraryProvider = Provider.of<ItineraryProvider>(
       context,
       listen: false,
     );
-    // 1. Guest Check: Prevent guest users from copying
+
     if (!auth.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please sign in to save trips to your profile"),
+          content: Text("Please sign in to save trips"),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Saving to your trips..."),
-        duration: Duration(milliseconds: 800),
-      ),
-    );
-
     try {
-      final newCopy = await ItineraryService.copyItinerary(itinerary.id);
+      // Use the provider instead of the service directly
+      // This assumes you add a 'copyTrip' method to your provider
+      final newCopy = await itineraryProvider.copyTrip(itinerary.id);
 
-      // 2. State Sync: Tell the AuthProvider to refresh the list of "My Plans"
-      // This makes the button change from "Copy" to "View Plan" instantly
-      await itineraryProvider.fetchMyPlans();
-
-      if (context.mounted) {
+      if (context.mounted && newCopy != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Trip saved! You can now customize it."),

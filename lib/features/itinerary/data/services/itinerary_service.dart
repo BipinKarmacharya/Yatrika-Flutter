@@ -479,6 +479,24 @@ class ItineraryService {
     }
   }
 
+  /// Get all public trips
+  /// Get all public trips (Used by Tab 3)
+  static Future<List<Itinerary>> getPublicTrips() async {
+    try {
+      // Use your actual ApiClient and the correct endpoint from your Java Controller
+      final dynamic responseData = await ApiClient.get('$_featurePath/community');
+
+      // Since Java returns Page<ItineraryResponse>, we extract the 'content' list
+      final List<dynamic> data = responseData['content'] ?? [];
+      return data.map((json) => Itinerary.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint("Error in getPublicTrips: $e");
+      throw Exception("Failed to load community trips: $e");
+    }
+  }
+
+  
+
   // Test All APIs
   // Add this to itinerary_service.dart
   static Future<void> testAllApis(int itineraryId, int itemId) async {

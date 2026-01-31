@@ -37,57 +37,34 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
   bool _isLoading = true;
   List<ItineraryItem> _tempItems = [];
   int selectedDay = 1;
-  // Add this getter near the top of your state class
+  late String _currentTitle;
+  late String? _currentDescription;
+  final ScrollController _scrollController = ScrollController();
+
+
   bool get _isTripCompleted {
-    // We check the provider first to get the most up-to-date status
     final provider = context.read<ItineraryProvider>();
     final currentPlan = provider.myPlans.firstWhere(
       (p) => p.id == widget.itinerary.id,
       orElse: () => widget.itinerary,
     );
-    debugPrint("🔍 Current Trip Status: ${currentPlan.status}"); // Add this!
     return currentPlan.status == 'COMPLETED';
   }
 
-  // Check if the trip is actually "finished" in the database
-  bool _meetsCompletionThreshold(List<ItineraryItem> items) {
-    if (items.isEmpty) return false;
-
-    // Count how many are actually visited
-    final visitedCount = items.where((i) => i.isVisited == true).length;
-
-    // Calculate percentage (e.g., 80%)
-    double progress = visitedCount / items.length;
-
-    debugPrint(
-      "📊 Logic Check: Visited $visitedCount / Total ${items.length} = $progress",
-    );
-
-    return progress >= 0.8;
-  }
-
-  late String _currentTitle;
-  late String? _currentDescription;
-  final ScrollController _scrollController = ScrollController();
-
+  
   @override
   void initState() {
     super.initState();
     _currentTitle = widget.itinerary.title;
     _currentDescription = widget.itinerary.description;
-
-    // Add a post-frame callback to setup provider listener
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupProviderListener();
     });
-
     _fetchFullDetails();
   }
 
   void _setupProviderListener() {
     final provider = context.read<ItineraryProvider>();
-
-    // Listen to provider changes
     provider.addListener(() {
       if (mounted && !_isEditing && !_isLoading) {
         _syncWithProvider();
@@ -98,8 +75,6 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    // Always sync with provider when not editing and mounted
     if (mounted && !_isEditing && !_isLoading) {
       _syncWithProvider();
     }
@@ -115,31 +90,12 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
       (p) => p.id == widget.itinerary.id,
       orElse: () => widget.itinerary,
     );
-
-    debugPrint(
-      "🔄 Syncing: Provider has ${providerPlan.items?.length ?? 0} items, Local has ${_tempItems.length} items",
-    );
-
     if (providerPlan.items != null && providerPlan.items!.isNotEmpty) {
       final providerItems = providerPlan.items!;
-
-      // Debug: Print visited status
-      for (int i = 0; i < providerItems.length; i++) {
-        if (i < _tempItems.length) {
-          if (providerItems[i].isVisited != _tempItems[i].isVisited) {
-            debugPrint(
-              "   Item ${providerItems[i].id}: Provider=${providerItems[i].isVisited}, Local=${_tempItems[i].isVisited}",
-            );
-          }
-        }
-      }
-
-      // Always update when provider has items
       if (mounted) {
         setState(() {
           _tempItems = List.from(providerItems);
         });
-        debugPrint("✅ Updated _tempItems from provider");
       }
     }
   }
@@ -195,19 +151,12 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     });
 
     try {
-      debugPrint("📡 Calling provider.toggleActivityProgress");
-      // Update provider
       await context.read<ItineraryProvider>().toggleActivityProgress(
         widget.itinerary.id,
         itemId,
         newVisitedStatus,
       );
-
-      debugPrint("✅ Provider call completed");
-
-      // Optional: Refresh from API to ensure sync
       await _refreshItineraryDetails();
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -217,8 +166,6 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
         ),
       );
     } catch (e) {
-      debugPrint("❌ Error in _onToggleVisited: $e");
-      // Revert on error
       setState(() {
         int index = _tempItems.indexWhere((i) => i.id == itemId);
         if (index != -1) {
@@ -451,15 +398,10 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
               final success = await provider.finishTrip(widget.itinerary.id);
 
               if (success && mounted) {
-                // 1. Force a refresh of the plans list from the server
-                // to ensure the 'status' is now 'COMPLETED'
                 await provider.fetchMyPlans();
-
-                // 2. Trigger UI update
                 setState(() {
                   _isEditing = false; // Just in case
                 });
-
                 _showCelebrationOverlay();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -489,7 +431,6 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
         duration: Duration(seconds: 4),
       ),
     );
-    // Optional: Trigger a state refresh or navigate back
     setState(() {});
   }
 
@@ -700,12 +641,6 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     );
   }
 
-  bool _checkIsOwner() {
-    final user = context.read<AuthProvider>().user;
-    if (user == null || widget.itinerary.userId == null) return false;
-    return widget.itinerary.userId == int.tryParse(user.id.toString());
-  }
-
   Widget _buildFinishTripButton() {
     return Container(
       width: double.infinity,
@@ -746,6 +681,13 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
   }
 
   Widget _buildCompletedBadge() {
+    final provider = context.watch<ItineraryProvider>();
+    final currentTrip = provider.myPlans.firstWhere(
+      (p) => p.id == widget.itinerary.id,
+      orElse: () => widget.itinerary,
+    );
+    final bool isAlreadyPublic = currentTrip.isPublic ?? false;
+
     return Column(
       children: [
         Container(
@@ -773,20 +715,31 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        // NEW: Share button appears only after completion
         ElevatedButton.icon(
-          onPressed: () =>
-              context.read<ItineraryProvider>().shareTrip(widget.itinerary.id),
-          icon: const Icon(Icons.share, color: Colors.white),
-          label: const Text(
-            "SHARE TO COMMUNITY",
-            style: TextStyle(color: Colors.white),
+          onPressed: () async {
+            final success = await provider.shareTrip(widget.itinerary.id);
+            if (success && mounted) {
+              _showShareSuccessDialog(isAlreadyPublic);
+            }
+          },
+          icon: Icon(
+            isAlreadyPublic ? Icons.public : Icons.share,
+            color: Colors.white,
+          ),
+          label: Text(
+            isAlreadyPublic ? "TRIP IS PUBLIC" : "SHARE TO EXPLORE",
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange[700],
-            minimumSize: const Size(double.infinity, 45),
+            backgroundColor: isAlreadyPublic
+                ? Colors.blue[700]
+                : Colors.orange[700],
+            minimumSize: const Size(double.infinity, 48),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         ),
@@ -794,13 +747,39 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     );
   }
 
+  void _showShareSuccessDialog(bool wasAlreadyPublic) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          wasAlreadyPublic ? "Trip made Private" : "Shared Successfully!",
+        ),
+        content: Text(
+          wasAlreadyPublic
+              ? "Your trip is now hidden from the Explore tab."
+              : "Your journey is now visible on the Explore tab for other travelers to see and copy!",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Awesome"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildIncompleteHint() {
-    final totalNeeded = (_tempItems.length * 0.8)
-        .ceil(); // Use .ceil() to round up
-    final visited = _tempItems.where((i) => i.isVisited).length;
+    final items = _tempItems.isNotEmpty
+        ? _tempItems
+        : (widget.itinerary.items ?? []);
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    final totalNeeded = (items.length * 0.8).ceil();
+    final visited = items.where((i) => i.isVisited).length;
     final remaining = totalNeeded - visited;
 
-    // If for some reason remaining is <= 0 but status isn't COMPLETED yet
     if (remaining <= 0) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 8.0),
@@ -826,5 +805,17 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
         ),
       ),
     );
+  }
+
+  bool _checkIsOwner() {
+    final user = context.read<AuthProvider>().user;
+    if (user == null || widget.itinerary.userId == null) return false;
+    return widget.itinerary.userId == int.tryParse(user.id.toString());
+  }
+
+  bool _meetsCompletionThreshold(List<ItineraryItem> items) {
+    if (items.isEmpty) return false;
+    final visitedCount = items.where((i) => i.isVisited == true).length;
+    return (visitedCount / items.length) >= 0.8;
   }
 }

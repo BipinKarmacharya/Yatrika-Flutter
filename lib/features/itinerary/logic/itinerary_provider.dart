@@ -8,6 +8,12 @@ class ItineraryProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  List<Itinerary> _publicPlans = [];
+  List<Itinerary> get publicPlans => _publicPlans;
+
+  bool _isPublicLoading = false;
+  bool get isPublicLoading => _isPublicLoading;
+
   // --- GETTERS ---
   List<Itinerary> get myPlans => _myPlans;
   bool get isLoading => _isLoading;
@@ -359,4 +365,30 @@ class ItineraryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Fetch all User Created Public Plan
+  Future<void> fetchPublicPlans() async {
+    _isPublicLoading = true;
+    notifyListeners();
+    try {
+      _publicPlans = await ItineraryService.getPublicTrips();
+    } catch (e) {
+      debugPrint("Error fetching public trips: $e");
+    } finally {
+      _isPublicLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Itinerary?> copyTrip(int itineraryId) async {
+  try {
+    final newTrip = await ItineraryService.copyItinerary(itineraryId);
+    // Refresh the local list of personal plans so 'isAlreadyCopied' updates
+    await fetchMyPlans(); 
+    return newTrip;
+  } catch (e) {
+    debugPrint("Copy Trip Error: $e");
+    return null;
+  }
+}
 }

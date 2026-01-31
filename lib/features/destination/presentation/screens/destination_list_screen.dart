@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
+import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 import 'package:tour_guide/features/itinerary/presentation/widgets/public_trip_card.dart';
 
@@ -27,7 +29,7 @@ class DestinationListScreen extends StatefulWidget {
 class _DestinationListScreenState extends State<DestinationListScreen> {
   // 1. Data Lists
   List<Destination> _destinations = [];
-  List<Itinerary> _itineraries = []; 
+  List<Itinerary> _itineraries = [];
 
   // 2. UI States
   bool _isLoading = true;
@@ -41,8 +43,16 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
   final String _sortBy = "Name";
 
   final List<String> _availableTags = [
-    "Adventure", "Beach", "Cultural", "Food", "Hiking",
-    "Historical", "Mountains", "Nature", "Nightlife", "Wellness",
+    "Adventure",
+    "Beach",
+    "Cultural",
+    "Food",
+    "Hiking",
+    "Historical",
+    "Mountains",
+    "Nature",
+    "Nightlife",
+    "Wellness",
   ];
 
   @override
@@ -77,10 +87,14 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
           break;
 
         case ExploreTab.community:
-          final data = await ItineraryService.getCommunityTrips(
-            search: _searchQuery,
-          );
-          setState(() => _itineraries = data);
+          final provider = context.read<ItineraryProvider>();
+          await provider.fetchPublicPlans();
+          if (mounted) {
+            setState(() {
+              _itineraries = provider.publicPlans;
+              _isLoading = false;
+            });
+          }
           break;
       }
     } catch (e) {
@@ -89,6 +103,26 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
       setState(() => _isLoading = false);
     }
   }
+
+  // Future<void> _handleCopyTrip(Itinerary trip) async {
+  //   final provider = context.read<ItineraryProvider>();
+
+  //   // Show a loading indicator or snackbar
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(content: Text("Copying ${trip.title} to your plans...")),
+  //   );
+
+  //   final success = await provider.copyTrip(trip.id);
+
+  //   if (success && mounted) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text("Trip copied! Find it in your 'My Plans' tab."),
+  //         backgroundColor: Color(0xFF009688),
+  //       ),
+  //     );
+  //   }
+  // }
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -142,27 +176,27 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
       ),
       itemCount: isDest ? _destinations.length : _itineraries.length,
       itemBuilder: (context, index) {
-  if (isDest) {
-    return DestinationCard(destination: _destinations[index]);
-  } else {
-    final itinerary = _itineraries[index];
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ItineraryDetailScreen(
-              itinerary: itinerary,
-              // If we are on the Expert Plans tab, set isReadOnly to true
-              isReadOnly: _selectedTab == ExploreTab.expertPlans, 
-            ),
-          ),
-        );
+        if (isDest) {
+          return DestinationCard(destination: _destinations[index]);
+        } else {
+          final itinerary = _itineraries[index];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ItineraryDetailScreen(
+                    itinerary: itinerary,
+                    // If we are on the Expert Plans tab, set isReadOnly to true
+                    isReadOnly: _selectedTab == ExploreTab.expertPlans,
+                  ),
+                ),
+              );
+            },
+            child: PublicTripCard(itinerary: itinerary),
+          );
+        }
       },
-      child: PublicTripCard(itinerary: itinerary),
-    );
-  }
-},
     );
   }
 
@@ -188,8 +222,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          if (isDest) 
-            _buildIconButton(Icons.tune, _showFilterModal),
+          if (isDest) _buildIconButton(Icons.tune, _showFilterModal),
         ],
       ),
     );
@@ -218,8 +251,13 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
           const SizedBox(width: 8),
           _toggleButton("Expert Plans", ExploreTab.expertPlans),
           const SizedBox(width: 8),
-          _toggleButton("Community", ExploreTab.community, 
-            count: _selectedTab == ExploreTab.community ? _itineraries.length : null),
+          _toggleButton(
+            "Public Trips",
+            ExploreTab.community,
+            count: _selectedTab == ExploreTab.community
+                ? _itineraries.length
+                : null,
+          ),
         ],
       ),
     );
@@ -236,9 +274,13 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF009688).withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? const Color(0xFF009688).withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? const Color(0xFF009688) : Colors.grey.shade300),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF009688) : Colors.grey.shade300,
+          ),
         ),
         child: Text(
           label,
@@ -255,14 +297,18 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     final bool isDest = _selectedTab == ExploreTab.destinations;
     int count = isDest ? _destinations.length : _itineraries.length;
     String type = isDest ? 'destinations' : 'trips';
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           "$count $type found",
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -280,7 +326,9 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -292,13 +340,22 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Filters", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Text(
+                        "Filters",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       TextButton(
                         onPressed: () => setModalState(() {
                           tempTags.clear();
                           tempBudget = "Any budget";
                         }),
-                        child: const Text("Clear All", style: TextStyle(color: Colors.red)),
+                        child: const Text(
+                          "Clear All",
+                          style: TextStyle(color: Colors.red),
+                        ),
                       ),
                     ],
                   ),
@@ -308,7 +365,10 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Categories", style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Categories",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           const SizedBox(height: 12),
                           Wrap(
                             spacing: 8,
@@ -317,20 +377,42 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                               return FilterChip(
                                 label: Text(tag),
                                 selected: isSelected,
-                                onSelected: (s) => setModalState(() => s ? tempTags.add(tag) : tempTags.remove(tag)),
-                                selectedColor: const Color(0xFF009688).withOpacity(0.1),
+                                onSelected: (s) => setModalState(
+                                  () => s
+                                      ? tempTags.add(tag)
+                                      : tempTags.remove(tag),
+                                ),
+                                selectedColor: const Color(
+                                  0xFF009688,
+                                ).withOpacity(0.1),
                                 checkmarkColor: const Color(0xFF009688),
                               );
                             }).toList(),
                           ),
                           const SizedBox(height: 20),
-                          const Text("Budget", style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Budget",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           DropdownButton<String>(
                             value: tempBudget,
                             isExpanded: true,
-                            items: ["Any budget", "Under \$100", "\$100 - \$200", "Over \$200"]
-                                .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                            onChanged: (v) => setModalState(() => tempBudget = v!),
+                            items:
+                                [
+                                      "Any budget",
+                                      "Under \$100",
+                                      "\$100 - \$200",
+                                      "Over \$200",
+                                    ]
+                                    .map(
+                                      (e) => DropdownMenuItem(
+                                        value: e,
+                                        child: Text(e),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (v) =>
+                                setModalState(() => tempBudget = v!),
                           ),
                         ],
                       ),
@@ -339,7 +421,9 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF009688)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF009688),
+                      ),
                       onPressed: () {
                         setState(() {
                           _appliedTags = tempTags;
@@ -348,7 +432,10 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                         _refreshData();
                         Navigator.pop(context);
                       },
-                      child: const Text("Apply Filters", style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        "Apply Filters",
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ],
@@ -357,6 +444,54 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildPublicTripsTab() {
+    return Consumer<ItineraryProvider>(
+      builder: (context, provider, child) {
+        if (provider.isPublicLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.publicPlans.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.public_off,
+            message: "No public trips yet. Be the first to share one!",
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => provider.fetchPublicPlans(),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: provider.publicPlans.length,
+            itemBuilder: (context, index) {
+              final trip = provider.publicPlans[index];
+              return PublicTripCard(
+                itinerary: trip,
+              ); // We will build this card next
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState({required IconData icon, required String message}) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+          ),
+        ],
+      ),
     );
   }
 } // End of class
