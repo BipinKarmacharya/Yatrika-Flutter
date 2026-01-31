@@ -8,6 +8,7 @@ import 'package:tour_guide/features/destination/data/repositories/destination_re
 import 'package:tour_guide/features/destination/logic/destination_provider.dart';
 import 'package:tour_guide/features/home/presentation/screens/home_screen.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
+import 'package:tour_guide/features/plan/logic/trip_creator_provider.dart';
 import 'package:tour_guide/features/user/logic/profile_provider.dart';
 
 // Core & Auth Imports
@@ -22,7 +23,7 @@ import 'features/community/logic/community_provider.dart';
 // Screen Imports
 import 'features/community/presentation/screens/community_screen.dart';
 import 'features/user/presentation/screens/profile_screen.dart';
-import 'features/itinerary/presentation/screens/plan_screen/plan_screen.dart';
+import 'features/plan/presentation/screens/plan_screen.dart';
 import 'features/destination/presentation/screens/destination_list_screen.dart';
 import 'shared/ui/screens/animated_splash_screen.dart';
 
@@ -60,6 +61,8 @@ void main() async {
           create: (_) => DestinationProvider(destinationRepository),
         ),
         ChangeNotifierProvider(create: (_) => ItineraryProvider()),
+
+        ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
       ],
       child: const MyApp(),
     ),

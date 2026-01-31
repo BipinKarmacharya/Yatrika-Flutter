@@ -37,6 +37,34 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
   bool _isLoading = true;
   List<ItineraryItem> _tempItems = [];
   int selectedDay = 1;
+  // Add this getter near the top of your state class
+  bool get _isTripCompleted {
+    // We check the provider first to get the most up-to-date status
+    final provider = context.read<ItineraryProvider>();
+    final currentPlan = provider.myPlans.firstWhere(
+      (p) => p.id == widget.itinerary.id,
+      orElse: () => widget.itinerary,
+    );
+    debugPrint("🔍 Current Trip Status: ${currentPlan.status}"); // Add this!
+    return currentPlan.status == 'COMPLETED';
+  }
+
+  // Check if the trip is actually "finished" in the database
+  bool _meetsCompletionThreshold(List<ItineraryItem> items) {
+    if (items.isEmpty) return false;
+
+    // Count how many are actually visited
+    final visitedCount = items.where((i) => i.isVisited == true).length;
+
+    // Calculate percentage (e.g., 80%)
+    double progress = visitedCount / items.length;
+
+    debugPrint(
+      "📊 Logic Check: Visited $visitedCount / Total ${items.length} = $progress",
+    );
+
+    return progress >= 0.8;
+  }
 
   late String _currentTitle;
   late String? _currentDescription;
@@ -141,6 +169,15 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     debugPrint(
       "🔘 _onToggleVisited called: itemId=$itemId, newVisitedStatus=$newVisitedStatus",
     );
+
+    if (_isTripCompleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("This journey is finished and cannot be modified."),
+        ),
+      );
+      return;
+    }
 
     // Update local state IMMEDIATELY for UI responsiveness
     setState(() {
@@ -383,6 +420,79 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     }
   }
 
+  void _confirmFinishTrip(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.celebration, color: Color(0xFF009688)),
+            SizedBox(width: 10),
+            Text("Finish Journey?"),
+          ],
+        ),
+        content: const Text(
+          "Congratulations on completing your trip! Would you like to mark this trip as finished? \n\n"
+          "Finished trips can be shared with the community!",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Not Yet"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF009688),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final provider = context.read<ItineraryProvider>();
+
+              final success = await provider.finishTrip(widget.itinerary.id);
+
+              if (success && mounted) {
+                // 1. Force a refresh of the plans list from the server
+                // to ensure the 'status' is now 'COMPLETED'
+                await provider.fetchMyPlans();
+
+                // 2. Trigger UI update
+                setState(() {
+                  _isEditing = false; // Just in case
+                });
+
+                _showCelebrationOverlay();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Failed to finish trip. Please try again."),
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              "Finish Trip",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCelebrationOverlay() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "🎉 Trip Completed! You can now share it in your Profile.",
+        ),
+        backgroundColor: Color(0xFF009688),
+        duration: Duration(seconds: 4),
+      ),
+    );
+    // Optional: Trigger a state refresh or navigate back
+    setState(() {});
+  }
+
   // ========== BUILD METHOD ==========
 
   @override
@@ -407,6 +517,7 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                   title: _currentTitle,
                   isOwner: isOwner,
                   isEditing: _isEditing,
+                  isCompleted: _isTripCompleted,
                   onEditPressed: () => setState(() => _isEditing = true),
                   onSettingsPressed: _showEditTripDialog,
                 ),
@@ -416,50 +527,35 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // 1. Ownership & Completion Controls
+                        if (isOwner) ...[
+                          if (_isTripCompleted)
+                            _buildCompletedBadge()
+                          else if (_meetsCompletionThreshold(_tempItems))
+                            _buildFinishTripButton()
+                          else
+                            _buildIncompleteHint(),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // 2. Description
                         if (_currentDescription != null &&
-                            _currentDescription!.isNotEmpty)
-                          Column(
-                            children: [
-                              TripDescriptionCard(
-                                description: _currentDescription!,
-                              ),
-                              const SizedBox(height: 20),
-                            ],
+                            _currentDescription!.isNotEmpty) ...[
+                          TripDescriptionCard(
+                            description: _currentDescription!,
                           ),
+                          const SizedBox(height: 20),
+                        ],
+
+                        // 3. Stats (Consumer ensures these update live)
                         Consumer<ItineraryProvider>(
                           builder: (context, provider, child) {
-                            // Get the latest from provider
                             final updatedItinerary = provider.myPlans
                                 .firstWhere(
                                   (p) => p.id == widget.itinerary.id,
                                   orElse: () => widget.itinerary,
                                 );
-
-                            // Debug
-                            debugPrint(
-                              "📊 Consumer rebuilding - Itinerary ID: ${updatedItinerary.id}",
-                            );
-                            debugPrint(
-                              "📊 Provider items count: ${updatedItinerary.items?.length ?? 0}",
-                            );
-                            debugPrint(
-                              "📊 Local _tempItems count: ${_tempItems.length}",
-                            );
-
-                            if (updatedItinerary.items != null &&
-                                updatedItinerary.items!.isNotEmpty) {
-                              final visitedCount = updatedItinerary.items!
-                                  .where((i) => i.isVisited)
-                                  .length;
-                              final totalCount = updatedItinerary.items!.length;
-                              debugPrint(
-                                "📊 Provider visited: $visitedCount/$totalCount",
-                              );
-                            }
-
-                            // Use provider items if available, otherwise use local _tempItems
                             final items = updatedItinerary.items ?? _tempItems;
-
                             return ProgressStats.forDetailScreen(
                               items: items,
                               title: "Trip Progress",
@@ -491,6 +587,7 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
                         dailyItems: dailyItems,
                         isOwner: isOwner,
                         isEditing: _isEditing,
+                        isCompleted: _isTripCompleted,
                         onToggleVisited: (itemId, newValue) =>
                             _onToggleVisited(itemId, newValue),
                       ),
@@ -607,5 +704,127 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
     final user = context.read<AuthProvider>().user;
     if (user == null || widget.itinerary.userId == null) return false;
     return widget.itinerary.userId == int.tryParse(user.id.toString());
+  }
+
+  Widget _buildFinishTripButton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F2F1), // Light Teal
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF009688).withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            "Reached the end of your adventure?",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF004D40),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () => _confirmFinishTrip(context),
+            icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+            label: const Text(
+              "MARK TRIP AS FINISHED",
+              style: TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF009688),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletedBadge() {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF009688).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF009688)),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.verified, color: Color(0xFF009688)),
+              SizedBox(width: 8),
+              Text(
+                "JOURNEY COMPLETED",
+                style: TextStyle(
+                  color: Color(0xFF009688),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // NEW: Share button appears only after completion
+        ElevatedButton.icon(
+          onPressed: () =>
+              context.read<ItineraryProvider>().shareTrip(widget.itinerary.id),
+          icon: const Icon(Icons.share, color: Colors.white),
+          label: const Text(
+            "SHARE TO COMMUNITY",
+            style: TextStyle(color: Colors.white),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange[700],
+            minimumSize: const Size(double.infinity, 45),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIncompleteHint() {
+    final totalNeeded = (_tempItems.length * 0.8)
+        .ceil(); // Use .ceil() to round up
+    final visited = _tempItems.where((i) => i.isVisited).length;
+    final remaining = totalNeeded - visited;
+
+    // If for some reason remaining is <= 0 but status isn't COMPLETED yet
+    if (remaining <= 0) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8.0),
+        child: Text(
+          "Almost there! Just click finish to complete your journey.",
+          style: TextStyle(
+            color: Color(0xFF009688),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        "Visit $remaining more stops to mark this trip as finished!",
+        style: const TextStyle(
+          color: Colors.grey,
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
   }
 }

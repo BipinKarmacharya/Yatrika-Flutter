@@ -119,7 +119,8 @@ class ItineraryProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
- /// Update plan basic details
+
+  /// Update plan basic details
   Future<bool> updatePlanDetails(
     int id,
     String title,
@@ -307,5 +308,55 @@ class ItineraryProvider extends ChangeNotifier {
   }
 
   /// Create New Trip from Scratch
-  
+  ///
+  /// Mark complete
+  Future<bool> finishTrip(int id) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Use the specific PATCH endpoint
+      final updated = await ItineraryService.markAsComplete(id);
+
+      int index = _myPlans.indexWhere((p) => p.id == id);
+      if (index != -1) {
+        _myPlans[index] = updated;
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      debugPrint("Finish Trip Error: $e");
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Shares a completed original trip to the community
+  Future<bool> shareTrip(int id) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final updatedTrip = await ItineraryService.shareTrip(id);
+
+      if (updatedTrip != null) {
+        // Update the local list so the UI reflects the "Public" status
+        int index = _myPlans.indexWhere((p) => p.id == id);
+        if (index != -1) {
+          _myPlans[index] = updatedTrip;
+          notifyListeners();
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Provider Share Error: $e");
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

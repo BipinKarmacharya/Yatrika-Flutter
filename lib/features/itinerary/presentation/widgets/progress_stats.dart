@@ -42,7 +42,7 @@ class ProgressStats extends StatelessWidget {
       showTitle: true,
       showPercentage: true,
       showCountText: true,
-      borderRadius: null,
+      borderRadius: BorderRadius.circular(10), // Added a slight radius for better looks
     );
   }
 
@@ -60,10 +60,12 @@ class ProgressStats extends StatelessWidget {
     );
   }
 
-  double get progress => totalCount > 0 ? visitedCount / totalCount : 0.0;
+  double get targetProgress => totalCount > 0 ? visitedCount / totalCount : 0.0;
 
   @override
   Widget build(BuildContext context) {
+    final bool isFinished = targetProgress == 1.0 && totalCount > 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,39 +77,59 @@ class ProgressStats extends StatelessWidget {
               children: [
                 Text(
                   title!,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                if (showPercentage)
-                  Text(
-                    "${(progress * 100).toInt()}%",
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                // Celebration Icon if finished
+                if (isFinished)
+                  const Icon(Icons.check_circle, color: Color(0xFF009688), size: 20),
               ],
             ),
           ),
-        ClipRRect(
-          borderRadius: borderRadius ?? BorderRadius.zero,
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: height,
-          ),
+          
+        // The Animated Progress Bar
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: targetProgress),
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeOutCubic,
+          builder: (context, animatedValue, child) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: borderRadius ?? BorderRadius.zero,
+                  child: LinearProgressIndicator(
+                    value: animatedValue, // Use the animated value here!
+                    backgroundColor: Colors.grey[200],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isFinished ? const Color(0xFF009688) : color,
+                    ),
+                    minHeight: height,
+                  ),
+                ),
+                if (showPercentage || showCountText) const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (showCountText)
+                      Text(
+                        "$visitedCount of $totalCount activities visited",
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    if (showPercentage)
+                      Text(
+                        "${(animatedValue * 100).toInt()}%",
+                        style: TextStyle(
+                          color: isFinished ? const Color(0xFF009688) : color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
-        if (showCountText) ...[
-          const SizedBox(height: 4),
-          Text(
-            "$visitedCount of $totalCount activities visited",
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ],
       ],
     );
   }

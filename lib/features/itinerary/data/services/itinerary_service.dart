@@ -228,7 +228,6 @@
 //     }
 //   }
 
-
 //   /// CREATE: Create a brand new blank trip
 //   static Future<Itinerary?> createNewItinerary(Map<String, dynamic> data) async {
 //     try {
@@ -242,7 +241,6 @@
 //   }
 // }
 
-
 import 'package:flutter/foundation.dart'; // For debugPrint
 import 'package:tour_guide/core/api/api_client.dart';
 import '../models/itinerary.dart';
@@ -251,7 +249,9 @@ class ItineraryService {
   static const String _featurePath = '/api/v1/itineraries';
 
   /// CREATE: Create a brand new blank trip
-  static Future<Itinerary?> createNewItinerary(Map<String, dynamic> data) async {
+  static Future<Itinerary?> createNewItinerary(
+    Map<String, dynamic> data,
+  ) async {
     try {
       // Use ApiClient (capital A) and 'body' parameter
       final response = await ApiClient.post(_featurePath, body: data);
@@ -451,6 +451,32 @@ class ItineraryService {
   // Delete trip
   static Future<void> deleteItinerary(int id) async {
     await ApiClient.delete('$_featurePath/$id');
+  }
+
+  // Mark as completed
+  static Future<Itinerary> markAsComplete(int id) async {
+    try {
+      // Hits @PatchMapping("/{id}/complete")
+      final dynamic response = await ApiClient.patch(
+        '$_featurePath/$id/complete',
+      );
+      return Itinerary.fromJson(response);
+    } catch (e) {
+      debugPrint("Error completing itinerary: $e");
+      throw Exception("Failed to mark trip as finished");
+    }
+  }
+
+  /// SHARE: Make a private trip public for the community
+  static Future<Itinerary?> shareTrip(int id) async {
+    try {
+      // Calls PATCH /api/v1/itineraries/{id}/share
+      final dynamic response = await ApiClient.patch('$_featurePath/$id/share');
+      return Itinerary.fromJson(response);
+    } catch (e) {
+      debugPrint("Error sharing itinerary: $e");
+      return null;
+    }
   }
 
   // Test All APIs

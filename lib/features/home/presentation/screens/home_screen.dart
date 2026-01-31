@@ -451,7 +451,7 @@ class _TourBookHomeState extends State<TourBookHome> {
 
     return Column(
       children: [
-        ...displayedPosts.map((post) => _buildCommunityCard(post)).toList(),
+        ...displayedPosts.map((post) => _buildCommunityCard(post)),
         if (!_showAllPosts && _communityPosts.length > 3)
           TextButton(
             onPressed: () => setState(() => _showAllPosts = true),

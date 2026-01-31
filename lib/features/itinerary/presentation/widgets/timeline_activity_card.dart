@@ -119,13 +119,17 @@ class TimelineActivityCard extends StatelessWidget {
         if (canEdit && !isEditing)
           Transform.scale(
             scale: 0.8,
-            child: Checkbox(
-              activeColor: const Color(0xFF009688),
-              value: item.isVisited,
-              onChanged: onToggleVisited != null
-                  ? (val) => onToggleVisited!(val ?? false)
-                  : null,
-            ),
+            child: onToggleVisited == null
+                ? const Icon(
+                    Icons.lock_outline,
+                    size: 20,
+                    color: Colors.grey,
+                  ) // Show lock when disabled
+                : Checkbox(
+                    activeColor: const Color(0xFF009688),
+                    value: item.isVisited,
+                    onChanged: (val) => onToggleVisited!(val ?? false),
+                  ),
           ),
       ],
     );

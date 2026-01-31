@@ -7,6 +7,7 @@ class StandardTimeline extends StatelessWidget {
   final bool isOwner;
   final bool isEditing;
   final Function(int, bool) onToggleVisited;
+  final bool isCompleted;
 
   const StandardTimeline({
     super.key,
@@ -14,6 +15,7 @@ class StandardTimeline extends StatelessWidget {
     required this.isOwner,
     required this.isEditing,
     required this.onToggleVisited,
+    required this.isCompleted,
   });
 
   @override
@@ -30,7 +32,8 @@ class StandardTimeline extends StatelessWidget {
             canEdit: isOwner,
             isEditing: isEditing,
             // Logic must stay inside this block to access 'item'
-            onToggleVisited: isOwner
+            onToggleVisited:
+                (isOwner && !isCompleted) // Check both conditions
                 ? (bool? newValue) {
                     if (item.id != null && newValue != null) {
                       onToggleVisited(item.id!, newValue);
