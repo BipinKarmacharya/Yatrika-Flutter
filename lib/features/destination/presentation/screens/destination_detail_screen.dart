@@ -445,81 +445,52 @@ class DestinationDetailScreen extends StatelessWidget {
         ],
       ),
       child: Theme(
-      data: ThemeData().copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(itinerary.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            if (itinerary.theme != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
+        data: ThemeData().copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: Row(
+            children: [
+              Expanded(
                 child: Text(
-                  itinerary.theme!,
-                  style: const TextStyle(color: Colors.teal, fontSize: 10, fontWeight: FontWeight.bold),
+                  itinerary.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
+              if (itinerary.theme != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    itinerary.theme!,
+                    style: const TextStyle(
+                      color: Colors.teal,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          subtitle: Text(
+            "${itinerary.totalDays ?? 0} Days Plan",
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                itinerary.description ?? "Explore this curated journey.",
+              ),
+            ),
+            // We can add a button here to "View Full Plan"
           ],
         ),
-        subtitle: Text(
-          "${itinerary.totalDays ?? 0} Days Plan",
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        children: [
-           Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Text(itinerary.description ?? "Explore this curated journey."),
-          ),
-          // We can add a button here to "View Full Plan"
-        ],
       ),
-    ),
     );
   }
-
-  // Separate helper for the expanded activity list items
-  // Widget _buildActivityItem(ItineraryItem item, bool isLast) {
-  //   return Row(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       // Minimalist Timeline Visual
-  //       Column(
-  //         children: [
-  //           const Icon(Icons.circle, size: 10, color: Colors.teal),
-  //           if (!isLast)
-  //             Container(width: 1, height: 40, color: Colors.grey.shade300),
-  //         ],
-  //       ),
-  //       const SizedBox(width: 12),
-  //       // Time and Detail
-  //       Expanded(
-  //         child: Padding(
-  //           padding: const EdgeInsets.only(bottom: 16.0),
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Text(
-  //                 "${item.startTime.substring(0, 5)} - ${item.title}",
-  //                 style: const TextStyle(
-  //                   fontWeight: FontWeight.bold,
-  //                   fontSize: 14,
-  //                 ),
-  //               ),
-  //               if (item.description != null)
-  //                 Text(
-  //                   item.description!,
-  //                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
-  //                 ),
-  //             ],
-  //           ),
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
 }

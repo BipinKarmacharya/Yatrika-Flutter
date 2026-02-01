@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/features/auth/logic/auth_provider.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
-import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 
