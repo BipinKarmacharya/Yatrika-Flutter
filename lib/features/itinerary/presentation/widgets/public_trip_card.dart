@@ -205,8 +205,6 @@ class PublicTripCard extends StatelessWidget {
     }
 
     try {
-      // Use the provider instead of the service directly
-      // This assumes you add a 'copyTrip' method to your provider
       final newCopy = await itineraryProvider.copyTrip(itinerary.id);
 
       if (context.mounted && newCopy != null) {
