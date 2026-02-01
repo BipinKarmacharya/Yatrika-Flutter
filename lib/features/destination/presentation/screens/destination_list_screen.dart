@@ -104,26 +104,6 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     }
   }
 
-  // Future<void> _handleCopyTrip(Itinerary trip) async {
-  //   final provider = context.read<ItineraryProvider>();
-
-  //   // Show a loading indicator or snackbar
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(content: Text("Copying ${trip.title} to your plans...")),
-  //   );
-
-  //   final success = await provider.copyTrip(trip.id);
-
-  //   if (success && mounted) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(
-  //         content: Text("Trip copied! Find it in your 'My Plans' tab."),
-  //         backgroundColor: Color(0xFF009688),
-  //       ),
-  //     );
-  //   }
-  // }
-
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
