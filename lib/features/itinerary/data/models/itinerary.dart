@@ -11,10 +11,10 @@ class Itinerary {
   final bool isAdminCreated;
   final bool isPublic;
   final int? userId;
-  final int? sourceId;
-  final String status; // Added: e.g., 'DRAFT', 'ONGOING', 'COMPLETED'
-  final DateTime? createdAt; // Added
-  final DateTime? endDate; // Added
+  final int? sourceId; // This determines if it's copied
+  final String status; // e.g., 'DRAFT', 'ONGOING', 'COMPLETED'
+  final DateTime? createdAt; 
+  final DateTime? endDate; 
   final ItinerarySummary? summary;
   final List<ItineraryItem>? items;
 
@@ -36,6 +36,12 @@ class Itinerary {
     this.summary,
     this.items,
   });
+
+  // Computed property - trip is copied if sourceId is not null
+  bool get isCopied => sourceId != null;
+  
+  // Computed property - trip is original if sourceId is null
+  bool get isOriginal => sourceId == null;
 
   Itinerary copyWith({
     String? title,
@@ -67,23 +73,23 @@ class Itinerary {
 
   factory Itinerary.fromJson(Map<String, dynamic> json) {
     return Itinerary(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      theme: json['theme'],
-      totalDays: json['totalDays'],
+      id: json['id'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      theme: json['theme'] as String?,
+      totalDays: json['totalDays'] as int?,
       averageRating: json['averageRating']?.toDouble(),
       estimatedBudget: json['estimatedBudget']?.toDouble(),
       isAdminCreated: json['isAdminCreated'] ?? false,
       isPublic: json['isPublic'] ?? false,
-      userId: json['userId'],
-      sourceId: json['sourceId'],
-      status: json['status'] ?? 'DRAFT',
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
-      summary: json['summary'] != null ? ItinerarySummary.fromJson(json['summary']) : null,
+      userId: json['userId'] as int?,
+      sourceId: json['sourceId'] as int?, // Parse sourceId
+      status: json['status'] as String? ?? 'DRAFT',
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : null,
+      endDate: json['endDate'] != null ? DateTime.parse(json['endDate'] as String) : null,
+      summary: json['summary'] != null ? ItinerarySummary.fromJson(json['summary'] as Map<String, dynamic>) : null,
       items: json['items'] != null
-          ? (json['items'] as List).map((i) => ItineraryItem.fromJson(i)).toList()
+          ? (json['items'] as List<dynamic>).map((i) => ItineraryItem.fromJson(i as Map<String, dynamic>)).toList()
           : null,
     );
   }
@@ -95,6 +101,7 @@ class Itinerary {
       'description': description,
       'status': status,
       'isPublic': isPublic,
+      'sourceId': sourceId,
       'items': items?.map((i) => i.toJson()).toList(),
     };
   }

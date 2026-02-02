@@ -1,7 +1,7 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/cupertino.dart';
 
 class ItineraryItem {
-  final int? id; // Nullable for new activities added by the user
+  final int? id;
   final String title;
   final String? notes;
   final String startTime;
@@ -25,46 +25,49 @@ class ItineraryItem {
     this.destination,
   });
 
-  // copyWith is essential for updating time/notes locally
   ItineraryItem copyWith({
+    int? id,
+    String? title,
+    String? notes,
     String? startTime,
+    String? endTime,
+    int? dayNumber,
     int? orderInDay,
     bool? isVisited,
+    int? destinationId,
     Map<String, dynamic>? destination,
-    String? notes,
   }) {
     return ItineraryItem(
-      id: id,
-      title: title,
+      id: id ?? this.id,
+      title: title ?? this.title,
       notes: notes ?? this.notes,
       startTime: startTime ?? this.startTime,
-      endTime: endTime,
-      dayNumber: dayNumber,
+      endTime: endTime ?? this.endTime,
+      dayNumber: dayNumber ?? this.dayNumber,
       orderInDay: orderInDay ?? this.orderInDay,
       isVisited: isVisited ?? this.isVisited,
-      destinationId: destinationId,
+      destinationId: destinationId ?? this.destinationId,
       destination: destination ?? this.destination,
     );
   }
 
   factory ItineraryItem.fromJson(Map<String, dynamic> json) {
+    // Debug to see what we're getting
     debugPrint("🔍 Parsing ItineraryItem JSON: ${json.keys.toList()}");
-    debugPrint(
-      "   isVisited field: ${json['isVisited']}, visited: ${json['visited']}, is_visited: ${json['is_visited']}",
-    );
+    debugPrint("   isVisited value: ${json['isVisited']}");
+    
     return ItineraryItem(
-      id: json['id'],
-      title: json['title'] ?? '',
-      notes: json['notes'],
-      startTime: json['startTime'] ?? '09:00:00',
-      endTime: json['endTime'],
-      dayNumber: json['dayNumber'] ?? 1,
-      orderInDay: json['orderInDay'] ?? 0,
-      isVisited: json['is_visited'] ?? json['is_visited'] ?? json['isVisited'] ?? false,
-      destinationId:
-          json['destinationId'] ??
-          (json['destination'] != null ? json['destination']['id'] : null),
-      destination: json['destination'],
+      id: json['id'] as int?,
+      title: (json['title'] as String?) ?? '',
+      notes: json['notes'] as String?,
+      startTime: (json['startTime'] as String?) ?? '09:00:00',
+      endTime: json['endTime'] as String?,
+      dayNumber: (json['dayNumber'] as int?) ?? 1,
+      orderInDay: (json['orderInDay'] as int?) ?? 0,
+      // Fixed: Just check json['isVisited'] - your logs show it exists
+      isVisited: json['isVisited'] as bool? ?? false,
+      destinationId: json['destinationId'] as int?,
+      destination: json['destination'] as Map<String, dynamic>?,
     );
   }
 
@@ -74,12 +77,12 @@ class ItineraryItem {
       'title': title,
       'notes': notes,
       'startTime': startTime,
+      if (endTime != null) 'endTime': endTime,
       'dayNumber': dayNumber,
       'orderInDay': orderInDay,
       'isVisited': isVisited,
-      'destinationId':
-          destinationId ?? (destination != null ? destination!['id'] : null),
-      'destination': destination,
+      if (destinationId != null) 'destinationId': destinationId,
+      if (destination != null) 'destination': destination,
     };
   }
 }
