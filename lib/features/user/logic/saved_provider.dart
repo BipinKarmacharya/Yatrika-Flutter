@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
-import 'package:tour_guide/features/user/data/services/saved_service.dart';
+import 'package:tour_guide/core/api/api_client.dart';
+import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 
 class SavedProvider extends ChangeNotifier {
-  List<Map<String, dynamic>> _savedItems = [];
+  List<Itinerary> _savedItems = [];
   bool _isLoading = false;
   Map<int, bool> _savedStatusCache = {}; // itineraryId -> isSaved
 
-  List<Map<String, dynamic>> get savedItems => _savedItems;
+  List<Itinerary> get savedItems => _savedItems;
   bool get isLoading => _isLoading;
 
   // Fetch all saved itineraries
@@ -15,12 +16,16 @@ class SavedProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _savedItems = await SavedService.getMySavedItineraries();
+      final response = await ApiClient.get('/api/v1/itineraries/saved/my-saved');
+      final List<dynamic> data = response;
+      
+      _savedItems = data.map((json) => Itinerary.fromJson(json)).toList();
+      
       // Update cache
       for (var item in _savedItems) {
-        final id = item['id'] as int;
-        _savedStatusCache[id] = true;
+        _savedStatusCache[item.id] = true;
       }
+      
     } catch (e) {
       debugPrint("Error fetching saved itineraries: $e");
       _savedItems = [];
@@ -33,10 +38,18 @@ class SavedProvider extends ChangeNotifier {
   // Save an itinerary
   Future<bool> saveItinerary(int itineraryId) async {
     try {
-      await SavedService.saveItinerary(itineraryId);
-      _savedStatusCache[itineraryId] = true;
-      // Refresh saved items list
-      await fetchSavedItineraries();
+      final response = await ApiClient.post('/api/v1/itineraries/$itineraryId/save');
+      
+      // Add to local list if not already there
+      if (!_savedStatusCache.containsKey(itineraryId)) {
+        // You might want to fetch the saved item details here
+        // For now, we'll just update the cache
+        _savedStatusCache[itineraryId] = true;
+        
+        // Refresh saved items list
+        await fetchSavedItineraries();
+      }
+      
       return true;
     } catch (e) {
       debugPrint("Error saving itinerary: $e");
@@ -47,10 +60,15 @@ class SavedProvider extends ChangeNotifier {
   // Unsave an itinerary
   Future<bool> unsaveItinerary(int itineraryId) async {
     try {
-      await SavedService.unsaveItinerary(itineraryId);
+      await ApiClient.delete('/api/v1/itineraries/$itineraryId/save');
+      
+      // Remove from cache
       _savedStatusCache.remove(itineraryId);
-      // Refresh saved items list
-      await fetchSavedItineraries();
+      
+      // Remove from local list
+      _savedItems.removeWhere((item) => item.id == itineraryId);
+      
+      notifyListeners();
       return true;
     } catch (e) {
       debugPrint("Error unsaving itinerary: $e");

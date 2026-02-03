@@ -399,13 +399,13 @@ class ItineraryProvider with ChangeNotifier {
   // Saving Public Trips
   Future<void> savePublicPlan(int itineraryId, {BuildContext? context}) async {
     try {
-      // If context is provided, use SavedProvider
+      // Call the service to save
+      await ItineraryService.savePublicPlan(itineraryId);
+
+      // Also update SavedProvider if context is provided
       if (context != null) {
         final savedProvider = context.read<SavedProvider>();
         await savedProvider.saveItinerary(itineraryId);
-      } else {
-        // Fallback to old method
-        await ItineraryService.savePublicPlan(itineraryId);
       }
 
       // Refresh public plans to show updated state
@@ -413,6 +413,26 @@ class ItineraryProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       throw Exception('Failed to save public plan: $e');
+    }
+  }
+
+  // Unsave a trip
+  Future<void> unsaveTrip(int itineraryId, {BuildContext? context}) async {
+    try {
+      // Call the service to unsave
+      await ItineraryService.unsavePublicPlan(itineraryId);
+
+      // Also update SavedProvider if context is provided
+      if (context != null) {
+        final savedProvider = context.read<SavedProvider>();
+        await savedProvider.unsaveItinerary(itineraryId);
+      }
+
+      // Refresh public plans to show updated state
+      await fetchPublicPlans();
+      notifyListeners();
+    } catch (e) {
+      throw Exception('Failed to unsave trip: $e');
     }
   }
 

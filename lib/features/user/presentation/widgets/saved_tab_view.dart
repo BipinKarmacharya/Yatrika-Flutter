@@ -127,7 +127,7 @@ class _SavedTabViewState extends State<SavedTabView> {
     );
   }
 
-  Widget _buildContent(SavedProvider savedProvider, List<Map<String, dynamic>> items) {
+  Widget _buildContent(SavedProvider savedProvider, List<Itinerary> items) {
     if (savedProvider.isLoading) {
       return _buildLoadingState();
     }
@@ -147,21 +147,33 @@ class _SavedTabViewState extends State<SavedTabView> {
       padding: const EdgeInsets.all(16),
       itemCount: filteredItems.length,
       itemBuilder: (context, index) {
-        final item = filteredItems[index];
-        return _buildSavedItemCard(item, context);
+        final itinerary = filteredItems[index];
+        return _buildSavedItemCard(itinerary, context);
       },
     );
   }
 
-  List<Map<String, dynamic>> _filterItems(List<Map<String, dynamic>> items, int tabIndex) {
-    // For now, we only have itineraries. You can extend this for destinations, plans, etc.
+  List<Itinerary> _filterItems(List<Itinerary> items, int tabIndex) {
     // tabIndex: 0=All, 1=Destinations, 2=Plans, 3=Public Trips
-    return items; // Return all items for now
+    
+    if (tabIndex == 0) return items; // All
+    
+    return items.where((itinerary) {
+      switch (tabIndex) {
+        case 1: // Destinations
+          // You'll need to implement this when you have destination saving
+          return false;
+        case 2: // Plans (itineraries that are not public)
+          return itinerary.isPublic == false;
+        case 3: // Public Trips
+          return itinerary.isPublic == true;
+        default:
+          return true;
+      }
+    }).toList();
   }
 
-  Widget _buildSavedItemCard(Map<String, dynamic> item, BuildContext context) {
-    final itinerary = Itinerary.fromJson(item);
-    
+  Widget _buildSavedItemCard(Itinerary itinerary, BuildContext context) {
     // Get first destination image for the cover
     final String? coverImageUrl = _getCoverImageUrl(itinerary);
     

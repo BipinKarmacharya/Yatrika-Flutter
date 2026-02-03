@@ -274,10 +274,19 @@ class ItineraryService {
     }
   }
 
+  static Future<void> unsavePublicPlan(int itineraryId) async {
+    try {
+      await ApiClient.delete('$_featurePath/$itineraryId/save');
+    } catch (e) {
+      debugPrint("Error unsaving public plan: $e");
+      throw Exception('Failed to unsave public plan: $e');
+    }
+  }
+
   // like/unlike trips
   static Future<void> toggleLike(int itineraryId) async {
     try {
-      await ApiClient.post('$_featurePath/$itineraryId/like', body: {});
+      await ApiClient.post('$_featurePath/$itineraryId/like/toggle', body: {});
     } catch (e) {
       debugPrint("Error toggling like: $e");
       throw Exception('Failed to toggle like');

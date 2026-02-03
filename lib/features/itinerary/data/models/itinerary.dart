@@ -23,6 +23,8 @@ class Itinerary {
   final int? likeCount;
   final String? country;
   final List<String>? tags;
+  final bool? isLikedByCurrentUser;
+  final bool? isSavedByCurrentUser;
 
   Itinerary({
     required this.id,
@@ -41,11 +43,13 @@ class Itinerary {
     this.endDate,
     this.summary,
     this.items,
-    this.user, // Initialize
+    this.user, 
     this.copyCount,
     this.likeCount = 0,
     this.country,
     this.tags,
+    this.isLikedByCurrentUser = false,
+    this.isSavedByCurrentUser = false,
   });
 
   // Computed property - trip is copied if sourceId is not null
@@ -61,6 +65,9 @@ class Itinerary {
     bool? isPublic,
     ItinerarySummary? summary,
     List<ItineraryItem>? items,
+    int? likeCount,
+    bool? isLikedByCurrentUser,
+    bool? isSavedByCurrentUser,
   }) {
     return Itinerary(
       id: id,
@@ -79,6 +86,13 @@ class Itinerary {
       endDate: endDate,
       summary: summary ?? this.summary,
       items: items ?? this.items,
+      user: user,
+      copyCount: copyCount,
+      likeCount: likeCount ?? this.likeCount,
+      country: country,
+      tags: tags,
+      isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser ?? this.isSavedByCurrentUser,
     );
   }
 
@@ -117,6 +131,8 @@ class Itinerary {
       likeCount: json['likeCount'] as int? ?? 0,
       country: json['countryCode'] as String?, // API returns countryCode
       tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
+      isLikedByCurrentUser: json['isLikedByCurrentUser'] ?? false,
+      isSavedByCurrentUser: json['isSavedByCurrentUser'] ?? false,
     );
   }
 
@@ -129,6 +145,8 @@ class Itinerary {
       'isPublic': isPublic,
       'sourceId': sourceId,
       'items': items?.map((i) => i.toJson()).toList(),
+      'isLikedByCurrentUser': isLikedByCurrentUser,
+      'isSavedByCurrentUser': isSavedByCurrentUser,
     };
   }
 }

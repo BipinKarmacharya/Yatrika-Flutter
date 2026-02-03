@@ -65,7 +65,7 @@ void main() async {
 
         ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
 
-        ChangeNotifierProvider(create: (_) => SavedProvider(), lazy: true),
+        ChangeNotifierProvider(create: (_) => SavedProvider()),
 
       ],
       child: const MyApp(),
