@@ -10,6 +10,7 @@ class DestinationCard extends StatelessWidget {
     this.isGrid = false,
   });
 
+  // final Destination destination;
   final Destination destination;
   final bool isGrid;
 
@@ -27,41 +28,56 @@ class DestinationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? imageUrl = destination.images.isNotEmpty ? destination.images[0] : null;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    // Access via destination.images (object property, not map key)
+    final String? imageUrl = destination.images.isNotEmpty
+        ? destination.images[0]
+        : null;
 
     return InkWell(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => DestinationDetailScreen(destination: destination)),
+        MaterialPageRoute(
+          builder: (_) => DestinationDetailScreen(destination: destination),
+        ),
       ),
       onLongPress: _openMap,
       child: Container(
-        margin: isGrid ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        margin: isGrid
+            ? EdgeInsets.zero
+            : EdgeInsets.symmetric(
+                vertical: isMobile ? 8 : 10,
+                horizontal: isMobile ? 12 : 16,
+              ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
+              blurRadius: isMobile ? 6 : 10,
               offset: const Offset(0, 4),
-            )
+            ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, 
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // IMAGE SECTION
+            // IMAGE SECTION - Make responsive
             AspectRatio(
-              // Reduced aspect ratio for a shallower card on mobile
-              aspectRatio: isGrid ? 1.4 : 2.0, 
+              aspectRatio: isGrid
+                  ? (isMobile ? 1.3 : 1.4)
+                  : (isMobile ? 1.8 : 2.0),
               child: Stack(
                 children: [
                   Hero(
+                    // Use destination.id (object property)
                     tag: 'dest_image_${destination.id}',
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                       child: imageUrl == null
                           ? _buildPlaceholder()
                           : Image.network(
@@ -69,7 +85,8 @@ class DestinationCard extends StatelessWidget {
                               width: double.infinity,
                               height: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildPlaceholder(),
                             ),
                     ),
                   ),
@@ -79,37 +96,45 @@ class DestinationCard extends StatelessWidget {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.7),
+                          ],
                           stops: const [0.5, 1.0],
                         ),
                       ),
                     ),
                   ),
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: isMobile ? 6 : 8,
+                    right: isMobile ? 6 : 8,
                     child: _buildActionButton(Icons.bookmark_border),
                   ),
                   Positioned(
-                    bottom: 10,
-                    left: 10,
-                    right: 10,
+                    bottom: isMobile ? 8 : 10,
+                    left: isMobile ? 8 : 10,
+                    right: isMobile ? 8 : 10,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Use destination.name (object property)
                         Text(
                           destination.name,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: isGrid ? 14 : 16,
+                            fontSize: isMobile ? 12 : (isGrid ? 14 : 16),
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        // Use destination.district (object property)
                         Text(
                           destination.district ?? "Location",
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: isMobile ? 9 : 11,
+                          ),
                         ),
                       ],
                     ),
@@ -117,48 +142,61 @@ class DestinationCard extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // DETAILS SECTION
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(isMobile ? 8 : 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (!isGrid) ...[
+                    // Use destination.shortDescription (object property)
                     Text(
                       destination.shortDescription,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      maxLines: 1,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: isMobile ? 10 : 12,
+                      ),
+                      maxLines: isMobile ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: isMobile ? 6 : 8),
                   ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 14),
-                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                            size: isMobile ? 12 : 14,
+                          ),
+                          SizedBox(width: isMobile ? 2 : 4),
+                          // Use destination.averageRating (object property)
                           Text(
                             destination.averageRating.toStringAsFixed(1),
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: isMobile ? 10 : 12,
+                            ),
                           ),
                         ],
                       ),
+                      // Use destination.cost (object property)
                       Text(
                         "\$${destination.cost.toInt()}/day",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF009688),
-                          fontSize: 12,
+                          color: const Color(0xFF009688),
+                          fontSize: isMobile ? 10 : 12,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  // TAGS SECTION - Works for both Grid and Home
-                  _buildTagsRow(),
+                  SizedBox(height: isMobile ? 6 : 8),
+                  // TAGS SECTION - Use destination.tags (object property)
+                  _buildTagsRow(isMobile: isMobile),
                 ],
               ),
             ),
@@ -168,24 +206,26 @@ class DestinationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTagsRow() {
+  // Update _buildTagsRow to accept isMobile parameter
+  Widget _buildTagsRow({bool isMobile = false}) {
     const int maxVisible = 2;
+    // Use destination.tags (object property)
     final tags = destination.tags;
     final visibleTags = tags.take(maxVisible).toList();
     final remaining = tags.length - maxVisible;
 
     return Wrap(
-      spacing: 4,
-      runSpacing: 4,
+      spacing: isMobile ? 2 : 4,
+      runSpacing: isMobile ? 2 : 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        ...visibleTags.map((tag) => _buildTagBadge(tag)),
+        ...visibleTags.map((tag) => _buildTagBadge(tag, isMobile: isMobile)),
         if (remaining > 0)
           Text(
             "+$remaining",
             style: TextStyle(
               color: Colors.grey[500],
-              fontSize: 10,
+              fontSize: isMobile ? 8 : 10,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -193,19 +233,23 @@ class DestinationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTagBadge(String text) {
+  // Update _buildTagBadge to accept isMobile parameter
+  Widget _buildTagBadge(String text, {bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 4 : 6,
+        vertical: isMobile ? 1 : 2,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFF009688).withOpacity(0.08),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(isMobile ? 4 : 6),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Color(0xFF009688),
+        style: TextStyle(
+          color: const Color(0xFF009688),
           fontWeight: FontWeight.w600,
-          fontSize: 9,
+          fontSize: isMobile ? 8 : 9,
         ),
       ),
     );
@@ -289,7 +333,9 @@ class _FeaturedListState extends State<FeaturedList> {
               height: 6,
               width: _currentPage == index ? 18 : 6,
               decoration: BoxDecoration(
-                color: _currentPage == index ? const Color(0xFF009688) : Colors.grey.shade300,
+                color: _currentPage == index
+                    ? const Color(0xFF009688)
+                    : Colors.grey.shade300,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),

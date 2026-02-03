@@ -78,7 +78,11 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                   search: _searchQuery,
                   tags: _appliedTags,
                 );
-          setState(() => _destinations = data);
+          setState(() {
+            _destinations = data.map((map) {
+              return map;
+            }).toList();
+          });
           break;
 
         case ExploreTab.expertPlans:
@@ -143,16 +147,46 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
   }
 
   // --- HELPER WIDGETS ---
-
   Widget _buildGrid() {
     final bool isDest = _selectedTab == ExploreTab.destinations;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Responsive grid configuration
+    int crossAxisCount;
+    double childAspectRatio;
+    double crossAxisSpacing;
+    double mainAxisSpacing;
+
+    if (screenWidth < 600) {
+      // Mobile
+      crossAxisCount = 1;
+      childAspectRatio = isDest ? 0.7 : 1.3; // Increased for PublicTripCard
+      crossAxisSpacing = 16;
+      mainAxisSpacing = 16;
+    } else if (screenWidth < 900) {
+      // Tablet
+      crossAxisCount = 2;
+      childAspectRatio = isDest ? 0.65 : 1.2;
+      crossAxisSpacing = 20;
+      mainAxisSpacing = 20;
+    } else {
+      // Desktop
+      crossAxisCount = 3;
+      childAspectRatio = isDest ? 0.6 : 1.1;
+      crossAxisSpacing = 24;
+      mainAxisSpacing = 24;
+    }
+
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth < 600 ? 16 : 24,
+        vertical: 16,
+      ),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: MediaQuery.of(context).size.width < 600 ? 1 : 2,
-        childAspectRatio: isDest ? 0.65 : 1.1,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: childAspectRatio,
+        crossAxisSpacing: crossAxisSpacing,
+        mainAxisSpacing: mainAxisSpacing,
       ),
       itemCount: isDest ? _destinations.length : _itineraries.length,
       itemBuilder: (context, index) {
@@ -167,7 +201,6 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
                 MaterialPageRoute(
                   builder: (context) => ItineraryDetailScreen(
                     itinerary: itinerary,
-                    // If we are on the Expert Plans tab, set isReadOnly to true
                     isReadOnly: _selectedTab == ExploreTab.expertPlans,
                   ),
                 ),
@@ -179,6 +212,42 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
       },
     );
   }
+
+  // Widget _buildGrid() {
+  //   final bool isDest = _selectedTab == ExploreTab.destinations;
+  //   return GridView.builder(
+  //     padding: const EdgeInsets.symmetric(horizontal: 16),
+  //     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+  //       crossAxisCount: MediaQuery.of(context).size.width < 600 ? 1 : 2,
+  //       childAspectRatio: isDest ? 0.65 : 1.1,
+  //       crossAxisSpacing: 16,
+  //       mainAxisSpacing: 16,
+  //     ),
+  //     itemCount: isDest ? _destinations.length : _itineraries.length,
+  //     itemBuilder: (context, index) {
+  //       if (isDest) {
+  //         return DestinationCard(destination: _destinations[index]);
+  //       } else {
+  //         final itinerary = _itineraries[index];
+  //         return GestureDetector(
+  //           onTap: () {
+  //             Navigator.push(
+  //               context,
+  //               MaterialPageRoute(
+  //                 builder: (context) => ItineraryDetailScreen(
+  //                   itinerary: itinerary,
+  //                   // If we are on the Expert Plans tab, set isReadOnly to true
+  //                   isReadOnly: _selectedTab == ExploreTab.expertPlans,
+  //                 ),
+  //               ),
+  //             );
+  //           },
+  //           child: PublicTripCard(itinerary: itinerary),
+  //         );
+  //       }
+  //     },
+  //   );
+  // }
 
   Widget _buildSearchBar() {
     final bool isDest = _selectedTab == ExploreTab.destinations;

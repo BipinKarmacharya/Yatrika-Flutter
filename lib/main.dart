@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
+import 'package:tour_guide/features/user/logic/saved_provider.dart';
 import 'package:tour_guide/features/destination/data/repositories/destination_repository.dart';
 import 'package:tour_guide/features/destination/logic/destination_provider.dart';
 import 'package:tour_guide/features/home/presentation/screens/home_screen.dart';
@@ -63,6 +64,9 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ItineraryProvider()),
 
         ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
+
+        ChangeNotifierProvider(create: (_) => SavedProvider(), lazy: true),
+
       ],
       child: const MyApp(),
     ),

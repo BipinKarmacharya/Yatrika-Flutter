@@ -5,6 +5,7 @@ import 'package:tour_guide/features/auth/ui/login_screen.dart';
 import 'package:tour_guide/features/community/logic/community_provider.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/user/presentation/widgets/my_stories_tab_view.dart';
+import 'package:tour_guide/features/user/presentation/widgets/saved_tab_view.dart';
 
 // Ensure these paths match your project structure
 import '../../../../core/theme/app_colors.dart';
@@ -97,10 +98,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: CircleAvatar(
                         radius: 55,
                         backgroundColor: Colors.grey[200],
-                        backgroundImage: user?.profileImageUrl != null
-                            ? CachedNetworkImageProvider(user!.profileImageUrl!)
+                        backgroundImage: user?.profileImage != null
+                            ? CachedNetworkImageProvider(user!.profileImage!)
                             : null,
-                        child: user?.profileImageUrl == null
+                        child: user?.profileImage == null
                             ? const Icon(
                                 Icons.person,
                                 size: 50,
@@ -166,8 +167,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             body: const TabBarView(
               children: [
                 MyTripsTabView(),
-                MyStoriesTabView(), // Now correctly displays user's grid
-                Center(child: Text("Saved Content coming soon!")),
+                MyStoriesTabView(),
+                SavedTabView(),
               ],
             ),
           ),

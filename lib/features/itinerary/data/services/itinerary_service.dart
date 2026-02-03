@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:tour_guide/core/api/api_client.dart';
 import '../models/itinerary.dart';
-import '../models/itinerary_item.dart';
 
 class ItineraryService {
   static const String _featurePath = '/api/v1/itineraries';
@@ -262,6 +261,26 @@ class ItineraryService {
     } catch (e) {
       debugPrint("Error deleting activity: $e");
       throw Exception("Failed to delete activity");
+    }
+  }
+
+  // Saving Public Trips
+  static Future<void> savePublicPlan(int itineraryId) async {
+    try {
+      await ApiClient.post('$_featurePath/$itineraryId/save', body: {});
+    } catch (e) {
+      debugPrint("Error saving public plan: $e");
+      throw Exception('Failed to save public plan: $e');
+    }
+  }
+
+  // like/unlike trips
+  static Future<void> toggleLike(int itineraryId) async {
+    try {
+      await ApiClient.post('$_featurePath/$itineraryId/like', body: {});
+    } catch (e) {
+      debugPrint("Error toggling like: $e");
+      throw Exception('Failed to toggle like');
     }
   }
 }

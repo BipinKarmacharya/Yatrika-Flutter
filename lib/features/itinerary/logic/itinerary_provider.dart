@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tour_guide/features/user/logic/saved_provider.dart';
 import '../data/models/itinerary.dart';
 import '../data/models/itinerary_item.dart';
 import '../data/services/itinerary_service.dart';
@@ -115,9 +118,7 @@ class ItineraryProvider with ChangeNotifier {
   Future<Itinerary?> copyTrip(int itineraryId) async {
     try {
       final newTrip = await ItineraryService.copyItinerary(itineraryId);
-      if (newTrip != null) {
-        await fetchMyPlans();
-      }
+      await fetchMyPlans();
       return newTrip;
     } catch (e) {
       debugPrint("CopyTrip Error: $e");
@@ -393,6 +394,37 @@ class ItineraryProvider with ChangeNotifier {
   /// Deletes a trip by ID (wrapper for deleteTrip)
   Future<bool> deletePlan(int itineraryId) async {
     return await deleteTrip(itineraryId);
+  }
+
+  // Saving Public Trips
+  Future<void> savePublicPlan(int itineraryId, {BuildContext? context}) async {
+    try {
+      // If context is provided, use SavedProvider
+      if (context != null) {
+        final savedProvider = context.read<SavedProvider>();
+        await savedProvider.saveItinerary(itineraryId);
+      } else {
+        // Fallback to old method
+        await ItineraryService.savePublicPlan(itineraryId);
+      }
+
+      // Refresh public plans to show updated state
+      await fetchPublicPlans();
+      notifyListeners();
+    } catch (e) {
+      throw Exception('Failed to save public plan: $e');
+    }
+  }
+
+  Future<void> toggleLike(int itineraryId) async {
+    try {
+      await ItineraryService.toggleLike(itineraryId);
+      // Refresh to get updated like count
+      await fetchPublicPlans();
+      notifyListeners();
+    } catch (e) {
+      throw Exception('Failed to toggle like: $e');
+    }
   }
 
   // --- UTILITIES ---

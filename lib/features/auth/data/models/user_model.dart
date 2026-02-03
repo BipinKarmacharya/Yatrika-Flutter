@@ -5,7 +5,7 @@ class UserModel {
   final String? firstName; 
   final String? lastName; 
   final String? phoneNumber;
-  final String? profileImageUrl;
+  final String? profileImage;
   final String? role;
   final List<String> interests;
 
@@ -16,7 +16,7 @@ class UserModel {
     this.firstName,
     this.lastName,
     this.phoneNumber,
-    this.profileImageUrl,
+    this.profileImage,
     this.role,
     this.interests = const [],
   });
@@ -33,7 +33,7 @@ class UserModel {
       firstName: json['firstName'], // Matches Spring Boot JSON key
       lastName: json['lastName'], // Matches Spring Boot JSON key
       phoneNumber: json['phoneNumber'], // Matches Spring Boot JSON key
-      profileImageUrl: json['profileImageUrl'],
+      profileImage: json['profileImage'],
       interests: json['interests'] != null 
           ? List<String>.from(json['interests']) 
           : [],
@@ -48,7 +48,7 @@ class UserModel {
       'firstName': firstName,
       'lastName': lastName,
       'phoneNumber': phoneNumber,
-      'profileImageUrl': profileImageUrl,
+      'profileImage': profileImage,
       'interests': interests,
     };
   }

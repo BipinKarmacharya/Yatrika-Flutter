@@ -97,7 +97,7 @@ class DestinationService {
 
   static Future<List<Destination>> popular() async {
     try {
-      final response = await ApiClient.get('/api/destinations');
+      final response = await ApiClient.get('/api/destinations/popular');
       return _mapResponse(response); // Uses the refined helper
     } catch (e) {
       debugPrint("Error in DestinationService.popular: $e");
