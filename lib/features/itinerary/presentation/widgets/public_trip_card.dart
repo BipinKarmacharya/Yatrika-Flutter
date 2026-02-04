@@ -108,14 +108,11 @@ class PublicTripCard extends StatelessWidget {
                     color: Colors.black,
                   ),
                 ),
-                // Action buttons
-                // In PublicTripCard, update the action buttons section:
-                // Update the action buttons section in PublicTripCard:
                 Row(
                   children: [
                     // Copy button - only for public trips and expert plans
                     if (!_isOwnTrip(context) &&
-                        (_isExpertTemplate() || (itinerary.isPublic ?? false)))
+                        (_isExpertTemplate() || (itinerary.isPublic)))
                       IconButton(
                         onPressed: () => _copyTrip(context),
                         icon: Icon(
@@ -129,7 +126,7 @@ class PublicTripCard extends StatelessWidget {
 
                     // Add spacing only if copy button exists
                     if (!_isOwnTrip(context) &&
-                        (_isExpertTemplate() || (itinerary.isPublic ?? false)))
+                        (_isExpertTemplate() || (itinerary.isPublic)))
                       const SizedBox(width: 4),
 
                     // Save button - only for non-own trips
