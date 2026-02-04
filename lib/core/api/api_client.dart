@@ -15,12 +15,15 @@ class ApiClient {
   static String get baseUrl {
     if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
       return 'http://127.0.0.1:8080';
+      // return 'https://yatrika-ympz.onrender.com';
     }
     if (Platform.isAndroid) {
-      // return 'http://10.0.2.2:8080';
-      return 'https://zebralike-inquirable-almeda.ngrok-free.dev';
+      return 'http://10.0.2.2:8080';
+      // return 'https://zebralike-inquirable-almeda.ngrok-free.dev';
+      // return 'https://yatrika-ympz.onrender.com';
     }
     return 'http://localhost:8080';
+    // return 'https://yatrika-ympz.onrender.com';
   }
 
   static final http.Client _http = http.Client();
@@ -82,6 +85,10 @@ class ApiClient {
   ) async {
     try {
       final res = await request().timeout(const Duration(seconds: 20));
+
+      print("URL: ${res.request?.url}");
+      print("STATUS: ${res.statusCode}");
+      print("BODY: ${res.body}");
       return _decodeOrThrow(res);
     } catch (e) {
       if (e is ApiException) rethrow;

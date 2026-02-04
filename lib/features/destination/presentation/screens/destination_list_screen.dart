@@ -41,7 +41,7 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
   String _searchQuery = "";
   List<String> _appliedTags = [];
   String _appliedBudget = "Any budget";
-  final String _sortBy = "Name";
+  // final String _sortBy = "Name";
 
   final List<String> _availableTags = [
     "Adventure",
@@ -554,51 +554,51 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     );
   }
 
-  Widget _buildPublicTripsTab() {
-    return Consumer<ItineraryProvider>(
-      builder: (context, provider, child) {
-        if (provider.isPublicLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  // Widget _buildPublicTripsTab() {
+  //   return Consumer<ItineraryProvider>(
+  //     builder: (context, provider, child) {
+  //       if (provider.isPublicLoading) {
+  //         return const Center(child: CircularProgressIndicator());
+  //       }
 
-        if (provider.publicPlans.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.public_off,
-            message: "No public trips yet. Be the first to share one!",
-          );
-        }
+  //       if (provider.publicPlans.isEmpty) {
+  //         return _buildEmptyState(
+  //           icon: Icons.public_off,
+  //           message: "No public trips yet. Be the first to share one!",
+  //         );
+  //       }
 
-        return RefreshIndicator(
-          onRefresh: () => provider.fetchPublicPlans(),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: provider.publicPlans.length,
-            itemBuilder: (context, index) {
-              final trip = provider.publicPlans[index];
-              return PublicTripCard(
-                itinerary: trip,
-              ); // We will build this card next
-            },
-          ),
-        );
-      },
-    );
-  }
+  //       return RefreshIndicator(
+  //         onRefresh: () => provider.fetchPublicPlans(),
+  //         child: ListView.builder(
+  //           padding: const EdgeInsets.all(16),
+  //           itemCount: provider.publicPlans.length,
+  //           itemBuilder: (context, index) {
+  //             final trip = provider.publicPlans[index];
+  //             return PublicTripCard(
+  //               itinerary: trip,
+  //             ); // We will build this card next
+  //           },
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
-  Widget _buildEmptyState({required IconData icon, required String message}) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildEmptyState({required IconData icon, required String message}) {
+  //   return Center(
+  //     child: Column(
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: [
+  //         Icon(icon, size: 64, color: Colors.grey.shade300),
+  //         const SizedBox(height: 16),
+  //         Text(
+  //           message,
+  //           textAlign: TextAlign.center,
+  //           style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 } // End of class

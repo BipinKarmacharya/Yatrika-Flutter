@@ -8,7 +8,7 @@ import '../../../auth/logic/auth_provider.dart';
 
 class DestinationDetailScreen extends StatelessWidget {
   final Destination destination;
-  final ItineraryService _itineraryService = ItineraryService();
+  // final ItineraryService _itineraryService = ItineraryService();
 
   DestinationDetailScreen({super.key, required this.destination});
 
