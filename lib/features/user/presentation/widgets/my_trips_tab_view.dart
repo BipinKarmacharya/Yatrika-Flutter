@@ -123,7 +123,7 @@ class MyTripsTabView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                trip.status ?? "DRAFT",
+                trip.status,
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.bold,
@@ -213,17 +213,7 @@ class MyTripsTabView extends StatelessWidget {
     final bool isCompleted = trip.status == 'COMPLETED';
     final bool isPublic = trip.isPublic;
     final bool isCopied = trip.isCopied;
-
-    // Remove debug prints for production
-    // debugPrint("=== TRIP DEBUG ===");
-    // debugPrint("Trip ID: ${trip.id}");
-    // debugPrint("Title: ${trip.title}");
-    // debugPrint("Status: ${trip.status}");
-    // debugPrint("Is Public: $isPublic");
-    // debugPrint("Source ID: ${trip.sourceId}");
-    // debugPrint("Is Copied (computed): $isCopied");
-    // debugPrint("================");
-
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
