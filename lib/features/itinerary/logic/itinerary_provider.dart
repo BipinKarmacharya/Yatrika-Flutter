@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tour_guide/core/api/api_client.dart';
 import 'package:tour_guide/features/user/logic/saved_provider.dart';
 import '../data/models/itinerary.dart';
 import '../data/models/itinerary_item.dart';
@@ -28,6 +29,86 @@ class ItineraryProvider with ChangeNotifier {
   List<Map<String, dynamic>> get destinations => _destinations;
   bool _isDestinationsLoading = false;
   bool get isDestinationsLoading => _isDestinationsLoading;
+
+  /// Debug method to print current state
+  void debugPrintState() {
+    print('📊 === CURRENT PROVIDER STATE ===');
+    print('📋 My Plans count: ${_myPlans.length}');
+    print('🌍 Public Plans count: ${_publicPlans.length}');
+
+    print('\n📋 PUBLIC PLANS DETAILS:');
+    for (var plan in _publicPlans) {
+      print('  🔹 ID: ${plan.id}, Title: ${plan.title}');
+      print(
+        '     Saved: ${plan.isSavedByCurrentUser}, Liked: ${plan.isLikedByCurrentUser}',
+      );
+      print(
+        '     Like Count: ${plan.likeCount}, Copy Count: ${plan.copyCount}',
+      );
+    }
+
+    print('📊 === END STATE ===');
+  }
+
+  void updateItineraryInAllLists(Itinerary updatedItinerary) {
+    // 1. Update or add to public plans
+    final publicIndex = _publicPlans.indexWhere(
+      (it) => it.id == updatedItinerary.id,
+    );
+    if (publicIndex != -1) {
+      _publicPlans[publicIndex] = updatedItinerary;
+    } else {
+      // If it's an Expert Plan that was liked, add it to public plans
+      _publicPlans.add(updatedItinerary);
+    }
+
+    // 2. Update in my plans
+    final myPlanIndex = _myPlans.indexWhere(
+      (it) => it.id == updatedItinerary.id,
+    );
+    if (myPlanIndex != -1) {
+      _myPlans[myPlanIndex] = updatedItinerary;
+    }
+
+    notifyListeners();
+  }
+
+  /// Sync expert plans with the current provider state
+  List<Itinerary> syncExpertPlans(List<Itinerary> expertPlans) {
+    bool changed = false;
+
+    for (int i = 0; i < expertPlans.length; i++) {
+      final itinerary = expertPlans[i];
+
+      // Check if this itinerary exists in public plans with updated state
+      final updatedItinerary = _publicPlans.firstWhere(
+        (it) => it.id == itinerary.id,
+        orElse: () => itinerary,
+      );
+
+      // If different, update
+      if (updatedItinerary.isLikedByCurrentUser !=
+              itinerary.isLikedByCurrentUser ||
+          updatedItinerary.likeCount != itinerary.likeCount ||
+          updatedItinerary.isSavedByCurrentUser !=
+              itinerary.isSavedByCurrentUser) {
+        expertPlans[i] = updatedItinerary;
+        changed = true;
+      }
+    }
+
+    // Return the updated list
+    return expertPlans;
+  }
+
+  // Force refresh a single itinerary
+  Future<void> refreshItinerary(int itineraryId) async {
+    try {
+      await _fetchUpdatedItinerary(itineraryId);
+    } catch (e) {
+      debugPrint("Error refreshing itinerary: $e");
+    }
+  }
 
   // --- FETCH METHODS ---
 
@@ -117,10 +198,34 @@ class ItineraryProvider with ChangeNotifier {
 
   Future<Itinerary?> copyTrip(int itineraryId) async {
     try {
+      // Show loading indicator
+      _isLoading = true;
+      notifyListeners();
+
       final newTrip = await ItineraryService.copyItinerary(itineraryId);
-      await fetchMyPlans();
+
+      // Add to beginning of myPlans list
+      _myPlans.insert(0, newTrip);
+
+      // Also update copy count in public plans if this is a public trip
+      final publicIndex = _publicPlans.indexWhere(
+        (it) => it.id == itineraryId,
+      );
+      if (publicIndex != -1) {
+        final publicTrip = _publicPlans[publicIndex];
+        final currentCopyCount = publicTrip.copyCount ?? 0;
+        _publicPlans[publicIndex] = publicTrip.copyWith(
+          copyCount: currentCopyCount + 1,
+        );
+      }
+    
+      _isLoading = false;
+      notifyListeners();
       return newTrip;
     } catch (e) {
+      _isLoading = false;
+      _errorMessage = "Failed to copy trip";
+      notifyListeners();
       debugPrint("CopyTrip Error: $e");
       return null;
     }
@@ -396,54 +501,219 @@ class ItineraryProvider with ChangeNotifier {
     return await deleteTrip(itineraryId);
   }
 
-  // Saving Public Trips
-  Future<void> savePublicPlan(int itineraryId, {BuildContext? context}) async {
+  // Saving Public Trips with optimistic updates
+  /// Save any itinerary (public, expert, or personal)
+  Future<void> saveItinerary(int itineraryId, {BuildContext? context}) async {
     try {
-      // Call the service to save
-      await ItineraryService.savePublicPlan(itineraryId);
+      print('💾 SAVE ITINERARY: $itineraryId');
 
-      // Also update SavedProvider if context is provided
-      if (context != null) {
-        final savedProvider = context.read<SavedProvider>();
-        await savedProvider.saveItinerary(itineraryId);
+      // 1. Try to find in public plans first
+      int publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
+
+      // 2. Try to find in expert plans (these might be separate)
+      // For now, we'll just call the API and update state
+
+      // 3. Check current saved status
+      bool isCurrentlySaved = false;
+
+      if (publicIndex != -1) {
+        isCurrentlySaved =
+            _publicPlans[publicIndex].isSavedByCurrentUser ?? false;
+        print('   Found in public plans, saved: $isCurrentlySaved');
       }
 
-      // Refresh public plans to show updated state
-      await fetchPublicPlans();
-      notifyListeners();
+      // 4. If already saved, nothing to do
+      if (isCurrentlySaved) {
+        print('   Already saved, skipping');
+        return;
+      }
+
+      // 5. Call API
+      print('   Calling save API...');
+      final updatedItinerary = await ItineraryService.savePublicPlan(
+        itineraryId,
+      );
+
+      // 6. Update state if found in public plans
+      if (publicIndex != -1) {
+        _publicPlans[publicIndex] = updatedItinerary;
+        notifyListeners();
+      }
+
+      // 7. Update SavedProvider
+      if (context != null) {
+        try {
+          final savedProvider = context.read<SavedProvider>();
+          await savedProvider.fetchSavedItineraries(); // Refresh saved list
+        } catch (e) {
+          print('⚠️ Could not update SavedProvider: $e');
+        }
+      }
+
+      print('✅ Save completed for itinerary $itineraryId');
     } catch (e) {
-      throw Exception('Failed to save public plan: $e');
+      print('❌ Error in saveItinerary: $e');
+      rethrow;
     }
   }
 
-  // Unsave a trip
-  Future<void> unsaveTrip(int itineraryId, {BuildContext? context}) async {
+  /// Unsave any itinerary
+  Future<void> unsaveItinerary(int itineraryId, {BuildContext? context}) async {
     try {
-      // Call the service to unsave
-      await ItineraryService.unsavePublicPlan(itineraryId);
+      print('🗑️ UNSAVE ITINERARY: $itineraryId');
 
-      // Also update SavedProvider if context is provided
-      if (context != null) {
-        final savedProvider = context.read<SavedProvider>();
-        await savedProvider.unsaveItinerary(itineraryId);
+      // 1. Try to find in public plans
+      int publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
+
+      // 2. Check current saved status
+      bool isCurrentlySaved = false;
+
+      if (publicIndex != -1) {
+        isCurrentlySaved =
+            _publicPlans[publicIndex].isSavedByCurrentUser ?? false;
+        print('   Found in public plans, saved: $isCurrentlySaved');
       }
 
-      // Refresh public plans to show updated state
-      await fetchPublicPlans();
-      notifyListeners();
+      // 3. If not saved, nothing to do
+      if (!isCurrentlySaved) {
+        print('   Already not saved, skipping');
+        return;
+      }
+
+      // 4. Call API
+      print('   Calling unsave API...');
+      final updatedItinerary = await ItineraryService.unsavePublicPlan(
+        itineraryId,
+      );
+
+      // 5. Update state if found in public plans
+      if (publicIndex != -1) {
+        _publicPlans[publicIndex] = updatedItinerary;
+        notifyListeners();
+      }
+
+      // 6. Update SavedProvider
+      if (context != null) {
+        try {
+          final savedProvider = context.read<SavedProvider>();
+          await savedProvider.fetchSavedItineraries(); // Refresh saved list
+        } catch (e) {
+          print('⚠️ Could not update SavedProvider: $e');
+        }
+      }
+
+      print('✅ Unsave completed for itinerary $itineraryId');
     } catch (e) {
-      throw Exception('Failed to unsave trip: $e');
+      print('❌ Error in unsaveItinerary: $e');
+      rethrow;
     }
   }
 
-  Future<void> toggleLike(int itineraryId) async {
+  /// Toggle like for any itinerary
+  Future<void> toggleLike(int itineraryId, {BuildContext? context}) async {
     try {
-      await ItineraryService.toggleLike(itineraryId);
-      // Refresh to get updated like count
-      await fetchPublicPlans();
-      notifyListeners();
+      print('❤️ TOGGLE LIKE: $itineraryId');
+
+      // 1. OPTIMISTIC UPDATE for any itinerary in public plans
+      final index = _publicPlans.indexWhere((it) => it.id == itineraryId);
+      if (index != -1) {
+        final itinerary = _publicPlans[index];
+        final isCurrentlyLiked = itinerary.isLikedByCurrentUser ?? false;
+        final currentLikeCount = itinerary.likeCount ?? 0;
+
+        _publicPlans[index] = itinerary.copyWith(
+          isLikedByCurrentUser: !isCurrentlyLiked,
+          likeCount: !isCurrentlyLiked
+              ? currentLikeCount + 1
+              : currentLikeCount - 1,
+        );
+        notifyListeners();
+      }
+
+      // 2. Call API
+      final updatedItinerary = await ItineraryService.toggleLike(itineraryId);
+
+      // 3. Update with backend response
+      updateItineraryInAllLists(updatedItinerary);
+
+      print('✅ Like toggle completed for $itineraryId');
     } catch (e) {
-      throw Exception('Failed to toggle like: $e');
+      print('❌ ERROR in toggleLike: $e');
+      rethrow;
+    }
+  }
+
+  // Helper method to fetch updated itinerary
+  Future<void> _fetchUpdatedItinerary(int itineraryId) async {
+    try {
+      print('🔄 Fetching updated itinerary: $itineraryId');
+
+      // Use the getById endpoint from your controller
+      final response = await ApiClient.get('/api/v1/itineraries/$itineraryId');
+      print('📊 Response received for itinerary $itineraryId');
+
+      final updatedItinerary = Itinerary.fromJson(response);
+
+      // Update in public plans
+      final publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
+      if (publicIndex != -1) {
+        print('✅ Updating public plan at index $publicIndex');
+        print('   New saved status: ${updatedItinerary.isSavedByCurrentUser}');
+        print('   New liked status: ${updatedItinerary.isLikedByCurrentUser}');
+        print('   New like count: ${updatedItinerary.likeCount}');
+
+        _publicPlans[publicIndex] = updatedItinerary;
+        notifyListeners();
+      }
+
+      print('✅ Finished updating itinerary $itineraryId');
+    } catch (e, stackTrace) {
+      print("⚠️ Failed to fetch updated itinerary $itineraryId: $e");
+      print("⚠️ Stack trace: $stackTrace");
+      // Don't throw - this is a background refresh
+    }
+  }
+
+  /// Sync a single itinerary's saved/liked state with backend
+  Future<void> syncItineraryState(int itineraryId) async {
+    try {
+      print('🔄 Syncing itinerary $itineraryId with backend');
+      await _fetchUpdatedItinerary(itineraryId);
+      print('✅ Synced itinerary $itineraryId');
+    } catch (e) {
+      print('❌ Failed to sync itinerary $itineraryId: $e');
+    }
+  }
+
+  /// Sync all public plans with backend
+  Future<void> syncAllPublicPlans() async {
+    try {
+      print('🔄 Syncing all public plans with backend');
+      await fetchPublicPlans();
+      print('✅ Synced all public plans');
+    } catch (e) {
+      print('❌ Failed to sync public plans: $e');
+    }
+  }
+
+  /// Force refresh all data
+  Future<void> refreshAllData() async {
+    print('🔄 Refreshing all data...');
+    try {
+      // Fetch public plans
+      await fetchPublicPlans();
+      print('✅ Public plans refreshed');
+
+      // Fetch my plans if user is logged in
+      if (ApiClient.currentUserId != null) {
+        await fetchMyPlans();
+        print('✅ My plans refreshed');
+      }
+
+      print('✅ All data refreshed successfully');
+    } catch (e, stackTrace) {
+      print('❌ Error refreshing all data: $e');
+      print('❌ Stack trace: $stackTrace');
     }
   }
 
@@ -456,406 +726,3 @@ class ItineraryProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:tour_guide/features/itinerary/data/models/itinerary_item.dart';
-// import '../data/models/itinerary.dart';
-// import '../data/services/itinerary_service.dart';
-
-// class ItineraryProvider extends ChangeNotifier {
-//   List<Itinerary> _myPlans = [];
-//   bool _isLoading = false;
-//   String? _errorMessage;
-
-//   List<Itinerary> _publicPlans = [];
-//   List<Itinerary> get publicPlans => _publicPlans;
-
-//   bool _isPublicLoading = false;
-//   bool get isPublicLoading => _isPublicLoading;
-
-//   // --- GETTERS ---
-//   List<Itinerary> get myPlans => _myPlans;
-//   bool get isLoading => _isLoading;
-//   String? get errorMessage => _errorMessage;
-
-//   // --- ACTIONS ---
-
-//   /// Create a quick empty trip (just title and destination)
-//   Future<Itinerary?> createQuickTrip({
-//     required String title,
-//     required String destination,
-//   }) async {
-//     try {
-//       _isLoading = true;
-//       notifyListeners();
-
-//       final newTrip = await ItineraryService.createNewItinerary({
-//         'title': title,
-//         'description': 'Trip to $destination',
-//         'destination': destination,
-//         'is_quick_start': true,
-//       });
-
-//       if (newTrip != null) {
-//         _myPlans.insert(0, newTrip); // Add to beginning of list
-//         notifyListeners();
-//         return newTrip;
-//       }
-//       return null;
-//     } catch (e) {
-//       debugPrint("Create Quick Trip Error: $e");
-//       _errorMessage = "Failed to create trip. Please try again.";
-//       notifyListeners();
-//       return null;
-//     } finally {
-//       _isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   /// Create a detailed trip with all parameters
-//   Future<Itinerary?> createDetailedTrip({
-//     required String title,
-//     required String destination,
-//     int? totalDays,
-//     int? travelers,
-//     double? budget,
-//     String? notes,
-//   }) async {
-//     try {
-//       _isLoading = true;
-//       notifyListeners();
-
-//       final Map<String, dynamic> tripData = {
-//         'title': title,
-//         'description': notes ?? 'Trip to $destination',
-//         'destination': destination,
-//         'is_quick_start': false,
-//       };
-
-//       // Add optional fields if provided
-//       if (totalDays != null) tripData['total_days'] = totalDays;
-//       if (travelers != null) tripData['travelers'] = travelers;
-//       if (budget != null) tripData['budget'] = budget;
-
-//       final newTrip = await ItineraryService.createNewItinerary(tripData);
-
-//       if (newTrip != null) {
-//         _myPlans.insert(0, newTrip);
-//         notifyListeners();
-//         return newTrip;
-//       }
-//       return null;
-//     } catch (e) {
-//       debugPrint("Create Detailed Trip Error: $e");
-//       _errorMessage = "Failed to create detailed trip. Please try again.";
-//       notifyListeners();
-//       return null;
-//     } finally {
-//       _isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   /// Fetches personal plans from the database
-//   Future<void> fetchMyPlans() async {
-//     _isLoading = true;
-//     _errorMessage = null;
-//     notifyListeners();
-
-//     try {
-//       _myPlans = await ItineraryService.getMyPlans();
-
-//       // DEBUG: Check what was parsed
-//       debugPrint("📦 fetchMyPlans completed - Got ${_myPlans.length} plans");
-//       for (var plan in _myPlans) {
-//         debugPrint("   Plan ${plan.id}: ${plan.items?.length ?? 0} items");
-//         if (plan.items != null) {
-//           for (var item in plan.items!) {
-//             debugPrint("     Item ${item.id}: isVisited=${item.isVisited}");
-//           }
-//         }
-//       }
-//     } catch (e) {
-//       _errorMessage = "Failed to load your trips. Please try again.";
-//       debugPrint("FetchMyPlans Error: $e");
-//     } finally {
-//       _isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   /// Update plan basic details
-//   Future<bool> updatePlanDetails(
-//     int id,
-//     String title,
-//     String description,
-//   ) async {
-//     try {
-//       final updated = await ItineraryService.updateItinerary(id, {
-//         'title': title,
-//         'description': description,
-//       });
-
-//       // Update the item in our local list
-//       int index = _myPlans.indexWhere((p) => p.id == id);
-//       if (index != -1) {
-//         _myPlans[index] = updated;
-//         notifyListeners();
-//       }
-//       return true;
-//     } catch (e) {
-//       return false;
-//     }
-//   }
-
-//   /// Toggle activity progress and update local state
-//   Future<void> toggleActivityProgress(
-//     int itineraryId,
-//     int itemId,
-//     bool isVisited,
-//   ) async {
-//     try {
-//       debugPrint(
-//         "🔄 toggleActivityProgress: itemId=$itemId, visited=$isVisited",
-//       );
-
-//       // Call the service
-//       await ItineraryService.toggleItemVisited(itineraryId, itemId, isVisited);
-
-//       // Update local state
-//       int planIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
-//       if (planIndex != -1) {
-//         final plan = _myPlans[planIndex];
-
-//         // If items is null, we need to fetch them or initialize empty list
-//         List<ItineraryItem> updatedItems = plan.items != null
-//             ? List.from(plan.items!)
-//             : [];
-
-//         int itemIndex = updatedItems.indexWhere((item) => item.id == itemId);
-//         if (itemIndex != -1) {
-//           updatedItems[itemIndex] = updatedItems[itemIndex].copyWith(
-//             isVisited: isVisited,
-//           );
-
-//           _myPlans[planIndex] = plan.copyWith(items: updatedItems);
-
-//           // Update summary
-//           int visitedCount = updatedItems
-//               .where((item) => item.isVisited)
-//               .length;
-//           if (plan.summary != null) {
-//             _myPlans[planIndex] = _myPlans[planIndex].copyWith(
-//               summary: plan.summary!.copyWith(
-//                 completedActivities: visitedCount,
-//               ),
-//             );
-//           }
-
-//           notifyListeners();
-//           debugPrint("✅ Updated: $visitedCount visited activities");
-//         } else {
-//           debugPrint("❌ Item not found in provider: $itemId");
-//           // Item not in provider, need to refresh from API
-//           await _refreshPlanFromApi(itineraryId);
-//         }
-//       }
-//     } catch (e) {
-//       debugPrint("❌ Progress Sync Error: $e");
-//       throw Exception("Failed to update progress: $e");
-//     }
-//   }
-
-//   // Helper method to refresh a single plan
-//   Future<void> _refreshPlanFromApi(int itineraryId) async {
-//     try {
-//       final data = await ItineraryService.getItineraryDetails(itineraryId);
-//       final updatedItinerary = Itinerary.fromJson(data);
-
-//       int planIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
-//       if (planIndex != -1) {
-//         _myPlans[planIndex] = updatedItinerary;
-//         notifyListeners();
-//         debugPrint("✅ Refreshed plan $itineraryId from API");
-//       }
-//     } catch (e) {
-//       debugPrint("❌ Failed to refresh plan: $e");
-//     }
-//   }
-
-//   /// Deletes a trip and updates the local list instantly (Optimistic UI)
-//   Future<bool> deletePlan(int itineraryId) async {
-//     try {
-//       await ItineraryService.deleteItinerary(itineraryId);
-
-//       // Update local state immediately so the card disappears
-//       _myPlans.removeWhere((plan) => plan.id == itineraryId);
-//       notifyListeners();
-//       return true;
-//     } catch (e) {
-//       _errorMessage = "Could not delete trip.";
-//       notifyListeners();
-//       return false;
-//     }
-//   }
-
-//   Future<bool> saveFullItinerary(
-//     Itinerary updatedItinerary,
-//     List<ItineraryItem> items,
-//   ) async {
-//     try {
-//       final itemsJson = items.map((item) => item.toJson()).toList();
-
-//       final response =
-//           await ItineraryService.updateFullItinerary(updatedItinerary.id, {
-//             'title': updatedItinerary.title,
-//             'description': updatedItinerary.description,
-//             'items': itemsJson,
-//           });
-//       int index = _myPlans.indexWhere((p) => p.id == updatedItinerary.id);
-//       if (index != -1) {
-//         _myPlans[index] = response;
-//         notifyListeners();
-//       }
-//       return true;
-//     } catch (e) {
-//       debugPrint("Save Full Itinerary Error: $e");
-//       return false;
-//     }
-//   }
-
-//   /// Updates only the notes of a specific activity item independently
-//   Future<void> updateActivityNotes(
-//     int itineraryId,
-//     int itemId,
-//     String newNote,
-//   ) async {
-//     try {
-//       // 1. Call the service to update the database
-//       await ItineraryService.updateItineraryItem(itineraryId, itemId, {
-//         'notes': newNote,
-//       });
-
-//       // 2. Update the local state in _myPlans so the change persists
-//       // even if the user leaves the screen and comes back.
-//       int planIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
-//       if (planIndex != -1) {
-//         final plan = _myPlans[planIndex];
-//         if (plan.items != null) {
-//           int itemIndex = plan.items!.indexWhere((item) => item.id == itemId);
-//           if (itemIndex != -1) {
-//             plan.items![itemIndex] = plan.items![itemIndex].copyWith(
-//               notes: newNote,
-//             );
-//             notifyListeners();
-//           }
-//         }
-//       }
-//     } catch (e) {
-//       debugPrint("Update Note Error: $e");
-//       rethrow; // Pass error back to the UI if needed
-//     }
-//   }
-
-//   /// Use this when copying a trip from the Explore feed
-//   /// to ensure the Profile tab stays in sync.
-//   void addPlanLocally(Itinerary newPlan) {
-//     _myPlans.insert(0, newPlan); // Add to the top of the list
-//     notifyListeners();
-//   }
-
-//   /// Call this during logout to prevent the next user from seeing old data
-//   void clear() {
-//     _myPlans = [];
-//     _errorMessage = null;
-//     notifyListeners();
-//   }
-
-//   /// Create New Trip from Scratch
-//   ///
-//   /// Mark complete
-//   Future<bool> finishTrip(int id) async {
-//     try {
-//       _isLoading = true;
-//       notifyListeners();
-
-//       // Use the specific PATCH endpoint
-//       final updated = await ItineraryService.markAsComplete(id);
-
-//       int index = _myPlans.indexWhere((p) => p.id == id);
-//       if (index != -1) {
-//         _myPlans[index] = updated;
-//         notifyListeners();
-//       }
-//       return true;
-//     } catch (e) {
-//       debugPrint("Finish Trip Error: $e");
-//       return false;
-//     } finally {
-//       _isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   /// Shares a completed original trip to the community
-//   Future<bool> shareTrip(int id) async {
-//     // Find the itinerary in local state
-//     final planIndex = _myPlans.indexWhere((p) => p.id == id);
-//     if (planIndex == -1) return false;
-
-//     final trip = _myPlans[planIndex];
-
-//     // Prevent sharing copied trips
-//     if (trip.isCopied) {
-//       debugPrint("⚠️ Cannot share copied trips");
-//       return false; // Or show a snackbar/toast from UI
-//     }
-
-//     try {
-//       _isLoading = true;
-//       notifyListeners();
-
-//       final updatedTrip = await ItineraryService.shareTrip(id);
-
-//       if (updatedTrip != null) {
-//         _myPlans[planIndex] = updatedTrip;
-//         notifyListeners();
-//         return true;
-//       }
-//       return false;
-//     } catch (e) {
-//       debugPrint("Provider Share Error: $e");
-//       return false;
-//     } finally {
-//       _isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   /// Fetch all User Created Public Plan
-//   Future<void> fetchPublicPlans() async {
-//     _isPublicLoading = true;
-//     notifyListeners();
-//     try {
-//       _publicPlans = await ItineraryService.getPublicTrips();
-//     } catch (e) {
-//       debugPrint("Error fetching public trips: $e");
-//     } finally {
-//       _isPublicLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   Future<Itinerary?> copyTrip(int itineraryId) async {
-//     try {
-//       final newTrip = await ItineraryService.copyItinerary(itineraryId);
-//       // Refresh the local list of personal plans so 'isAlreadyCopied' updates
-//       await fetchMyPlans();
-//       return newTrip;
-//     } catch (e) {
-//       debugPrint("Copy Trip Error: $e");
-//       return null;
-//     }
-//   }
-// }

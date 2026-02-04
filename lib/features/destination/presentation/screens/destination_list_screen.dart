@@ -6,6 +6,7 @@ import 'package:tour_guide/features/itinerary/data/services/itinerary_service.da
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 import 'package:tour_guide/features/itinerary/presentation/widgets/public_trip_card.dart';
+import 'package:tour_guide/features/user/logic/saved_provider.dart';
 
 // Service Imports
 import '../../data/services/destination_service.dart';
@@ -67,9 +68,13 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     super.dispose();
   }
 
+  // In DestinationListScreen.dart, update the _refreshData method:
+
   Future<void> _refreshData() async {
     setState(() => _isLoading = true);
     try {
+      final provider = context.read<ItineraryProvider>();
+
       switch (_selectedTab) {
         case ExploreTab.destinations:
           final data = (_searchQuery.isEmpty && _appliedTags.isEmpty)
@@ -86,21 +91,33 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
           break;
 
         case ExploreTab.expertPlans:
+          // Fetch expert plans
           final data = await ItineraryService.getExpertTemplates();
+
+          // Add them to provider so likes/saves can be tracked
+          for (final itinerary in data) {
+            if (!provider.publicPlans.any((it) => it.id == itinerary.id)) {
+              provider.updateItineraryInAllLists(itinerary);
+            }
+          }
+
+          // Store in local state
           setState(() => _itineraries = data);
           break;
 
         case ExploreTab.community:
-          final provider = context.read<ItineraryProvider>();
           await provider.fetchPublicPlans();
           if (mounted) {
             setState(() {
               _itineraries = provider.publicPlans;
-              _isLoading = false;
             });
           }
           break;
       }
+
+      // Also refresh saved status
+      final savedProvider = context.read<SavedProvider>();
+      await savedProvider.fetchSavedItineraries();
     } catch (e) {
       debugPrint("Error fetching data: $e");
     } finally {
@@ -116,138 +133,172 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Explore',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          _buildTabToggle(),
-          _buildResultHeader(),
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF009688)),
-                  )
-                : _buildGrid(),
-          ),
-        ],
-      ),
-    );
+  /// Sync Expert Plans with the latest state from provider
+  void _syncExpertPlansWithProvider(ItineraryProvider provider) {
+    for (int i = 0; i < _itineraries.length; i++) {
+      final itinerary = _itineraries[i];
+
+      // Check if this itinerary exists in provider with updated state
+      final updatedItinerary = provider.publicPlans.firstWhere(
+        (it) => it.id == itinerary.id,
+        orElse: () => itinerary,
+      );
+
+      // If different, update local state
+      if (updatedItinerary.isLikedByCurrentUser !=
+              itinerary.isLikedByCurrentUser ||
+          updatedItinerary.likeCount != itinerary.likeCount ||
+          updatedItinerary.isSavedByCurrentUser !=
+              itinerary.isSavedByCurrentUser) {
+        _itineraries[i] = updatedItinerary;
+      }
+    }
   }
 
-  // --- HELPER WIDGETS ---
-  Widget _buildGrid() {
-    final bool isDest = _selectedTab == ExploreTab.destinations;
-    final screenWidth = MediaQuery.of(context).size.width;
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ItineraryProvider>(
+      builder: (context, provider, child) {
+        // Sync expert plans whenever provider changes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_selectedTab == ExploreTab.expertPlans &&
+              _itineraries.isNotEmpty) {
+            _syncExpertPlansWithProvider(provider);
+          }
+        });
 
-    // Responsive grid configuration
-    int crossAxisCount;
-    double childAspectRatio;
-    double crossAxisSpacing;
-    double mainAxisSpacing;
-
-    if (screenWidth < 600) {
-      // Mobile
-      crossAxisCount = 1;
-      childAspectRatio = isDest ? 0.7 : 1.3; // Increased for PublicTripCard
-      crossAxisSpacing = 16;
-      mainAxisSpacing = 16;
-    } else if (screenWidth < 900) {
-      // Tablet
-      crossAxisCount = 2;
-      childAspectRatio = isDest ? 0.65 : 1.2;
-      crossAxisSpacing = 20;
-      mainAxisSpacing = 20;
-    } else {
-      // Desktop
-      crossAxisCount = 3;
-      childAspectRatio = isDest ? 0.6 : 1.1;
-      crossAxisSpacing = 24;
-      mainAxisSpacing = 24;
-    }
-
-    return GridView.builder(
-      padding: EdgeInsets.symmetric(
-        horizontal: screenWidth < 600 ? 16 : 24,
-        vertical: 16,
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: childAspectRatio,
-        crossAxisSpacing: crossAxisSpacing,
-        mainAxisSpacing: mainAxisSpacing,
-      ),
-      itemCount: isDest ? _destinations.length : _itineraries.length,
-      itemBuilder: (context, index) {
-        if (isDest) {
-          return DestinationCard(destination: _destinations[index]);
-        } else {
-          final itinerary = _itineraries[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ItineraryDetailScreen(
-                    itinerary: itinerary,
-                    isReadOnly: _selectedTab == ExploreTab.expertPlans,
-                  ),
-                ),
-              );
-            },
-            child: PublicTripCard(itinerary: itinerary),
-          );
-        }
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            title: const Text(
+              'Explore',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: false,
+          ),
+          body: Column(
+            children: [
+              _buildSearchBar(),
+              _buildTabToggle(),
+              _buildResultHeader(),
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF009688),
+                        ),
+                      )
+                    : _buildGrid(),
+              ),
+            ],
+          ),
+        );
       },
     );
   }
 
-  // Widget _buildGrid() {
-  //   final bool isDest = _selectedTab == ExploreTab.destinations;
-  //   return GridView.builder(
-  //     padding: const EdgeInsets.symmetric(horizontal: 16),
-  //     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-  //       crossAxisCount: MediaQuery.of(context).size.width < 600 ? 1 : 2,
-  //       childAspectRatio: isDest ? 0.65 : 1.1,
-  //       crossAxisSpacing: 16,
-  //       mainAxisSpacing: 16,
-  //     ),
-  //     itemCount: isDest ? _destinations.length : _itineraries.length,
-  //     itemBuilder: (context, index) {
-  //       if (isDest) {
-  //         return DestinationCard(destination: _destinations[index]);
-  //       } else {
-  //         final itinerary = _itineraries[index];
-  //         return GestureDetector(
-  //           onTap: () {
-  //             Navigator.push(
-  //               context,
-  //               MaterialPageRoute(
-  //                 builder: (context) => ItineraryDetailScreen(
-  //                   itinerary: itinerary,
-  //                   // If we are on the Expert Plans tab, set isReadOnly to true
-  //                   isReadOnly: _selectedTab == ExploreTab.expertPlans,
-  //                 ),
-  //               ),
-  //             );
-  //           },
-  //           child: PublicTripCard(itinerary: itinerary),
-  //         );
-  //       }
-  //     },
-  //   );
-  // }
+  // --- HELPER WIDGETS ---
+  // In DestinationListScreen.dart, modify the _buildGrid method:
+
+  Widget _buildGrid() {
+    final bool isDest = _selectedTab == ExploreTab.destinations;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Add Consumer to listen to ItineraryProvider changes
+    return Consumer<ItineraryProvider>(
+      builder: (context, provider, child) {
+        // When in expert or community tabs, use data from provider or local state
+        List<Itinerary> displayedItineraries = _itineraries;
+
+        // If we're on community tab, always use provider's public plans
+        if (_selectedTab == ExploreTab.community) {
+          displayedItineraries = provider.publicPlans;
+        }
+
+        // Responsive grid configuration... (keep existing code)
+        int crossAxisCount;
+        double childAspectRatio;
+        double crossAxisSpacing;
+        double mainAxisSpacing;
+
+        if (screenWidth < 600) {
+          crossAxisCount = 1;
+          childAspectRatio = isDest ? 0.7 : 1.3;
+          crossAxisSpacing = 16;
+          mainAxisSpacing = 16;
+        } else if (screenWidth < 900) {
+          crossAxisCount = 2;
+          childAspectRatio = isDest ? 0.65 : 1.2;
+          crossAxisSpacing = 20;
+          mainAxisSpacing = 20;
+        } else {
+          crossAxisCount = 3;
+          childAspectRatio = isDest ? 0.6 : 1.1;
+          crossAxisSpacing = 24;
+          mainAxisSpacing = 24;
+        }
+
+        return GridView.builder(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth < 600 ? 16 : 24,
+            vertical: 16,
+          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: crossAxisSpacing,
+            mainAxisSpacing: mainAxisSpacing,
+          ),
+          itemCount: isDest
+              ? _destinations.length
+              : displayedItineraries.length,
+          itemBuilder: (context, index) {
+            if (isDest) {
+              return DestinationCard(destination: _destinations[index]);
+            } else {
+              final itinerary = displayedItineraries[index];
+
+              // ALWAYS get the latest from provider (this fixes the issue)
+              final latestItinerary = provider.publicPlans.firstWhere(
+                (it) => it.id == itinerary.id,
+                orElse: () {
+                  // If not in public plans, check if we need to add it (for Expert Plans)
+                  if (_selectedTab == ExploreTab.expertPlans &&
+                      !provider.publicPlans.any(
+                        (it) => it.id == itinerary.id,
+                      )) {
+                    // Add this expert plan to provider so likes are tracked
+                    provider.updateItineraryInAllLists(itinerary);
+                  }
+                  return itinerary;
+                },
+              );
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ItineraryDetailScreen(
+                        itinerary: latestItinerary,
+                        isReadOnly: _selectedTab == ExploreTab.expertPlans,
+                      ),
+                    ),
+                  );
+                },
+                child: PublicTripCard(itinerary: latestItinerary),
+              );
+            }
+          },
+        );
+      },
+    );
+  }
 
   Widget _buildSearchBar() {
     final bool isDest = _selectedTab == ExploreTab.destinations;
@@ -318,6 +369,13 @@ class _DestinationListScreenState extends State<DestinationListScreen> {
       borderRadius: BorderRadius.circular(20),
       onTap: () {
         setState(() => _selectedTab = tab);
+        if (tab == ExploreTab.expertPlans) {
+          // Sync with provider when switching to Expert Plans
+          final provider = context.read<ItineraryProvider>();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _syncExpertPlansWithProvider(provider);
+          });
+        }
         _refreshData();
       },
       child: Container(

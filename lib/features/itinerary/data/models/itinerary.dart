@@ -66,6 +66,7 @@ class Itinerary {
     ItinerarySummary? summary,
     List<ItineraryItem>? items,
     int? likeCount,
+    int? copyCount, 
     bool? isLikedByCurrentUser,
     bool? isSavedByCurrentUser,
   }) {
@@ -87,7 +88,7 @@ class Itinerary {
       summary: summary ?? this.summary,
       items: items ?? this.items,
       user: user,
-      copyCount: copyCount,
+      copyCount: copyCount ?? this.copyCount, 
       likeCount: likeCount ?? this.likeCount,
       country: country,
       tags: tags,

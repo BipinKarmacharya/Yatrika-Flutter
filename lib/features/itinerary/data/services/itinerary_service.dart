@@ -263,325 +263,122 @@ class ItineraryService {
       throw Exception("Failed to delete activity");
     }
   }
+  /// Check if user can save this itinerary
+  static bool canSaveItinerary(Itinerary itinerary) {
+    // User cannot save their own itinerary
+    final currentUserId = ApiClient.currentUserId;
+    if (currentUserId == itinerary.userId) {
+      print('⚠️ User cannot save their own itinerary');
+      return false;
+    }
 
-  // Saving Public Trips
-  static Future<void> savePublicPlan(int itineraryId) async {
+    // User cannot save if already saved
+    if (itinerary.isSavedByCurrentUser == true) {
+      print('⚠️ Itinerary already saved');
+      return false;
+    }
+
+    return true;
+  }
+
+  /// Check if user can like this itinerary
+  static bool canLikeItinerary(Itinerary itinerary) {
+    // User cannot like their own itinerary
+    final currentUserId = ApiClient.currentUserId;
+    if (currentUserId == itinerary.userId) {
+      print('⚠️ User cannot like their own itinerary');
+      return false;
+    }
+
+    return true;
+  }
+
+  static Future<Itinerary> savePublicPlan(int itineraryId) async {
     try {
-      await ApiClient.post('$_featurePath/$itineraryId/save', body: {});
-    } catch (e) {
-      debugPrint("Error saving public plan: $e");
+      print('📡 [SAVE] Calling POST: /api/v1/itineraries/$itineraryId/save');
+      final response = await ApiClient.post(
+        '$_featurePath/$itineraryId/save',
+        body: {},
+      );
+      print('✅ [SAVE] Response received: $response');
+
+      // Parse and return the itinerary
+      final itinerary = Itinerary.fromJson(response);
+      print('✅ [SAVE] Parsed itinerary: ${itinerary.title}');
+      print('✅ [SAVE] Saved status: ${itinerary.isSavedByCurrentUser}');
+
+      return itinerary;
+    } catch (e, stackTrace) {
+      print('❌ [SAVE] Error: $e');
+      print('❌ [SAVE] Stack trace: $stackTrace');
       throw Exception('Failed to save public plan: $e');
     }
   }
 
-  static Future<void> unsavePublicPlan(int itineraryId) async {
+  static Future<Itinerary> unsavePublicPlan(int itineraryId) async {
     try {
-      await ApiClient.delete('$_featurePath/$itineraryId/save');
-    } catch (e) {
-      debugPrint("Error unsaving public plan: $e");
-      throw Exception('Failed to unsave public plan: $e');
+      print('📡 [UNSAVE] Calling DELETE: /$_featurePath/$itineraryId/save');
+      final response = await ApiClient.delete(
+        '$_featurePath/$itineraryId/save',
+      );
+      print('✅ [UNSAVE] Response received: $response');
+
+      // Parse and return the itinerary
+      final itinerary = Itinerary.fromJson(response);
+      print('✅ [UNSAVE] Parsed itinerary: ${itinerary.title}');
+      print('✅ [UNSAVE] Saved status: ${itinerary.isSavedByCurrentUser}');
+
+      return itinerary;
+    } catch (e, stackTrace) {
+      print('❌ [UNSAVE] Error: $e');
+      print('❌ [UNSAVE] Stack trace: $stackTrace');
+      rethrow;
     }
   }
 
-  // like/unlike trips
-  static Future<void> toggleLike(int itineraryId) async {
+  static Future<Itinerary> toggleLike(int itineraryId) async {
     try {
-      await ApiClient.post('$_featurePath/$itineraryId/like/toggle', body: {});
-    } catch (e) {
-      debugPrint("Error toggling like: $e");
-      throw Exception('Failed to toggle like');
+      print('📡 [LIKE] Calling POST: /$_featurePath/$itineraryId/like/toggle');
+      final response = await ApiClient.post(
+        '$_featurePath/$itineraryId/like/toggle',
+        body: {},
+      );
+      print('✅ [LIKE] Response received: $response');
+
+      // Parse and return the itinerary
+      final itinerary = Itinerary.fromJson(response);
+      print('✅ [LIKE] Parsed itinerary: ${itinerary.title}');
+      print('✅ [LIKE] Liked status: ${itinerary.isLikedByCurrentUser}');
+      print('✅ [LIKE] Like count: ${itinerary.likeCount}');
+
+      return itinerary;
+    } catch (e, stackTrace) {
+      print('❌ [LIKE] Error: $e');
+      print('❌ [LIKE] Stack trace: $stackTrace');
+      throw Exception('Failed to toggle like: $e');
+    }
+  }
+
+  // Update the isItinerarySaved method:
+  static Future<bool> isItinerarySaved(int itineraryId) async {
+    try {
+      print('🔍 Checking if itinerary $itineraryId is saved');
+
+      // Use the dedicated endpoint from your controller
+      final response = await ApiClient.get(
+        '/api/v1/itineraries/saved/check/$itineraryId',
+      );
+      print('🔍 Save check response: $response');
+
+      // Response should be {"isSaved": true/false}
+      final isSaved = response['isSaved'] ?? false;
+      print('🔍 Itinerary $itineraryId saved status: $isSaved');
+
+      return isSaved;
+    } catch (e, stackTrace) {
+      print('❌ Error checking saved status: $e');
+      print('❌ Stack trace: $stackTrace');
+      return false;
     }
   }
 }
-
-
-
-
-// import 'package:flutter/foundation.dart'; // For debugPrint
-// import 'package:tour_guide/core/api/api_client.dart';
-// import '../models/itinerary.dart';
-
-// class ItineraryService {
-//   static const String _featurePath = '/api/v1/itineraries';
-
-//   /// CREATE: Create a brand new blank trip
-//   static Future<Itinerary?> createNewItinerary(
-//     Map<String, dynamic> data,
-//   ) async {
-//     try {
-//       // Use ApiClient (capital A) and 'body' parameter
-//       final response = await ApiClient.post(_featurePath, body: data);
-//       return Itinerary.fromJson(response);
-//     } catch (e) {
-//       debugPrint("Create itinerary error: $e");
-//       return null;
-//     }
-//   }
-
-//   /// Fetches Admin/Expert created itineraries
-//   static Future<List<Itinerary>> getExpertTemplates() async {
-//     try {
-//       // ApiClient.get already returns the decoded List<dynamic>
-//       final List<dynamic> data = await ApiClient.get(
-//         '$_featurePath/admin-templates',
-//       );
-
-//       return data.map((json) => Itinerary.fromJson(json)).toList();
-//     } catch (e) {
-//       // ApiClient throws ApiException if statusCode != 2xx,
-//       // so any error caught here is a legitimate failure.
-//       debugPrint("Error in getExpertTemplates: $e");
-//       throw Exception("Failed to load templates: $e");
-//     }
-//   }
-
-//   /// Fetches all available destinations
-//   static Future<List<dynamic>> getAllDestinations() async {
-//     try {
-//       // Adjust path to match your Spring Boot controller (e.g., /api/v1/destinations)
-//       final dynamic response = await ApiClient.get('/api/destinations');
-//       if (response is Map && response.containsKey('content')) {
-//         return response['content'] as List<dynamic>;
-//       }
-//       return response as List<dynamic>;
-//     } catch (e) {
-//       debugPrint("Error fetching all destinations: $e");
-//       return [];
-//     }
-//   }
-
-//   /// Fetches Public/Community trips with pagination/search
-//   static Future<List<Itinerary>> getCommunityTrips({
-//     String? search,
-//     String? theme,
-//   }) async {
-//     try {
-//       final Map<String, dynamic> queryParams = {};
-//       if (search != null && search.isNotEmpty) {
-//         queryParams['searchQuery'] = search;
-//       }
-//       if (theme != null && theme.isNotEmpty) queryParams['theme'] = theme;
-
-//       // Passing query map directly to ApiClient (it handles encoding)
-//       final dynamic responseData = await ApiClient.get(
-//         '$_featurePath/search',
-//         query: queryParams,
-//       );
-
-//       final List<dynamic> data = responseData['content'] ?? [];
-//       return data.map((json) => Itinerary.fromJson(json)).toList();
-//     } catch (e) {
-//       debugPrint("Error in getCommunityTrips: $e");
-//       throw Exception("Failed to load community trips: $e");
-//     }
-//   }
-
-//   /// Fetches itineraries for a specific destination
-//   static Future<List<Itinerary>> getItinerariesByDestination(
-//     int destinationId,
-//   ) async {
-//     try {
-//       final List<dynamic> data = await ApiClient.get(
-//         '$_featurePath/destination/$destinationId',
-//       );
-//       return data.map((json) => Itinerary.fromJson(json)).toList();
-//     } catch (e) {
-//       debugPrint("Error fetching itineraries for destination: $e");
-//       return [];
-//     }
-//   }
-
-//   static Future<Map<String, dynamic>> getItineraryDetails(int id) async {
-//     try {
-//       final dynamic response = await ApiClient.get('$_featurePath/$id');
-
-//       return response as Map<String, dynamic>;
-//     } catch (e) {
-//       debugPrint("Error fetching itinerary details: $e");
-//       throw Exception("Failed to load itinerary details");
-//     }
-//   }
-
-//   /// COPY: Creates an independent copy of a template for the user
-//   static Future<Itinerary> copyItinerary(int id) async {
-//     try {
-//       final dynamic response = await ApiClient.post('$_featurePath/$id/copy');
-//       return Itinerary.fromJson(response);
-//     } catch (e) {
-//       debugPrint("Error copying itinerary: $e");
-//       throw Exception("Failed to copy trip: $e");
-//     }
-//   }
-
-//   /// PROGRESS: Mark an activity as visited/completed
-//   static Future<void> toggleItemVisited(
-//     int itineraryId,
-//     int itemId,
-//     bool isVisited,
-//   ) async {
-//     debugPrint(
-//       "📡 Calling: PATCH /itineraries/$itineraryId/items/$itemId/toggle-visited?visited=$isVisited",
-//     );
-
-//     try {
-//       // ✅ Use query parameter as shown in backend: @RequestParam Boolean visited
-//       await ApiClient.patch(
-//         '$_featurePath/$itineraryId/items/$itemId/toggle-visited',
-//         query: {'visited': isVisited}, // This becomes ?visited=true/false
-//       );
-
-//       debugPrint("✅ Visited status toggled to: $isVisited");
-//     } catch (e) {
-//       debugPrint("❌ Toggle failed: $e");
-//       throw Exception("Could not update visited status: $e");
-//     }
-//   }
-
-//   /// UPDATE: Update itinerary item details (e.g., notes, time)
-//   static Future<void> updateItineraryItem(
-//     int itineraryId,
-//     int itemId,
-//     Map<String, dynamic> data,
-//   ) async {
-//     try {
-//       debugPrint("Updating item: $itineraryId/$itemId");
-//       debugPrint("Data: $data");
-
-//       final response = await ApiClient.put(
-//         '$_featurePath/$itineraryId/items/$itemId',
-//         body: data,
-//       );
-
-//       debugPrint("Update response: $response");
-//     } catch (e) {
-//       debugPrint("Update error: $e");
-//       throw Exception("Could not update activity");
-//     }
-//   }
-
-//   /// FETCH PERSONAL: Get user's own independent plans
-//   static Future<List<Itinerary>> getMyPlans() async {
-//     try {
-//       final dynamic responseData = await ApiClient.get(
-//         '$_featurePath/my-plans',
-//       );
-//       final List<dynamic> data = responseData['content'] ?? [];
-//       return data.map((json) => Itinerary.fromJson(json)).toList();
-//     } catch (e) {
-//       debugPrint("Error fetching my plans: $e");
-//       throw Exception("Failed to load your trips");
-//     }
-//   }
-
-//   //Update personal itinerary details
-//   static Future<Itinerary> updateItinerary(
-//     int id,
-//     Map<String, dynamic> data,
-//   ) async {
-//     try {
-//       // Calling PUT /api/v1/itineraries/{id}
-//       final dynamic response = await ApiClient.put(
-//         '$_featurePath/$id',
-//         body: data,
-//       );
-//       return Itinerary.fromJson(response);
-//     } catch (e) {
-//       debugPrint("Error updating itinerary: $e");
-//       throw Exception("Failed to update trip details");
-//     }
-//   }
-
-//   // Update full itinerary including items
-//   static Future<Itinerary> updateFullItinerary(
-//     int id,
-//     Map<String, dynamic> data,
-//   ) async {
-//     // This endpoint should handle syncing the child itinerary_items
-//     final dynamic response = await ApiClient.put(
-//       '$_featurePath/$id/full',
-//       body: data,
-//     );
-//     return Itinerary.fromJson(response);
-//   }
-
-//   // Delete trip
-//   static Future<void> deleteItinerary(int id) async {
-//     await ApiClient.delete('$_featurePath/$id');
-//   }
-
-//   // Mark as completed
-//   static Future<Itinerary> markAsComplete(int id) async {
-//     try {
-//       // Hits @PatchMapping("/{id}/complete")
-//       final dynamic response = await ApiClient.patch(
-//         '$_featurePath/$id/complete',
-//       );
-//       return Itinerary.fromJson(response);
-//     } catch (e) {
-//       debugPrint("Error completing itinerary: $e");
-//       throw Exception("Failed to mark trip as finished");
-//     }
-//   }
-
-//   /// SHARE: Make a private trip public for the community
-//   static Future<Itinerary?> shareTrip(int id) async {
-//     try {
-//       // Calls PATCH /api/v1/itineraries/{id}/share
-//       final dynamic response = await ApiClient.patch('$_featurePath/$id/share');
-//       return Itinerary.fromJson(response);
-//     } catch (e) {
-//       debugPrint("Error sharing itinerary: $e");
-//       return null;
-//     }
-//   }
-
-//   /// Get all public trips
-//   /// Get all public trips (Used by Tab 3)
-//   static Future<List<Itinerary>> getPublicTrips() async {
-//     try {
-//       // Use your actual ApiClient and the correct endpoint from your Java Controller
-//       final dynamic responseData = await ApiClient.get('$_featurePath/community');
-
-//       // Since Java returns Page<ItineraryResponse>, we extract the 'content' list
-//       final List<dynamic> data = responseData['content'] ?? [];
-//       return data.map((json) => Itinerary.fromJson(json)).toList();
-//     } catch (e) {
-//       debugPrint("Error in getPublicTrips: $e");
-//       throw Exception("Failed to load community trips: $e");
-//     }
-//   }
-
-  
-
-//   // Test All APIs
-//   // Add this to itinerary_service.dart
-//   static Future<void> testAllApis(int itineraryId, int itemId) async {
-//     debugPrint("🧪 TESTING ALL APIS");
-
-//     // Test 1: Toggle visited
-//     try {
-//       await toggleItemVisited(itineraryId, itemId, true);
-//       debugPrint("✅ Test 1: toggle-visited PASSED");
-//     } catch (e) {
-//       debugPrint("❌ Test 1: toggle-visited FAILED: $e");
-//     }
-
-//     // Test 2: Update notes
-//     try {
-//       await updateItineraryItem(itineraryId, itemId, {
-//         'notes': 'Test note ${DateTime.now().toIso8601String()}',
-//       });
-//       debugPrint("✅ Test 2: update-item PASSED");
-//     } catch (e) {
-//       debugPrint("❌ Test 2: update-item FAILED: $e");
-//     }
-
-//     // Test 3: Get details (should always work)
-//     try {
-//       await getItineraryDetails(itineraryId);
-//       debugPrint("✅ Test 3: get-details PASSED");
-//     } catch (e) {
-//       debugPrint("❌ Test 3: get-details FAILED: $e");
-//     }
-//   }
-// }

@@ -5,7 +5,7 @@ import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 class SavedProvider extends ChangeNotifier {
   List<Itinerary> _savedItems = [];
   bool _isLoading = false;
-  Map<int, bool> _savedStatusCache = {}; // itineraryId -> isSaved
+  final Map<int, bool> _savedStatusCache = {}; // itineraryId -> isSaved
 
   List<Itinerary> get savedItems => _savedItems;
   bool get isLoading => _isLoading;

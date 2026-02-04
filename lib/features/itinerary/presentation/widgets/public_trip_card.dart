@@ -1,13 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/api/api_client.dart';
 import 'package:tour_guide/features/auth/data/models/user_model.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
+import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 
 class PublicTripCard extends StatelessWidget {
   final Itinerary itinerary;
 
   const PublicTripCard({super.key, required this.itinerary});
+
+  // Method to check if current user owns the trip
+  bool _isOwnTrip(BuildContext context) {
+    try {
+      final currentUserId = ApiClient.currentUserId;
+      if (currentUserId == null) return false;
+      return itinerary.userId == currentUserId;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // This check for expert templates
+  bool _isExpertTemplate() {
+    return itinerary.user == null; // Expert templates have null user
+  }
 
   void _copyTrip(BuildContext context) async {
     final provider = context.read<ItineraryProvider>();
@@ -31,6 +50,18 @@ class PublicTripCard extends StatelessWidget {
         ),
       );
     }
+  }
+
+  void _editOwnTrip(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ItineraryDetailScreen(
+          itinerary: itinerary,
+          isReadOnly: false, // Allow editing for own trips
+        ),
+      ),
+    );
   }
 
   @override
@@ -78,36 +109,77 @@ class PublicTripCard extends StatelessWidget {
                   ),
                 ),
                 // Action buttons
+                // In PublicTripCard, update the action buttons section:
+                // Update the action buttons section in PublicTripCard:
                 Row(
                   children: [
-                    // Copy button
-                    IconButton(
-                      onPressed: () => _copyTrip(context),
-                      icon: Icon(
-                        Icons.copy,
-                        color: Colors.grey.shade600,
-                        size: isMobile ? 18 : 20,
+                    // Copy button - only for public trips and expert plans
+                    if (!_isOwnTrip(context) &&
+                        (_isExpertTemplate() || (itinerary.isPublic ?? false)))
+                      IconButton(
+                        onPressed: () => _copyTrip(context),
+                        icon: Icon(
+                          Icons.copy,
+                          color: Colors.grey.shade600,
+                          size: isMobile ? 18 : 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 4),
-                    // Save button - FIXED: Use isSavedByCurrentUser
-                    IconButton(
-                      onPressed: () => _toggleSave(context),
-                      icon: Icon(
-                        (itinerary.isSavedByCurrentUser ?? false)
-                            ? Icons
-                                  .bookmark // Filled when saved
-                            : Icons.bookmark_border, // Outline when not saved
-                        color: (itinerary.isSavedByCurrentUser ?? false)
-                            ? const Color(0xFF009688) // Teal color when saved
-                            : Colors.grey.shade600,
-                        size: isMobile ? 18 : 20,
+
+                    // Add spacing only if copy button exists
+                    if (!_isOwnTrip(context) &&
+                        (_isExpertTemplate() || (itinerary.isPublic ?? false)))
+                      const SizedBox(width: 4),
+
+                    // Save button - only for non-own trips
+                    if (!_isOwnTrip(context) &&
+                        ItineraryService.canSaveItinerary(itinerary))
+                      IconButton(
+                        onPressed: () => _toggleSave(context),
+                        icon: Icon(
+                          (itinerary.isSavedByCurrentUser ?? false)
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          color: (itinerary.isSavedByCurrentUser ?? false)
+                              ? const Color(0xFF009688)
+                              : Colors.grey.shade600,
+                          size: isMobile ? 18 : 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
+
+                    // Like button - only for non-own trips
+                    if (!_isOwnTrip(context) &&
+                        ItineraryService.canLikeItinerary(itinerary))
+                      IconButton(
+                        onPressed: () => _toggleLike(context),
+                        icon: Icon(
+                          (itinerary.isLikedByCurrentUser ?? false)
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: (itinerary.isLikedByCurrentUser ?? false)
+                              ? Colors.red
+                              : Colors.grey.shade600,
+                          size: isMobile ? 18 : 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+
+                    // For own trips, show edit button
+                    if (_isOwnTrip(context))
+                      IconButton(
+                        onPressed: () => _editOwnTrip(context),
+                        icon: Icon(
+                          Icons.edit,
+                          color: const Color(0xFF009688),
+                          size: isMobile ? 18 : 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
                   ],
                 ),
               ],
@@ -479,38 +551,43 @@ class PublicTripCard extends StatelessWidget {
 
   void _toggleSave(BuildContext context) async {
     final provider = context.read<ItineraryProvider>();
+    final isCurrentlySaved = itinerary.isSavedByCurrentUser ?? false;
+
+    print('🎯 Toggle save called for itinerary ${itinerary.id}');
+    print('   Title: ${itinerary.title}');
+    print('   Type: ${_getItineraryType(itinerary)}');
+    print('   Currently saved: $isCurrentlySaved');
+
     try {
-      // Check current saved state
-      final isCurrentlySaved = itinerary.isSavedByCurrentUser ?? false;
-
       if (isCurrentlySaved) {
-        // Unsave the trip
-        await provider.unsaveTrip(itinerary.id, context: context);
-
+        print('   Action: UNSAVE');
+        await provider.unsaveItinerary(itinerary.id, context: context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Trip removed from saved plans'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text('Trip unsaved'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 1),
           ),
         );
       } else {
-        // Save the trip
-        await provider.savePublicPlan(itinerary.id, context: context);
-
+        print('   Action: SAVE');
+        await provider.saveItinerary(itinerary.id, context: context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Trip saved to your plans!'),
+          SnackBar(
+            content: Text('Trip saved'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
+
+      print('✅ Toggle save completed for ${itinerary.id}');
     } catch (e) {
+      print('❌ Error in _toggleSave: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Failed to ${(itinerary.isSavedByCurrentUser ?? false) ? 'unsave' : 'save'} trip: $e',
+            'Failed to ${isCurrentlySaved ? 'unsave' : 'save'} trip',
           ),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 2),
@@ -519,19 +596,44 @@ class PublicTripCard extends StatelessWidget {
     }
   }
 
+  // In the _toggleLike method of PublicTripCard, pass the context:
+
   void _toggleLike(BuildContext context) async {
     final provider = context.read<ItineraryProvider>();
+    final isCurrentlyLiked = itinerary.isLikedByCurrentUser ?? false;
+
+    print('🎯 Toggle like called for itinerary ${itinerary.id}');
+    print('   Title: ${itinerary.title}');
+    print('   Type: ${_getItineraryType(itinerary)}');
+    print('   Currently liked: $isCurrentlyLiked');
+
     try {
-      await provider.toggleLike(itinerary.id);
-      // Provider should update the itinerary with new like count
-    } catch (e) {
+      // Pass context to the provider so it can handle Expert Plans
+      await provider.toggleLike(itinerary.id, context: context);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update like: $e'),
+          content: Text(isCurrentlyLiked ? 'Unliked' : 'Liked'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+      print('✅ Toggle like completed for ${itinerary.id}');
+    } catch (e) {
+      print('❌ Error in _toggleLike: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update like'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 2),
         ),
       );
     }
+  }
+
+  String _getItineraryType(Itinerary itinerary) {
+    if (itinerary.isAdminCreated) return 'Expert Plan';
+    if (itinerary.isPublic) return 'Public Trip';
+    return 'Personal Plan';
   }
 }
