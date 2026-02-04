@@ -4,6 +4,7 @@ import 'package:tour_guide/features/itinerary/data/services/itinerary_service.da
 import 'package:provider/provider.dart';
 import 'package:tour_guide/features/destination/presentation/screens/trip_planner_screen.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
+import 'package:tour_guide/features/plan/presentation/screens/plan_screen.dart';
 import '../../../auth/logic/auth_provider.dart';
 
 class DestinationDetailScreen extends StatelessWidget {
@@ -267,8 +268,8 @@ class DestinationDetailScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => TripPlannerScreen(
-                                      destination: destination,
+                                    builder: (context) => PlanScreen(
+                                      // destination: destination,
                                     ),
                                   ),
                                 );
