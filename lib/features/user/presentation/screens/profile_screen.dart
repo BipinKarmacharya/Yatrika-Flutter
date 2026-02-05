@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+// import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tour_guide/features/auth/ui/login_screen.dart';
 import 'package:tour_guide/features/community/logic/community_provider.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
@@ -93,25 +93,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
-                    // 2. Profile Avatar
-                    Center(
-                      child: CircleAvatar(
-                        radius: 55,
-                        backgroundColor: Colors.grey[200],
-                        backgroundImage: user?.profileImage != null
-                            ? CachedNetworkImageProvider(user!.profileImage!)
-                            : null,
-                        child: user?.profileImage == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.grey,
-                              )
-                            : null,
-                      ),
-                    ),
+                    // ... Avatar code remains same ...
                     const SizedBox(height: 16),
-                    // 3. Name & Bio
                     Text(
                       fullName,
                       style: const TextStyle(
@@ -119,22 +102,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40),
-                      child: Text(
-                        "Adventure seeker & photography enthusiast. Exploring the world one trip at a time. 🌍✈️",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                    // Dynamic Username
+                    Text(
+                      "@${user?.username ?? 'traveler'}",
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    if (user?.interests != null && user!.interests.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          children: user!.interests!.map((interest) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.primary.withOpacity(0.8),
+                                    AppColors.primary,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                "#$interest",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      )
+                    else
+                      const Text(
+                        "No interests added yet",
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+
                     const SizedBox(height: 20),
-                    // 5. Statistics Row - Using Real Data from Provider
+                    // Statistics Row
                     ProfileStatsRow(
                       postCount: community.myPosts.length,
                       totalLikes:
                           community.userStats?['totalLikesReceived'] ?? 0,
-                      reviewsCount: 1,
+                      reviewsCount: community.myPosts.fold(
+                        0,
+                        (sum, post) => sum + post.totalComments,
+                      ),
                     ),
                     const SizedBox(height: 10),
                   ],
@@ -165,11 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
             body: const TabBarView(
-              children: [
-                MyTripsTabView(),
-                MyStoriesTabView(),
-                SavedTabView(),
-              ],
+              children: [MyTripsTabView(), MyStoriesTabView(), SavedTabView()],
             ),
           ),
         ),
@@ -195,35 +223,6 @@ class _TabItem extends StatelessWidget {
     );
   }
 }
-
-// class _OutlinedButton extends StatelessWidget {
-//   final IconData icon;
-//   final String label;
-//   final VoidCallback onTap;
-//   final Color color;
-//   const _OutlinedButton({
-//     required this.icon,
-//     required this.label,
-//     required this.onTap,
-//     required this.color,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return OutlinedButton.icon(
-//       onPressed: onTap,
-//       icon: Icon(icon, size: 18, color: color),
-//       label: Text(
-//         label,
-//         style: TextStyle(color: color, fontWeight: FontWeight.bold),
-//       ),
-//       style: OutlinedButton.styleFrom(
-//         side: BorderSide(color: Colors.grey.shade300),
-//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-//       ),
-//     );
-//   }
-// }
 
 // This class is REQUIRED to make the TabBar stick to the top
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {

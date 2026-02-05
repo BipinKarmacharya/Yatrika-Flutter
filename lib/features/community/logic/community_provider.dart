@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/api/api_client.dart';
 import '../data/services/community_service.dart';
 import '../data/models/community_post.dart';
 
@@ -18,15 +19,53 @@ class CommunityProvider extends ChangeNotifier {
   List<CommunityPost> get myPosts => _myPosts;
   Map<String, dynamic>? get userStats => _userStats;
 
-  Future<void> refreshPosts() async {
-    _isLoading = true;
-    _errorMessage = null;
+  // RANKED FEED LOGIC: Simple Score-based sorting
+  void _sortPostsByRank() {
+    _posts.sort((a, b) {
+      // We use .toInt() to ensure the result is an integer
+      int scoreA =
+          ((a.totalLikes * 2) + (a.user?.isFollowing == true ? 100 : 0))
+              .toInt();
+      int scoreB =
+          ((b.totalLikes * 2) + (b.user?.isFollowing == true ? 100 : 0))
+              .toInt();
+
+      return scoreB.compareTo(scoreA); // Descending order
+    });
+  }
+
+  // FOLLOW SYSTEM
+  Future<void> toggleFollow(int authorId) async {
+    // 1. Optimistically update all posts by this author in the feed
+    for (int i = 0; i < _posts.length; i++) {
+      if (_posts[i].user?.id == authorId) {
+        bool currentStatus = _posts[i].user?.isFollowing ?? false;
+        _posts[i] = _posts[i].copyWith(
+          user: _posts[i].user?.copyWith(isFollowing: !currentStatus),
+        );
+      }
+    }
     notifyListeners();
 
     try {
-      _posts = await CommunityService.getPublicPosts();
+      // 2. Call Backend: POST /api/users/{id}/follow
+      await ApiClient.post('/api/users/$authorId/follow');
     } catch (e) {
-      _errorMessage = "Could not load posts. Please try again.";
+      // 3. Revert on failure
+      _errorMessage = "Failed to update follow status";
+      refreshPosts(); // Reload to sync with server state
+    }
+  }
+
+  // REFRESH with Ranking
+  Future<void> refreshPosts() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _posts = await CommunityService.getPublicPosts();
+      _sortPostsByRank(); // Apply ranking after fetch
+    } catch (e) {
+      _errorMessage = "Could not load posts.";
     } finally {
       _isLoading = false;
       notifyListeners();

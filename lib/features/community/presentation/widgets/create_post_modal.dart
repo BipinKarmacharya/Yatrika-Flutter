@@ -20,7 +20,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
   final _contentCtrl = TextEditingController();
   final _costCtrl = TextEditingController();
 
-  final List<_DayController> _days = [_DayController(dayNumber: 1)];
+  // final List<_DayController> _days = [_DayController(dayNumber: 1)];
   final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
   
@@ -33,9 +33,9 @@ class _CreatePostModalState extends State<CreatePostModal> {
     _destinationCtrl.dispose();
     _contentCtrl.dispose();
     _costCtrl.dispose();
-    for (var d in _days) {
-      d.dispose();
-    }
+    // for (var d in _days) {
+    //   d.dispose();
+    // }
     super.dispose();
   }
 
@@ -70,25 +70,25 @@ class _CreatePostModalState extends State<CreatePostModal> {
         "destination": _destinationCtrl.text.trim(),
         "content": _contentCtrl.text.trim(),
         "tags": _selectedTags.toList(),
-        "tripDurationDays": _days.length,
-        "estimatedCost": double.tryParse(_costCtrl.text) ?? 0.0,
+        // "tripDurationDays": _days.length,
+        // "estimatedCost": double.tryParse(_costCtrl.text) ?? 0.0,
         "coverImageUrl": uploadedUrls.first, // Uses the first uploaded image as cover
         "isPublic": true,
         "media": uploadedUrls.asMap().entries.map((e) => {
           "mediaUrl": e.value,
           "mediaType": "IMAGE",
-          "dayNumber": 1, 
+          // "dayNumber": 1, 
           "displayOrder": e.key,
           "caption": "Trip Image",
         }).toList(),
-        "days": _days.map((d) => {
-          "dayNumber": d.dayNumber,
-          "description": d.description.text.trim(),
-          "activities": d.activities.text.trim(),
-          "accommodation": "Standard",
-          "food": "Local",
-          "transportation": "Public",
-        }).toList(),
+        // "days": _days.map((d) => {
+        //   "dayNumber": d.dayNumber,
+        //   "description": d.description.text.trim(),
+        //   "activities": d.activities.text.trim(),
+        //   "accommodation": "Standard",
+        //   "food": "Local",
+        //   "transportation": "Public",
+        // }).toList(),
       };
 
       // Step C: Send to Provider
@@ -136,16 +136,16 @@ class _CreatePostModalState extends State<CreatePostModal> {
                     _customField(_destinationCtrl, "e.g., Switzerland"),
                     _inputLabel("Description"),
                     _customField(_contentCtrl, "Highlights...", maxLines: 3),
-                    _inputLabel("Total Budget"),
-                    _customField(_costCtrl, "e.g., 2000", isNumber: true),
+                    // _inputLabel("Total Budget"),
+                    // _customField(_costCtrl, "e.g., 2000", isNumber: true),
                     _inputLabel("Tags"),
                     _buildTagWrap(),
                   ]),
                   const SizedBox(height: 16),
-                  _buildSectionCard("Photos", [_buildImageUploader()]),
+                  _buildSectionCard("Photos *", [_buildImageUploader()]),
                   const SizedBox(height: 16),
-                  _buildItinerarySection(),
-                  const SizedBox(height: 32),
+                  // _buildItinerarySection(),
+                  // const SizedBox(height: 32),
                   _buildActionButton(isCreating),
                   const SizedBox(height: 20),
                 ],
@@ -224,15 +224,15 @@ class _CreatePostModalState extends State<CreatePostModal> {
     ]);
   }
 
-  Widget _buildItinerarySection() {
-    return _buildSectionCard("Itinerary", [
-      ..._days.map((d) => ExpansionTile(title: Text("Day ${d.dayNumber}"), children: [
-        _customField(d.activities, "Activities"),
-        _customField(d.description, "Description"),
-      ])),
-      TextButton(onPressed: () => setState(() => _days.add(_DayController(dayNumber: _days.length + 1))), child: const Text("Add Day"))
-    ]);
-  }
+  // Widget _buildItinerarySection() {
+  //   return _buildSectionCard("Itinerary", [
+  //     ..._days.map((d) => ExpansionTile(title: Text("Day ${d.dayNumber}"), children: [
+  //       _customField(d.activities, "Activities"),
+  //       _customField(d.description, "Description"),
+  //     ])),
+  //     TextButton(onPressed: () => setState(() => _days.add(_DayController(dayNumber: _days.length + 1))), child: const Text("Add Day"))
+  //   ]);
+  // }
 
   Widget _buildActionButton(bool loading) {
     return SizedBox(
@@ -246,10 +246,10 @@ class _CreatePostModalState extends State<CreatePostModal> {
   }
 }
 
-class _DayController {
-  final int dayNumber;
-  final description = TextEditingController();
-  final activities = TextEditingController();
-  _DayController({required this.dayNumber});
-  void dispose() { description.dispose(); activities.dispose(); }
-}
+// class _DayController {
+//   final int dayNumber;
+//   final description = TextEditingController();
+//   final activities = TextEditingController();
+//   _DayController({required this.dayNumber});
+//   void dispose() { description.dispose(); activities.dispose(); }
+// }

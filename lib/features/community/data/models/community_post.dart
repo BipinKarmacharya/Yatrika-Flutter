@@ -11,7 +11,7 @@ class CommunityPost {
   final bool isPublic;
   final bool isLiked;
   final int totalLikes;
-  final int totalViews;
+  final int totalComments;
   final List<PostMedia> media;
   final List<PostDay> days;
   final String authorName;
@@ -31,7 +31,7 @@ class CommunityPost {
     this.isPublic = true,
     this.isLiked = false,
     this.totalLikes = 0,
-    this.totalViews = 0,
+    this.totalComments = 0,
     required this.media,
     required this.days,
     required this.authorName,
@@ -52,7 +52,6 @@ class CommunityPost {
     bool? isPublic,
     bool? isLiked,
     int? totalLikes,
-    int? totalViews,
     List<PostMedia>? media,
     List<PostDay>? days,
     String? authorName,
@@ -72,7 +71,6 @@ class CommunityPost {
       isPublic: isPublic ?? this.isPublic,
       isLiked: isLiked ?? this.isLiked,
       totalLikes: totalLikes ?? this.totalLikes,
-      totalViews: totalViews ?? this.totalViews,
       media: media ?? this.media,
       days: days ?? this.days,
       authorName: authorName ?? this.authorName,
@@ -81,7 +79,6 @@ class CommunityPost {
     );
   }
 
-  // Inside CommunityPost.fromJson
   factory CommunityPost.fromJson(Map<String, dynamic> json) {
     // 1. Correctly map the User
     final userObj = json['user'] != null
@@ -102,9 +99,9 @@ class CommunityPost {
       // We prepend the base URL later in the UI or here
       coverImageUrl: json['coverImageUrl'] ?? '',
       isPublic: json['isPublic'] ?? true,
-      isLiked: json['isLikedByCurrentUser'] ?? false, // Matches your JSON key
+      isLiked: json['isLikedByCurrentUser'] ?? false, 
       totalLikes: json['totalLikes'] ?? 0,
-      totalViews: json['totalViews'] ?? 0,
+      totalComments: json['totalComments'] ?? 0,
       // Safely parse nested lists
       media:
           (json['media'] as List?)
@@ -137,18 +134,44 @@ class CommunityPost {
 // --- RESTORED HELPER CLASSES ---
 
 class PostUser {
+  final int id;
   final String username;
   final String fullName;
   final String? profileImage;
+  final bool isFollowing;
 
-  PostUser({required this.username, required this.fullName, this.profileImage});
+  PostUser({
+    required this.id,
+    required this.username,
+    required this.fullName,
+    this.profileImage,
+    this.isFollowing = false,
+  });
+
+  // ADD THIS METHOD:
+  PostUser copyWith({
+    int? id,
+    String? username,
+    String? fullName,
+    String? profileImage,
+    bool? isFollowing,
+  }) {
+    return PostUser(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      fullName: fullName ?? this.fullName,
+      profileImage: profileImage ?? this.profileImage,
+      isFollowing: isFollowing ?? this.isFollowing,
+    );
+  }
 
   factory PostUser.fromJson(Map<String, dynamic> json) {
     return PostUser(
+      id: json['id'] ?? 0,
       username: json['username'] ?? 'Traveler',
       fullName: json['fullName'] ?? 'Guest',
-      // FIX: Match the 'profileImageUrl' key from your JSON response
-      profileImage: json['profileImageUrl'] ?? json['profileImage'], 
+      profileImage: json['profileImageUrl'] ?? json['profileImage'],
+      isFollowing: json['isFollowing'] ?? false,
     );
   }
 }
@@ -159,7 +182,12 @@ class PostMedia {
   final String? caption;
   final int dayNumber;
 
-  PostMedia({required this.mediaUrl, this.mediaType = "IMAGE", this.caption, this.dayNumber = 1});
+  PostMedia({
+    required this.mediaUrl,
+    this.mediaType = "IMAGE",
+    this.caption,
+    this.dayNumber = 1,
+  });
 
   factory PostMedia.fromJson(Map<String, dynamic> json) => PostMedia(
     // Ensure mediaUrl isn't null
@@ -168,7 +196,6 @@ class PostMedia {
     caption: json['caption'] as String?,
     dayNumber: json['dayNumber'] ?? 1,
   );
-
 
   Map<String, dynamic> toJson() => {
     "mediaUrl": mediaUrl,

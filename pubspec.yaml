@@ -36,10 +36,17 @@ dependencies:
   provider: ^6.1.1
   go_router: ^14.0.0
   url_launcher: ^6.3.1
-  cached_network_image: ^3.4.1
-  intl: ^0.19.0
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
+
+  # For sharing links and content to other apps
+  share_plus: ^10.1.0
+
+  # For date formatting and relative time (e.g., "2h ago")
+  intl: ^0.19.0
+  
+  # For profile images
+  cached_network_image: ^3.4.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
