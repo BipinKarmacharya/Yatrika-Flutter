@@ -22,7 +22,8 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
 
   // Helper to generate a shareable link
   void _handleShare() {
-    final String postLink = "${ApiClient.baseUrl}/community/post/${widget.post.id}";
+    final String postLink =
+        "${ApiClient.baseUrl}/community/post/${widget.post.id}";
     Share.share(
       "Check out this journey to ${widget.post.destination} on Yatrika: $postLink",
       subject: widget.post.title,
@@ -31,7 +32,9 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
 
   // Existing helpers...
   String _getImageUrl(String? path) {
-    if (path == null || path.isEmpty) return "https://via.placeholder.com/400x300";
+    if (path == null || path.isEmpty) {
+      return "https://via.placeholder.com/400x300";
+    }
     if (path.startsWith('http')) return path;
     return '${ApiClient.baseUrl}$path';
   }
@@ -46,11 +49,80 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
     return DateFormat('MMM d').format(date);
   }
 
+  void _showOwnPostMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text("Edit Post"),
+            onTap: () {
+              Navigator.pop(context);
+              // TODO: Navigate to Edit Screen
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline, color: Colors.red),
+            title: const Text(
+              "Delete Story",
+              style: TextStyle(color: Colors.red),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _confirmDeletion(context);
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeletion(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Story?"),
+        content: const Text("This action cannot be undone. Are you sure?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              // Call your provider to delete
+              // context.read<CommunityProvider>().deletePost(widget.post.id!);
+              Navigator.pop(ctx);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     // Double check: Compare IDs to see if this post belongs to the logged-in user
-    final bool isOwnPost = auth.user != null && auth.user!.id == widget.post.user?.id;
+    final bool isOwnPost =
+        auth.user != null &&
+        auth.user!.id.toString() == widget.post.user?.id.toString();
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -62,7 +134,7 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -76,10 +148,14 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
               ),
             ),
             title: Text(
-              isOwnPost ? "You" : "@${widget.post.user?.username ?? 'traveler'}",
+              isOwnPost
+                  ? "You"
+                  : "@${widget.post.user?.username ?? 'traveler'}",
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text("${widget.post.destination} • ${_getRelativeTime(widget.post.createdAt)}"),
+            subtitle: Text(
+              "${widget.post.destination} • ${_getRelativeTime(widget.post.createdAt)}",
+            ),
             trailing: isOwnPost
                 ? _buildMenuButton() // Three dots for Edit/Delete
                 : _buildFollowButton(), // Follow button for others
@@ -105,17 +181,31 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.post.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  widget.post.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 5),
-                Text(widget.post.content, maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(
+                  widget.post.content,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 15),
                 Row(
                   children: [
                     _buildActionItem(
-                      icon: widget.post.isLiked ? Icons.favorite : Icons.favorite_border,
+                      icon: widget.post.isLiked
+                          ? Icons.favorite
+                          : Icons.favorite_border,
                       label: "${widget.post.totalLikes}",
                       color: widget.post.isLiked ? Colors.red : Colors.black87,
-                      onTap: () => context.read<CommunityProvider>().toggleLike(widget.post.id!),
+                      onTap: () => context.read<CommunityProvider>().toggleLike(
+                        widget.post.id!,
+                      ),
                     ),
                     const SizedBox(width: 20),
                     const Icon(Icons.mode_comment_outlined, size: 22),
@@ -142,11 +232,14 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
   Widget _buildFollowButton() {
     if (widget.post.user == null) return const SizedBox.shrink();
     return TextButton(
-      onPressed: () => context.read<CommunityProvider>().toggleFollow(widget.post.user!.id),
+      onPressed: () =>
+          context.read<CommunityProvider>().toggleFollow(widget.post.user!.id),
       child: Text(
         widget.post.user!.isFollowing ? "Following" : "Follow",
         style: TextStyle(
-          color: widget.post.user!.isFollowing ? Colors.grey : AppColors.primary,
+          color: widget.post.user!.isFollowing
+              ? Colors.grey
+              : AppColors.primary,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -162,14 +255,22 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
     );
   }
 
-  Widget _buildActionItem({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+  Widget _buildActionItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _showOwnPostMenu(context),
       child: Row(
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(width: 5),
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
