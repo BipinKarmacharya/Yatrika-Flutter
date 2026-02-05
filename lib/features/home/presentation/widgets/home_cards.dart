@@ -57,32 +57,48 @@ class CommunityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Container(width: 80, height: 80, color: Colors.grey[200], child: const Icon(Icons.image)),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: post.coverImageUrl.isNotEmpty
+                ? Image.network(post.coverImageUrl, width: 85, height: 85, fit: BoxFit.cover)
+                : Container(width: 85, height: 85, color: Colors.grey[200], child: const Icon(Icons.image)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(post.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    CircleAvatar(radius: 10, backgroundImage: NetworkImage(post.authorAvatar ?? 'https://via.placeholder.com/20')),
+                    const SizedBox(width: 6),
+                    Text("by ${post.authorName}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.favorite_border, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text("${post.totalLikes}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                )
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(post.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Text("by ${post.authorName}", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
