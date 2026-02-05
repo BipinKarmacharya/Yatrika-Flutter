@@ -18,8 +18,8 @@ class ApiClient {
       // return 'https://yatrika-ympz.onrender.com';
     }
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8080';
-      // return 'https://zebralike-inquirable-almeda.ngrok-free.dev';
+      // return 'http://10.0.2.2:8080';
+      return 'https://zebralike-inquirable-almeda.ngrok-free.dev';
       // return 'https://yatrika-ympz.onrender.com';
     }
     return 'http://localhost:8080';

@@ -487,11 +487,8 @@ class _SavedTabViewState extends State<SavedTabView> {
   // Helper to get cover image from first destination
   String? _getCoverImageUrl(Itinerary itinerary) {
     if (itinerary.items != null && itinerary.items!.isNotEmpty) {
-      // Try to get image from first item's destination
       final firstItem = itinerary.items!.first;
-      // This depends on your ItineraryItem model structure
-      // Assuming ItineraryItem has a destination with image property
-      return null; // You'll need to adjust this based on your actual data structure
+      return null; 
     }
     return null;
   }

@@ -4,8 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
+import 'package:tour_guide/features/explore/presentation/screens/explore_screen.dart';
+import 'package:tour_guide/features/home/logic/home_provider.dart';
 import 'package:tour_guide/features/user/logic/saved_provider.dart';
-import 'package:tour_guide/features/destination/data/repositories/destination_repository.dart';
 import 'package:tour_guide/features/destination/logic/destination_provider.dart';
 import 'package:tour_guide/features/home/presentation/screens/home_screen.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
@@ -25,7 +26,7 @@ import 'features/community/logic/community_provider.dart';
 import 'features/community/presentation/screens/community_screen.dart';
 import 'features/user/presentation/screens/profile_screen.dart';
 import 'features/plan/presentation/screens/plan_screen.dart';
-import 'features/destination/presentation/screens/destination_list_screen.dart';
+// import 'features/explore/presentation/screens/destination_list_screen.dart';
 import 'shared/ui/screens/animated_splash_screen.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -33,8 +34,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides();
-
-  final destinationRepository = DestinationRepository();
 
   // Initialize ApiClient (Loads token from SharedPreferences)
   await ApiClient.init();
@@ -54,13 +53,17 @@ void main() async {
             return auth;
           },
         ),
+
+        ChangeNotifierProvider(create: (_) => HomeProvider()),
+        
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+
         ChangeNotifierProvider<CommunityProvider>(
           create: (_) => CommunityProvider(),
         ),
-        ChangeNotifierProvider(
-          create: (_) => DestinationProvider(destinationRepository),
-        ),
+        
+        ChangeNotifierProvider(create: (_) => DestinationProvider()),
+
         ChangeNotifierProvider(create: (_) => ItineraryProvider()),
 
         ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
@@ -121,9 +124,9 @@ class _MainNavigatorState extends State<MainNavigator> {
   List<Widget> get _screens => [
     TourBookHome(
       onProfileTap: () => setState(() => _currentIndex = 4),
-      onNavigateToDiscover: () => setState(() => _currentIndex = 1),
+      // onNavigateToDiscover: () => setState(() => _currentIndex = 1),
     ),
-    const DestinationListScreen(),
+    const ExploreScreen(),
     PlanScreen(
       onBack: () => setState(() => _currentIndex = 0),
       onNavigateToDiscover: () => setState(() => _currentIndex = 1),

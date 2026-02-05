@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:tour_guide/features/destination/data/models/destination.dart';
 import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
-import 'package:provider/provider.dart';
+// import 'package:provider/provider.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
-import 'package:tour_guide/features/plan/presentation/screens/plan_screen.dart';
-import '../../../auth/logic/auth_provider.dart';
+// import 'package:tour_guide/features/plan/presentation/screens/plan_screen.dart';
+// import '../../../auth/logic/auth_provider.dart';
 
 class DestinationDetailScreen extends StatelessWidget {
   final Destination destination;
   // final ItineraryService _itineraryService = ItineraryService();
 
-  DestinationDetailScreen({super.key, required this.destination});
+  const DestinationDetailScreen({super.key, required this.destination});
 
   @override
   Widget build(BuildContext context) {
@@ -229,79 +229,79 @@ class DestinationDetailScreen extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   // 7. PLAN YOUR TRIP SECTION (Green Banner)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF009688),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Plan Your Trip",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Create a custom itinerary for your adventure.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // ✅ FIX: Use Provider to check if a token exists
-                              final authProvider = context.read<AuthProvider>();
-                              final bool isLoggedIn =
-                                  authProvider.token != null;
+                  // Container(
+                  //   width: double.infinity,
+                  //   padding: const EdgeInsets.all(24),
+                  //   decoration: BoxDecoration(
+                  //     color: const Color(0xFF009688),
+                  //     borderRadius: BorderRadius.circular(16),
+                  //   ),
+                  //   child: Column(
+                  //     crossAxisAlignment: CrossAxisAlignment.start,
+                  //     children: [
+                  //       const Text(
+                  //         "Plan Your Trip",
+                  //         style: TextStyle(
+                  //           color: Colors.white,
+                  //           fontSize: 22,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //       ),
+                  //       const SizedBox(height: 8),
+                  //       const Text(
+                  //         "Create a custom itinerary for your adventure.",
+                  //         style: TextStyle(color: Colors.white70, fontSize: 14),
+                  //       ),
+                  //       const SizedBox(height: 20),
+                  //       SizedBox(
+                  //         width: double.infinity,
+                  //         height: 50,
+                  //         child: ElevatedButton(
+                  //           onPressed: () {
+                  //             // ✅ FIX: Use Provider to check if a token exists
+                  //             final authProvider = context.read<AuthProvider>();
+                  //             final bool isLoggedIn =
+                  //                 authProvider.token != null;
 
-                              if (isLoggedIn) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PlanScreen(
-                                      // destination: destination,
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Please login to create an itinerary.",
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                                // Ensure '/login' route is defined in main.dart
-                                Navigator.pushNamed(context, '/login');
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF009688),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              "Start Planning",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 100), // Space for bottom
+                  //             if (isLoggedIn) {
+                  //               Navigator.push(
+                  //                 context,
+                  //                 MaterialPageRoute(
+                  //                   builder: (context) => PlanScreen(
+                  //                     // destination: destination,
+                  //                   ),
+                  //                 ),
+                  //               );
+                  //             } else {
+                  //               ScaffoldMessenger.of(context).showSnackBar(
+                  //                 const SnackBar(
+                  //                   content: Text(
+                  //                     "Please login to create an itinerary.",
+                  //                   ),
+                  //                   backgroundColor: Colors.orange,
+                  //                 ),
+                  //               );
+                  //               // Ensure '/login' route is defined in main.dart
+                  //               Navigator.pushNamed(context, '/login');
+                  //             }
+                  //           },
+                  //           style: ElevatedButton.styleFrom(
+                  //             backgroundColor: Colors.white,
+                  //             foregroundColor: const Color(0xFF009688),
+                  //             shape: RoundedRectangleBorder(
+                  //               borderRadius: BorderRadius.circular(12),
+                  //             ),
+                  //           ),
+                  //           child: const Text(
+                  //             "Start Planning",
+                  //             style: TextStyle(fontWeight: FontWeight.bold),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 100), // Space for bottom
                 ],
               ),
             ),
