@@ -33,11 +33,12 @@ class CommunityService {
     return _mapResponse(data);
   }
 
- 
   static Future<List<CommunityPost>> trending() async {
     try {
-      final response = await ApiClient.get('/api/community/posts/trending?page=0&size=3');
-      
+      final response = await ApiClient.get(
+        '/api/community/posts/trending?page=0&size=3',
+      );
+
       if (response != null && response['content'] != null) {
         final List<dynamic> content = response['content'];
         return content.map((json) => CommunityPost.fromJson(json)).toList();
@@ -94,8 +95,12 @@ class CommunityService {
     return CommunityPost.fromJson(data as Map<String, dynamic>);
   }
 
-  static Future<void> delete(String id) async {
-    await ApiClient.delete('/api/community/posts/$id');
+  static Future<void> deletePost(int id) async {
+    try {
+      await ApiClient.delete('/api/community/posts/$id');
+    } catch (e) {
+      rethrow;
+    }
   }
 
   static Future<void> like(String id) async {

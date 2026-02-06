@@ -19,6 +19,9 @@ class CommunityProvider extends ChangeNotifier {
   List<CommunityPost> get myPosts => _myPosts;
   Map<String, dynamic>? get userStats => _userStats;
 
+  bool _isUpdating = false;
+  bool get isUpdating => _isUpdating;
+
   // RANKED FEED LOGIC: Simple Score-based sorting
   void _sortPostsByRank() {
     _posts.sort((a, b) {
@@ -162,6 +165,49 @@ class CommunityProvider extends ChangeNotifier {
     } finally {
       _isCreating = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> updatePost(int id, Map<String, dynamic> data) async {
+    _isUpdating = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // API Call: PUT /api/community/posts/{id}
+      final response = await ApiClient.put(
+        '/api/community/posts/$id',
+        body: data,
+      );
+
+      // Update local list so user sees changes immediately without a full reload
+      final index = _posts.indexWhere((p) => p.id == id);
+      if (index != -1 && response != null) {
+        _posts[index] = CommunityPost.fromJson(response);
+      }
+
+      _isUpdating = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isUpdating = false;
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deletePost(int id) async {
+    try {
+      await CommunityService.deletePost(id);
+      // Remove from local list immediately for snappy UI
+      _posts.removeWhere((p) => p.id == id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 }
