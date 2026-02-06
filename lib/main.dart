@@ -33,48 +33,74 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+
   HttpOverrides.global = MyHttpOverrides();
 
-  // Initialize ApiClient (Loads token from SharedPreferences)
   await ApiClient.init();
-
-  Future<void> main() async {
-    await dotenv.load(fileName: ".env"); // Load the .env file
-    runApp(MyApp());
-  }
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<AuthProvider>(
-          create: (_) {
-            final auth = AuthProvider();
-            auth.checkSession(); // Call it explicitly
-            return auth;
-          },
-        ),
-
+        ChangeNotifierProvider(create: (_) => AuthProvider()..checkSession()),
         ChangeNotifierProvider(create: (_) => HomeProvider()),
-        
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
-
-        ChangeNotifierProvider<CommunityProvider>(
-          create: (_) => CommunityProvider(),
-        ),
-        
+        ChangeNotifierProvider(create: (_) => CommunityProvider()),
         ChangeNotifierProvider(create: (_) => DestinationProvider()),
-
         ChangeNotifierProvider(create: (_) => ItineraryProvider()),
-
         ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
-
         ChangeNotifierProvider(create: (_) => SavedProvider()),
-
       ],
       child: const MyApp(),
     ),
   );
 }
+
+// void main() async {
+//   WidgetsFlutterBinding.ensureInitialized();
+//   HttpOverrides.global = MyHttpOverrides();
+
+//   // Initialize ApiClient (Loads token from SharedPreferences)
+//   await ApiClient.init();
+
+//   Future<void> main() async {
+//     await dotenv.load(fileName: ".env"); // Load the .env file
+//     runApp(MyApp());
+//   }
+
+//   runApp(
+//     MultiProvider(
+//       providers: [
+//         ChangeNotifierProvider<AuthProvider>(
+//           create: (_) {
+//             final auth = AuthProvider();
+//             auth.checkSession(); // Call it explicitly
+//             return auth;
+//           },
+//         ),
+
+//         ChangeNotifierProvider(create: (_) => HomeProvider()),
+
+//         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+
+//         ChangeNotifierProvider<CommunityProvider>(
+//           create: (_) => CommunityProvider(),
+//         ),
+
+//         ChangeNotifierProvider(create: (_) => DestinationProvider()),
+
+//         ChangeNotifierProvider(create: (_) => ItineraryProvider()),
+
+//         ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
+
+//         ChangeNotifierProvider(create: (_) => SavedProvider()),
+
+//       ],
+//       child: const MyApp(),
+//     ),
+//   );
+// }
 
 class MyHttpOverrides extends HttpOverrides {
   @override

@@ -117,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Wrap(
                           alignment: WrapAlignment.center,
                           spacing: 8,
-                          children: user!.interests!.map((interest) {
+                          children: user.interests.map((interest) {
                             return Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,

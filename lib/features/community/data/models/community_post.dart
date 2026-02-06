@@ -1,3 +1,6 @@
+import 'package:intl/intl.dart';
+import 'package:tour_guide/core/api/api_client.dart';
+
 class CommunityPost {
   final int? id;
   final PostUser? user;
@@ -85,24 +88,22 @@ class CommunityPost {
         ? PostUser.fromJson(json['user'])
         : null;
 
+    String fullCoverUrl = ApiClient.getFullImageUrl(json['coverImageUrl']);
+
     return CommunityPost(
       id: json['id'],
       user: userObj,
       title: json['title'] ?? 'Untitled Trip',
-      // Handle the case where destination might be null in JSON
       destination: json['destination'] as String?,
-      // Safely parse tags list
       tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
       content: json['content'] ?? '',
       tripDurationDays: json['tripDurationDays'] ?? 1,
       estimatedCost: (json['estimatedCost'] ?? 0).toDouble(),
-      // We prepend the base URL later in the UI or here
-      coverImageUrl: json['coverImageUrl'] ?? '',
+      coverImageUrl: fullCoverUrl,
       isPublic: json['isPublic'] ?? true,
-      isLiked: json['isLikedByCurrentUser'] ?? false, 
+      isLiked: json['isLikedByCurrentUser'] ?? false,
       totalLikes: json['totalLikes'] ?? 0,
       totalComments: json['totalComments'] ?? 0,
-      // Safely parse nested lists
       media:
           (json['media'] as List?)
               ?.map((m) => PostMedia.fromJson(m))
@@ -111,10 +112,21 @@ class CommunityPost {
       days:
           (json['days'] as List?)?.map((d) => PostDay.fromJson(d)).toList() ??
           [],
-      authorName: userObj?.fullName ?? 'Traveler',
+      authorName: userObj?.username ?? 'Traveler',
       authorAvatar: userObj?.profileImage,
       createdAt: json['createdAt'],
     );
+  }
+
+  // Helper to get formatted date
+  String get formattedDate {
+    if (createdAt == null) return "";
+    try {
+      DateTime dt = DateTime.parse(createdAt!);
+      return DateFormat('MMM d, yyyy').format(dt); // e.g. Jan 28, 2026
+    } catch (e) {
+      return "";
+    }
   }
 
   Map<String, dynamic> toJson() => {
@@ -166,11 +178,13 @@ class PostUser {
   }
 
   factory PostUser.fromJson(Map<String, dynamic> json) {
+    String? rawImg = json['profileImageUrl'] ?? json['profileImage'];
+
     return PostUser(
       id: json['id'] ?? 0,
       username: json['username'] ?? 'Traveler',
-      fullName: json['fullName'] ?? 'Guest',
-      profileImage: json['profileImageUrl'] ?? json['profileImage'],
+      fullName: json['fullName'] ?? json['username'] ?? 'Guest',
+      profileImage: ApiClient.getFullImageUrl(rawImg),
       isFollowing: json['isFollowing'] ?? false,
     );
   }
@@ -190,8 +204,7 @@ class PostMedia {
   });
 
   factory PostMedia.fromJson(Map<String, dynamic> json) => PostMedia(
-    // Ensure mediaUrl isn't null
-    mediaUrl: json['mediaUrl'] ?? '',
+    mediaUrl: ApiClient.getFullImageUrl(json['mediaUrl'] ?? json['url']),
     mediaType: json['mediaType'] ?? "IMAGE",
     caption: json['caption'] as String?,
     dayNumber: json['dayNumber'] ?? 1,

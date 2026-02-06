@@ -43,40 +43,8 @@ class _SavedTabViewState extends State<SavedTabView> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header with title
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Saved Items',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (itineraries.isNotEmpty)
-                  Text(
-                    '${itineraries.length} ${itineraries.length == 1 ? 'item' : 'items'}',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 14,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
           // Tab Filter Bar
           _buildTabFilter(),
-
           // Content
           Expanded(
             child: RefreshIndicator(
@@ -91,7 +59,7 @@ class _SavedTabViewState extends State<SavedTabView> {
 
   Widget _buildTabFilter() {
     return Container(
-      height: 50,
+      height: 55,
       color: Colors.white,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -103,7 +71,7 @@ class _SavedTabViewState extends State<SavedTabView> {
               setState(() => _selectedTab = index);
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primary : Colors.transparent,

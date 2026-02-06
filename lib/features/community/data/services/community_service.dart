@@ -2,7 +2,6 @@ import '../../../../core/api/api_client.dart';
 import '../models/community_post.dart';
 
 class CommunityService {
-
   static List<CommunityPost> _mapResponse(dynamic data) {
     if (data == null) return [];
 
@@ -34,9 +33,20 @@ class CommunityService {
     return _mapResponse(data);
   }
 
+ 
   static Future<List<CommunityPost>> trending() async {
-    final data = await ApiClient.get('/api/community/posts/trending');
-    return _mapResponse(data);
+    try {
+      final response = await ApiClient.get('/api/community/posts/trending?page=0&size=3');
+      
+      if (response != null && response['content'] != null) {
+        final List<dynamic> content = response['content'];
+        return content.map((json) => CommunityPost.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching trending posts: $e");
+      rethrow;
+    }
   }
 
   static Future<List<CommunityPost>> getMyPosts() async {

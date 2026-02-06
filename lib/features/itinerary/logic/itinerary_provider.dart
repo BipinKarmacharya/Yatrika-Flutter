@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/core/api/api_client.dart';
@@ -29,26 +28,6 @@ class ItineraryProvider with ChangeNotifier {
   List<Map<String, dynamic>> get destinations => _destinations;
   bool _isDestinationsLoading = false;
   bool get isDestinationsLoading => _isDestinationsLoading;
-
-  /// Debug method to print current state
-  void debugPrintState() {
-    print('📊 === CURRENT PROVIDER STATE ===');
-    print('📋 My Plans count: ${_myPlans.length}');
-    print('🌍 Public Plans count: ${_publicPlans.length}');
-
-    print('\n📋 PUBLIC PLANS DETAILS:');
-    for (var plan in _publicPlans) {
-      print('  🔹 ID: ${plan.id}, Title: ${plan.title}');
-      print(
-        '     Saved: ${plan.isSavedByCurrentUser}, Liked: ${plan.isLikedByCurrentUser}',
-      );
-      print(
-        '     Like Count: ${plan.likeCount}, Copy Count: ${plan.copyCount}',
-      );
-    }
-
-    print('📊 === END STATE ===');
-  }
 
   void updateItineraryInAllLists(Itinerary updatedItinerary) {
     // 1. Update or add to public plans
@@ -430,7 +409,7 @@ class ItineraryProvider with ChangeNotifier {
     }
 
     // Check if trip is already public
-    if (trip.isPublic ?? false) {
+    if (trip.isPublic) {
       debugPrint("Trip is already public");
       return false;
     }
@@ -505,54 +484,34 @@ class ItineraryProvider with ChangeNotifier {
   /// Save any itinerary (public, expert, or personal)
   Future<void> saveItinerary(int itineraryId, {BuildContext? context}) async {
     try {
-      print('💾 SAVE ITINERARY: $itineraryId');
-
-      // 1. Try to find in public plans first
       int publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
 
-      // 2. Try to find in expert plans (these might be separate)
-      // For now, we'll just call the API and update state
-
-      // 3. Check current saved status
       bool isCurrentlySaved = false;
 
       if (publicIndex != -1) {
         isCurrentlySaved =
             _publicPlans[publicIndex].isSavedByCurrentUser ?? false;
-        print('   Found in public plans, saved: $isCurrentlySaved');
       }
-
-      // 4. If already saved, nothing to do
       if (isCurrentlySaved) {
-        print('   Already saved, skipping');
         return;
       }
-
-      // 5. Call API
-      print('   Calling save API...');
       final updatedItinerary = await ItineraryService.savePublicPlan(
         itineraryId,
       );
-
-      // 6. Update state if found in public plans
       if (publicIndex != -1) {
         _publicPlans[publicIndex] = updatedItinerary;
         notifyListeners();
       }
-
-      // 7. Update SavedProvider
       if (context != null) {
         try {
           final savedProvider = context.read<SavedProvider>();
           await savedProvider.fetchSavedItineraries(); // Refresh saved list
         } catch (e) {
-          print('⚠️ Could not update SavedProvider: $e');
+          debugPrint('Could not update SavedProvider: $e');
         }
       }
-
-      print('✅ Save completed for itinerary $itineraryId');
     } catch (e) {
-      print('❌ Error in saveItinerary: $e');
+      debugPrint('Error in saveItinerary: $e');
       rethrow;
     }
   }
@@ -560,51 +519,34 @@ class ItineraryProvider with ChangeNotifier {
   /// Unsave any itinerary
   Future<void> unsaveItinerary(int itineraryId, {BuildContext? context}) async {
     try {
-      print('🗑️ UNSAVE ITINERARY: $itineraryId');
-
-      // 1. Try to find in public plans
       int publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
 
-      // 2. Check current saved status
       bool isCurrentlySaved = false;
 
       if (publicIndex != -1) {
         isCurrentlySaved =
             _publicPlans[publicIndex].isSavedByCurrentUser ?? false;
-        print('   Found in public plans, saved: $isCurrentlySaved');
       }
-
-      // 3. If not saved, nothing to do
       if (!isCurrentlySaved) {
-        print('   Already not saved, skipping');
         return;
       }
-
-      // 4. Call API
-      print('   Calling unsave API...');
       final updatedItinerary = await ItineraryService.unsavePublicPlan(
         itineraryId,
       );
-
-      // 5. Update state if found in public plans
       if (publicIndex != -1) {
         _publicPlans[publicIndex] = updatedItinerary;
         notifyListeners();
       }
-
-      // 6. Update SavedProvider
       if (context != null) {
         try {
           final savedProvider = context.read<SavedProvider>();
           await savedProvider.fetchSavedItineraries(); // Refresh saved list
         } catch (e) {
-          print('⚠️ Could not update SavedProvider: $e');
+          debugPrint('Could not update SavedProvider: $e');
         }
       }
-
-      print('✅ Unsave completed for itinerary $itineraryId');
     } catch (e) {
-      print('❌ Error in unsaveItinerary: $e');
+      debugPrint('Error in unsaveItinerary: $e');
       rethrow;
     }
   }
@@ -612,9 +554,6 @@ class ItineraryProvider with ChangeNotifier {
   /// Toggle like for any itinerary
   Future<void> toggleLike(int itineraryId, {BuildContext? context}) async {
     try {
-      print('❤️ TOGGLE LIKE: $itineraryId');
-
-      // 1. OPTIMISTIC UPDATE for any itinerary in public plans
       final index = _publicPlans.indexWhere((it) => it.id == itineraryId);
       if (index != -1) {
         final itinerary = _publicPlans[index];
@@ -629,16 +568,11 @@ class ItineraryProvider with ChangeNotifier {
         );
         notifyListeners();
       }
-
-      // 2. Call API
       final updatedItinerary = await ItineraryService.toggleLike(itineraryId);
 
-      // 3. Update with backend response
       updateItineraryInAllLists(updatedItinerary);
-
-      print('✅ Like toggle completed for $itineraryId');
     } catch (e) {
-      print('❌ ERROR in toggleLike: $e');
+      debugPrint('ERROR in toggleLike: $e');
       rethrow;
     }
   }
@@ -646,74 +580,53 @@ class ItineraryProvider with ChangeNotifier {
   // Helper method to fetch updated itinerary
   Future<void> _fetchUpdatedItinerary(int itineraryId) async {
     try {
-      print('🔄 Fetching updated itinerary: $itineraryId');
-
-      // Use the getById endpoint from your controller
       final response = await ApiClient.get('/api/v1/itineraries/$itineraryId');
-      print('📊 Response received for itinerary $itineraryId');
 
       final updatedItinerary = Itinerary.fromJson(response);
 
       // Update in public plans
       final publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
       if (publicIndex != -1) {
-        print('✅ Updating public plan at index $publicIndex');
-        print('   New saved status: ${updatedItinerary.isSavedByCurrentUser}');
-        print('   New liked status: ${updatedItinerary.isLikedByCurrentUser}');
-        print('   New like count: ${updatedItinerary.likeCount}');
-
         _publicPlans[publicIndex] = updatedItinerary;
         notifyListeners();
       }
-
-      print('✅ Finished updating itinerary $itineraryId');
     } catch (e, stackTrace) {
-      print("⚠️ Failed to fetch updated itinerary $itineraryId: $e");
-      print("⚠️ Stack trace: $stackTrace");
-      // Don't throw - this is a background refresh
+      debugPrint("Failed to fetch updated itinerary $itineraryId: $e");
+      debugPrint("Stack trace: $stackTrace");
     }
   }
 
   /// Sync a single itinerary's saved/liked state with backend
   Future<void> syncItineraryState(int itineraryId) async {
     try {
-      print('🔄 Syncing itinerary $itineraryId with backend');
       await _fetchUpdatedItinerary(itineraryId);
-      print('✅ Synced itinerary $itineraryId');
     } catch (e) {
-      print('❌ Failed to sync itinerary $itineraryId: $e');
+      debugPrint('Failed to sync itinerary $itineraryId: $e');
     }
   }
 
   /// Sync all public plans with backend
   Future<void> syncAllPublicPlans() async {
     try {
-      print('🔄 Syncing all public plans with backend');
       await fetchPublicPlans();
-      print('✅ Synced all public plans');
     } catch (e) {
-      print('❌ Failed to sync public plans: $e');
+      debugPrint('Failed to sync public plans: $e');
     }
   }
 
   /// Force refresh all data
   Future<void> refreshAllData() async {
-    print('🔄 Refreshing all data...');
     try {
       // Fetch public plans
       await fetchPublicPlans();
-      print('✅ Public plans refreshed');
 
       // Fetch my plans if user is logged in
       if (ApiClient.currentUserId != null) {
         await fetchMyPlans();
-        print('✅ My plans refreshed');
       }
-
-      print('✅ All data refreshed successfully');
     } catch (e, stackTrace) {
-      print('❌ Error refreshing all data: $e');
-      print('❌ Stack trace: $stackTrace');
+      debugPrint('Error refreshing all data: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
 

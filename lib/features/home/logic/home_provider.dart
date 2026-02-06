@@ -26,6 +26,7 @@ class HomeProvider with ChangeNotifier {
       communityPosts = results[2] as List<CP.CommunityPost>;
     } catch (e) {
       error = "Connection issues. Please try again.";
+      debugPrint("Home Data Error: $e");
     } finally {
       isLoading = false;
       notifyListeners();
