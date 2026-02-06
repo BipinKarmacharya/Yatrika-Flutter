@@ -117,7 +117,7 @@ class CommunityCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        post.authorName, // Now shows "imbipin" instead of "Guest"
+                        "@${post.authorName}",
                         style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                         overflow: TextOverflow.ellipsis,
                       ),
