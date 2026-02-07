@@ -91,7 +91,7 @@ class _SettingsTabViewState extends State<SettingsTabView> {
 
     if (confirm == true) {
       await auth.logout();
-      if (mounted) Navigator.pop(context); // Close the bottom sheet
+      if (mounted) Navigator.pop(context);
     }
   }
 

@@ -42,11 +42,7 @@ class SavedProvider extends ChangeNotifier {
       
       // Add to local list if not already there
       if (!_savedStatusCache.containsKey(itineraryId)) {
-        // You might want to fetch the saved item details here
-        // For now, we'll just update the cache
         _savedStatusCache[itineraryId] = true;
-        
-        // Refresh saved items list
         await fetchSavedItineraries();
       }
       
