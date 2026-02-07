@@ -83,23 +83,22 @@ class CommunityPost {
   }
 
   factory CommunityPost.fromJson(Map<String, dynamic> json) {
-    // 1. Correctly map the User
     final userObj = json['user'] != null
         ? PostUser.fromJson(json['user'])
         : null;
 
-    String fullCoverUrl = ApiClient.getFullImageUrl(json['coverImageUrl']);
-
     return CommunityPost(
+      // Backend returns 'id' as an integer
       id: json['id'],
       user: userObj,
       title: json['title'] ?? 'Untitled Trip',
-      destination: json['destination'] as String?,
+      destination: json['destination'],
       tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
       content: json['content'] ?? '',
       tripDurationDays: json['tripDurationDays'] ?? 1,
       estimatedCost: (json['estimatedCost'] ?? 0).toDouble(),
-      coverImageUrl: fullCoverUrl,
+      // Logic: Use the Cloudinary URL directly if it's already a full URL
+      coverImageUrl: ApiClient.getFullImageUrl(json['coverImageUrl']),
       isPublic: json['isPublic'] ?? true,
       isLiked: json['isLikedByCurrentUser'] ?? false,
       totalLikes: json['totalLikes'] ?? 0,
@@ -118,6 +117,19 @@ class CommunityPost {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+    "title": title,
+    "destination": destination,
+    "tags": tags,
+    "content": content,
+    "tripDurationDays": tripDurationDays,
+    "estimatedCost": estimatedCost,
+    "isPublic": isPublic,
+    // We don't send coverImageUrl here if we are uploading a NEW file
+    "media": media.map((m) => m.toJson()).toList(),
+    "days": days.map((d) => d.toJson()).toList(),
+  };
+
   // Helper to get formatted date
   String get formattedDate {
     if (createdAt == null) return "";
@@ -128,22 +140,9 @@ class CommunityPost {
       return "";
     }
   }
-
-  Map<String, dynamic> toJson() => {
-    "title": title,
-    "destination": destination,
-    "tags": tags,
-    "content": content,
-    "tripDurationDays": tripDurationDays,
-    "estimatedCost": estimatedCost,
-    "coverImageUrl": coverImageUrl,
-    "isPublic": isPublic,
-    "media": media.map((m) => m.toJson()).toList(),
-    "days": days.map((d) => d.toJson()).toList(),
-  };
 }
 
-// --- RESTORED HELPER CLASSES ---
+// --- HELPER CLASSES ---
 
 class PostUser {
   final int id;

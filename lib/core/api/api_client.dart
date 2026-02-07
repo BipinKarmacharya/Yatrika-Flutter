@@ -1,3 +1,4 @@
+import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -85,10 +86,6 @@ class ApiClient {
   ) async {
     try {
       final res = await request().timeout(const Duration(seconds: 20));
-
-      print("URL: ${res.request?.url}");
-      print("STATUS: ${res.statusCode}");
-      print("BODY: ${res.body}");
       return _decodeOrThrow(res);
     } catch (e) {
       if (e is ApiException) rethrow;
@@ -165,5 +162,53 @@ class ApiClient {
     if (path.startsWith('http')) return path;
     final cleanPath = path.startsWith('/') ? path : '/$path';
     return "$baseUrl$cleanPath";
+  }
+
+  static Future<dynamic> multipart(
+    String path, {
+    String method = 'POST',
+    Map<String, String>? fields,
+    List<File>? files, // Change Map to List
+  }) async {
+    try {
+      final uri = _uri(path);
+      final request = http.MultipartRequest(method, uri);
+      request.headers.addAll(_defaultHeaders());
+      request.headers.remove('Content-Type');
+
+      // 1. Handle JSON Data
+      if (fields != null) {
+        fields.forEach((key, value) {
+          request.files.add(
+            http.MultipartFile.fromString(
+              key,
+              value,
+              contentType: MediaType('application', 'json'),
+            ),
+          );
+        });
+      }
+
+      // 2. Handle Multiple Files
+      if (files != null) {
+        for (File file in files) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'images', // Use the SAME key name for all files
+              file.path,
+              contentType: MediaType('image', 'jpeg'),
+            ),
+          );
+        }
+      }
+
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 60),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
+      return _decodeOrThrow(response);
+    } catch (e) {
+      throw ApiException("Upload error: ${e.toString()}");
+    }
   }
 }

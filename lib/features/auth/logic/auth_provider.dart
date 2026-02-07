@@ -70,7 +70,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final response = await ApiClient.post(
-        '/api/auth/login',
+        '/api/v1/auth/login',
         body: {'emailOrUsername': email, 'password': password},
       );
 
@@ -110,7 +110,7 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      final response = await ApiClient.post('/api/auth/register', body: userData);
+      final response = await ApiClient.post('/api/v1/auth/register', body: userData);
       final token = response['token'] ?? response['accessToken'];
 
       if (token != null) {

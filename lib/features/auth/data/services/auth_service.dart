@@ -10,12 +10,7 @@ class AuthService {
     );
     final authRes = AuthResponse.fromJson(data);
 
-    // 1. Convert String ID to int
-    // 2. Use authRes.user.id (removing the ? if authRes is guaranteed)
-    final userId = int.tryParse(authRes.user.id.toString());
-
-    // Save both token and user ID
-    await ApiClient.setAuthToken(authRes.token, userId);
+    await ApiClient.setAuthToken(authRes.token, authRes.user.id);
     return authRes;
   }
 
@@ -31,8 +26,7 @@ class AuthService {
   }
 
   static Future<UserModel> getMe() async {
-    // Ensure you add 'static const String me = "/api/auth/me";' to ApiEndpoints
-    final response = await ApiClient.get('/api/auth/me');
+    final response = await ApiClient.get('/api/v1/users/me');
     return UserModel.fromJson(response);
   }
 

@@ -1,36 +1,60 @@
+import 'dart:convert';
+import 'dart:io';
 import '../../../../core/api/api_client.dart';
 import '../models/community_post.dart';
 
 class CommunityService {
   static List<CommunityPost> _mapResponse(dynamic data) {
     if (data == null) return [];
-
-    // Check for Spring Boot Pagination wrapper
     if (data is Map<String, dynamic> && data.containsKey('content')) {
-      final List list = data['content'];
-      return list
-          .map((e) => CommunityPost.fromJson(e as Map<String, dynamic>))
+      return (data['content'] as List)
+          .map((e) => CommunityPost.fromJson(e))
           .toList();
     }
-
-    // Check if it's a direct list
     if (data is List) {
-      return data
-          .map((e) => CommunityPost.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return data.map((e) => CommunityPost.fromJson(e)).toList();
     }
-
     return [];
   }
 
+  // Use a base path variable to make versioning changes easier
+  static const String _base = '/api/community/posts';
+
   static Future<List<CommunityPost>> getPublicPosts({
-    Map<String, dynamic>? query,
+    int page = 0,
+    int size = 20,
   }) async {
     final data = await ApiClient.get(
-      '/api/community/posts/public',
-      query: query,
+      '$_base/public',
+      query: {'page': page, 'size': size},
     );
     return _mapResponse(data);
+  }
+
+  static Future<CommunityPost> create(
+    CommunityPost post,
+    List<File> imageFiles,
+  ) async {
+    final data = await ApiClient.multipart(
+      _base,
+      fields: {'data': jsonEncode(post.toJson())},
+      files: imageFiles,
+    );
+    return CommunityPost.fromJson(data);
+  }
+
+  static Future<CommunityPost> update(
+    int id,
+    CommunityPost post,
+    List<File> newImageFiles,
+  ) async {
+    final data = await ApiClient.multipart(
+      '$_base/$id',
+      method: 'PUT',
+      fields: {'data': jsonEncode(post.toJson())},
+      files: newImageFiles,
+    );
+    return CommunityPost.fromJson(data);
   }
 
   static Future<List<CommunityPost>> trending() async {
@@ -50,77 +74,32 @@ class CommunityService {
     }
   }
 
+  static Future<CommunityPost> toggleLike(int id) async {
+    final data = await ApiClient.post('$_base/$id/like/toggle');
+    return CommunityPost.fromJson(data);
+  }
+
   static Future<List<CommunityPost>> getMyPosts() async {
-    final data = await ApiClient.get('/api/community/posts/my');
+    final data = await ApiClient.get('$_base/my');
     return _mapResponse(data);
   }
 
   static Future<List<CommunityPost>> search(String query) async {
-    try {
-      // We pass the query as a URL parameter
-      final response = await ApiClient.get(
-        '/api/community/posts/search',
-        query: {'query': query},
-      );
-
-      if (response.data is List) {
-        return (response.data as List)
-            .map((json) => CommunityPost.fromJson(json))
-            .toList();
-      }
-      return [];
-    } catch (e) {
-      rethrow;
-    }
+    final data = await ApiClient.get('$_base/search', query: {'query': query});
+    return _mapResponse(data);
   }
 
-  static Future<CommunityPost> getById(String id) async {
-    final data = await ApiClient.get('/api/community/posts/$id');
-    return CommunityPost.fromJson(data as Map<String, dynamic>);
-  }
-
-  static Future<CommunityPost> create(CommunityPost post) async {
-    final data = await ApiClient.post(
-      '/api/community/posts',
-      body: post.toJson(),
-    );
-    return CommunityPost.fromJson(data as Map<String, dynamic>);
-  }
-
-  static Future<CommunityPost> update(String id, CommunityPost post) async {
-    final data = await ApiClient.put(
-      '/api/community/posts/$id',
-      body: post.toJson(),
-    );
-    return CommunityPost.fromJson(data as Map<String, dynamic>);
+  static Future<CommunityPost> getById(int id) async {
+    final data = await ApiClient.get('$_base/$id');
+    return CommunityPost.fromJson(data);
   }
 
   static Future<void> deletePost(int id) async {
-    try {
-      await ApiClient.delete('/api/community/posts/$id');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  static Future<void> like(String id) async {
-    await ApiClient.post('/api/community/posts/$id/like');
-  }
-
-  static Future<void> unlike(String id) async {
-    await ApiClient.delete('/api/community/posts/$id/like');
+    await ApiClient.delete('$_base/$id');
   }
 
   static Future<Map<String, dynamic>> userStats(String userId) async {
-    final data = await ApiClient.get('/api/community/posts/user/$userId/stats');
+    final data = await ApiClient.get('$_base/user/$userId/stats');
     return data as Map<String, dynamic>;
-  }
-
-  /// ✅ UPDATED: Now uses ApiClient to handle the Token and URL automatically
-  static Future<CommunityPost> createRaw(Map<String, dynamic> payload) async {
-    final data = await ApiClient.post('/api/community/posts', body: payload);
-
-    // ApiClient already decodes the JSON and handles errors (401, 403, etc.)
-    return CommunityPost.fromJson(data as Map<String, dynamic>);
   }
 }
