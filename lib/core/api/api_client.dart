@@ -104,7 +104,7 @@ class ApiClient {
     Map<String, dynamic>? query,
   }) => _handleRequest(
     () => _http.post(
-      _uri(path, query), // Updated to support query params in POST
+      _uri(path, query), 
       headers: _defaultHeaders(),
       body: body == null ? null : (body is String ? body : jsonEncode(body)),
     ),
@@ -168,7 +168,7 @@ class ApiClient {
     String path, {
     String method = 'POST',
     Map<String, String>? fields,
-    List<File>? files, // Change Map to List
+    List<File>? files, 
   }) async {
     try {
       final uri = _uri(path);
@@ -194,7 +194,7 @@ class ApiClient {
         for (File file in files) {
           request.files.add(
             await http.MultipartFile.fromPath(
-              'images', // Use the SAME key name for all files
+              'images', 
               file.path,
               contentType: MediaType('image', 'jpeg'),
             ),
