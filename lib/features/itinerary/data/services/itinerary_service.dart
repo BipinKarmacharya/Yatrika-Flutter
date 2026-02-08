@@ -106,6 +106,9 @@ class ItineraryService {
   static Future<Map<String, dynamic>> getItineraryDetails(int id) async {
     try {
       final dynamic response = await ApiClient.get('$_featurePath/$id');
+      print(
+        "RAW API RESPONSE FOR ITINERARY: $response",
+      ); // Check if 'userId' or 'user_id' is here
       return response as Map<String, dynamic>;
     } catch (e) {
       debugPrint("Error fetching itinerary details: $e");
@@ -263,6 +266,7 @@ class ItineraryService {
       throw Exception("Failed to delete activity");
     }
   }
+
   /// Check if user can save this itinerary
   static bool canSaveItinerary(Itinerary itinerary) {
     // User cannot save their own itinerary

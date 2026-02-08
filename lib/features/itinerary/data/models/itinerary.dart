@@ -25,6 +25,7 @@ class Itinerary {
   final List<String>? tags;
   final bool? isLikedByCurrentUser;
   final bool? isSavedByCurrentUser;
+  final List<String>? images;
 
   Itinerary({
     required this.id,
@@ -50,6 +51,7 @@ class Itinerary {
     this.tags,
     this.isLikedByCurrentUser = false,
     this.isSavedByCurrentUser = false,
+    this.images,
   });
 
   // Computed property - trip is copied if sourceId is not null
@@ -69,6 +71,7 @@ class Itinerary {
     int? copyCount, 
     bool? isLikedByCurrentUser,
     bool? isSavedByCurrentUser,
+    List<String>? images,
   }) {
     return Itinerary(
       id: id,
@@ -94,6 +97,7 @@ class Itinerary {
       tags: tags,
       isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
       isSavedByCurrentUser: isSavedByCurrentUser ?? this.isSavedByCurrentUser,
+      images: images ?? this.images,
     );
   }
 
@@ -108,7 +112,7 @@ class Itinerary {
       estimatedBudget: json['estimatedBudget']?.toDouble(),
       isAdminCreated: json['isAdminCreated'] ?? false,
       isPublic: json['isPublic'] ?? false,
-      userId: json['userId'] as int?,
+      userId: json['userId'] ?? json['user_id'] ?? (json['user'] != null ? json['user']['id'] : null),
       sourceId: json['sourceId'] as int?,
       status: json['status'] as String? ?? 'DRAFT',
       createdAt: json['createdAt'] != null
@@ -134,6 +138,7 @@ class Itinerary {
       tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
       isLikedByCurrentUser: json['isLikedByCurrentUser'] ?? false,
       isSavedByCurrentUser: json['isSavedByCurrentUser'] ?? false,
+      images: json['images'] != null ? List<String>.from(json['images']) : [],
     );
   }
 

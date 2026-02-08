@@ -63,7 +63,10 @@ class MyTripsTabView extends StatelessWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ItineraryDetailScreen(itinerary: trip),
+                builder: (_) => ItineraryDetailScreen(
+                  itinerary: trip,
+                  isReadOnly: false, // Explicitly allow editing for My Trips
+                ),
               ),
             ),
             child: IntrinsicHeight(
@@ -213,7 +216,7 @@ class MyTripsTabView extends StatelessWidget {
     final bool isCompleted = trip.status == 'COMPLETED';
     final bool isPublic = trip.isPublic;
     final bool isCopied = trip.isCopied;
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
