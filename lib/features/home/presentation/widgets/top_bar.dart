@@ -13,12 +13,16 @@ class TopBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'Yatrika ✈️',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-            ),
+          Row(
+            children: [
+              Image.asset(
+                'assets/logo.png',
+                width: 60,
+                height: 60,
+                fit: BoxFit.contain,
+              ),
+               
+            ],
           ),
           const SizedBox(width: 10),
           SizedBox(
