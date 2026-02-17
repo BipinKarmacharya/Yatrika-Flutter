@@ -154,7 +154,21 @@ class _PlanScreenState extends State<PlanScreen> {
   }
 
   Widget _buildOngoingTrips(List<Itinerary> myPlans) {
-    final ongoing = myPlans.where((p) => p.status != 'COMPLETED').toList();
+    final ongoing = myPlans
+        .where((p) => p.status != 'COMPLETED')
+        .where((p) {
+          final hasItems = p.items?.isNotEmpty ?? false;
+          final hasSummaryActivities = (p.summary?.activityCount ?? 0) > 0;
+          final hasDescription = p.description?.trim().isNotEmpty ?? false;
+          return hasItems || hasSummaryActivities || hasDescription;
+        })
+        .toList()
+      ..sort((a, b) {
+        final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+
     if (ongoing.isEmpty) return const SizedBox.shrink();
 
     return Column(

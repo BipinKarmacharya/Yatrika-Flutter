@@ -13,6 +13,8 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -185,6 +187,29 @@ class ItineraryScreen extends StatelessWidget {
     ),
   ];
 
+  Future<void> _savePlan(BuildContext context) async {
+    final provider = context.read<ItineraryProvider>();
+    final tripData = {
+      'title': 'AI Trip Plan',
+      'description': 'Generated from AI planner',
+      'theme': 'Adventure',
+      'totalDays': _itinerary.length,
+    };
+
+    final created = await provider.createNewTrip(tripData);
+    if (!context.mounted) return;
+
+    if (created != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plan saved successfully')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save plan')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -328,7 +353,7 @@ class ItineraryScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => _savePlan(context),
                         icon: const Icon(Icons.save_outlined, size: 20),
                         label: const Text(
                           'Save this plan',

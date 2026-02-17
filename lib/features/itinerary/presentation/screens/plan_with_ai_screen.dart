@@ -24,6 +24,7 @@ class PlanWithAIScreen extends StatefulWidget {
 class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
   final TextEditingController _destinationController = TextEditingController();
   final TextEditingController _datesController = TextEditingController();
+  final TextEditingController _timeController = TextEditingController();
   final TextEditingController _travelersController = TextEditingController();
   final TextEditingController _budgetController = TextEditingController();
   final TextEditingController _paceController = TextEditingController();
@@ -31,15 +32,30 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
 
   String? _selectedDestination;
   DateTime? _selectedTripDate;
+  TimeOfDay? _selectedTripTime;
   final Set<String> _selectedVibes = {};
 
   final List<String> _suggestedDestinations = ['Kathmandu', 'Pokhara', 'Chitwan', 'Lumbini'];
   final List<String> _vibeOptions = ['Food', 'Nature', 'Culture', 'Adventure', 'Nightlife', 'Family'];
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-fill a valid upcoming date/time so reminder scheduling has usable values.
+    final initial = DateTime.now().add(const Duration(minutes: 5));
+    _selectedTripDate = DateTime(initial.year, initial.month, initial.day);
+    _selectedTripTime = TimeOfDay.fromDateTime(initial);
+    _datesController.text =
+        '${_selectedTripDate!.year}-${_selectedTripDate!.month.toString().padLeft(2, '0')}-${_selectedTripDate!.day.toString().padLeft(2, '0')}';
+    _timeController.text =
+        '${_selectedTripTime!.hour.toString().padLeft(2, '0')}:${_selectedTripTime!.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
   void dispose() {
     _destinationController.dispose();
     _datesController.dispose();
+    _timeController.dispose();
     _travelersController.dispose();
     _budgetController.dispose();
     _paceController.dispose();
@@ -254,13 +270,17 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                                   hint: 'Trip start date',
                                   readOnly: true,
                                   onTap: () => _pickTripDate(context),
+                                  suffixIcon: Icons.calendar_today_outlined,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _InputField(
-                                  controller: _travelersController,
-                                  hint: 'Travelers',
+                                  controller: _timeController,
+                                  hint: 'Trip time',
+                                  readOnly: true,
+                                  onTap: () => _pickTripTime(context),
+                                  suffixIcon: Icons.schedule_outlined,
                                 ),
                               ),
                             ],
@@ -270,18 +290,23 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                             children: [
                               Expanded(
                                 child: _InputField(
-                                  controller: _budgetController,
-                                  hint: 'Budget',
+                                  controller: _travelersController,
+                                  hint: 'Travelers',
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _InputField(
-                                  controller: _paceController,
-                                  hint: 'Pace (relaxed • mixed • packed)',
+                                  controller: _budgetController,
+                                  hint: 'Budget',
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+                          _InputField(
+                            controller: _paceController,
+                            hint: 'Pace (relaxed • mixed • packed)',
                           ),
                         ],
                       ),
@@ -384,7 +409,19 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
-                          await _scheduleTripDateReminder(context);
+                          if (_selectedTripDate == null || _selectedTripTime == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please select trip date and time first.'),
+                              ),
+                            );
+                            return;
+                          }
+                          try {
+                            await _scheduleTripDateReminder(context);
+                          } catch (e) {
+                            debugPrint('Reminder scheduling failed: $e');
+                          }
                           if (!context.mounted) return;
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -450,38 +487,116 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
     });
   }
 
+  Future<void> _pickTripTime(BuildContext context) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTripTime ?? const TimeOfDay(hour: 9, minute: 0),
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      _selectedTripTime = picked;
+      _timeController.text = picked.format(context);
+    });
+  }
+
   Future<void> _scheduleTripDateReminder(BuildContext context) async {
-    if (_selectedTripDate == null) return;
+    try {
+      if (_selectedTripDate == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please select trip date to set reminder.'),
+            ),
+          );
+        }
+        return;
+      }
 
-    final now = DateTime.now();
-    DateTime scheduledAt = DateTime(
-      _selectedTripDate!.year,
-      _selectedTripDate!.month,
-      _selectedTripDate!.day,
-      9,
-      0,
-    );
+      await LocalNotificationService.requestPermissions();
 
-    if (scheduledAt.isBefore(now)) {
-      scheduledAt = now.add(const Duration(minutes: 1));
-    }
+      final now = DateTime.now();
+      final destination =
+          _destinationController.text.trim().isEmpty
+              ? 'your destination'
+              : _destinationController.text.trim();
 
-    final scheduled = await LocalNotificationService.scheduleReminder(
-      title: 'Yatrika Trip Reminder',
-      body:
-          'Your trip to ${_destinationController.text.trim().isEmpty ? 'your destination' : _destinationController.text.trim()} starts today.',
-      scheduledAt: scheduledAt,
-    );
+      final selectedTime =
+          _selectedTripTime ?? const TimeOfDay(hour: 9, minute: 0);
 
-    if (!context.mounted || !scheduled) return;
+      DateTime tripStart = DateTime(
+        _selectedTripDate!.year,
+        _selectedTripDate!.month,
+        _selectedTripDate!.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+      if (tripStart.isBefore(now)) {
+        tripStart = now.add(const Duration(minutes: 1));
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Reminder set for ${_datesController.text} at 09:00',
+      int scheduledCount = 0;
+      final reminderOffsets = <Duration>[
+        const Duration(days: 1),
+        const Duration(minutes: 60),
+        const Duration(minutes: 10),
+        Duration.zero,
+      ];
+
+      for (final offset in reminderOffsets) {
+        final scheduledAt = tripStart.subtract(offset);
+        if (!scheduledAt.isAfter(now)) {
+          continue;
+        }
+
+        String body;
+        if (offset.inDays >= 1) {
+          body = 'Your trip to $destination starts tomorrow.';
+        } else if (offset == Duration.zero) {
+          body = 'Your trip to $destination starts now.';
+        } else {
+          body = 'Your trip to $destination starts in ${offset.inMinutes} minutes.';
+        }
+
+        final scheduled = await LocalNotificationService.scheduleReminder(
+          title: 'Yatrika Trip Reminder',
+          body: body,
+          scheduledAt: scheduledAt,
+        );
+        if (scheduled) {
+          scheduledCount += 1;
+        }
+      }
+
+      if (!context.mounted) return;
+
+      if (scheduledCount == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not schedule reminder. Check notification permission.'),
+          ),
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$scheduledCount reminders scheduled before trip start.',
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('Trip reminder setup failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Notification setup failed: $e'),
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -491,12 +606,14 @@ class _InputField extends StatelessWidget {
     required this.hint,
     this.readOnly = false,
     this.onTap,
+    this.suffixIcon,
   });
 
   final TextEditingController controller;
   final String hint;
   final bool readOnly;
   final VoidCallback? onTap;
+  final IconData? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -522,6 +639,9 @@ class _InputField extends StatelessWidget {
             border: InputBorder.none,
             isDense: true,
             contentPadding: EdgeInsets.zero,
+            suffixIcon: suffixIcon == null
+                ? null
+                : Icon(suffixIcon, size: 18, color: AppColors.subtext),
           ),
         ),
       ),
