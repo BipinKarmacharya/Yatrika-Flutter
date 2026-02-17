@@ -16,6 +16,7 @@ import 'package:tour_guide/features/user/logic/profile_provider.dart';
 // Core & Auth Imports
 import 'core/theme/app_colors.dart';
 import 'core/api/api_client.dart';
+import 'core/services/local_notification_service.dart';
 import 'features/auth/logic/auth_provider.dart';
 import 'features/auth/ui/auth_wrapper.dart'; // ✅ Added this
 
@@ -43,6 +44,7 @@ void main() async {
   HttpOverrides.global = MyHttpOverrides();
 
   await ApiClient.init();
+  await LocalNotificationService.initialize();
 
   runApp(
     MultiProvider(

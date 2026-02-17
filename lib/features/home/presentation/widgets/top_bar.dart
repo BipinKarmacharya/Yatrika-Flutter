@@ -1,10 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/services/local_notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class TopBar extends StatelessWidget {
   const TopBar({super.key, this.onProfileTap});
 
   final VoidCallback? onProfileTap;
+
+  Future<void> _scheduleReminder(BuildContext context) async {
+    final now = DateTime.now();
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 2),
+    );
+
+    if (selectedDate == null || !context.mounted) {
+      return;
+    }
+
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        now.add(const Duration(minutes: 5)),
+      ),
+    );
+
+    if (selectedTime == null || !context.mounted) {
+      return;
+    }
+
+    final scheduledAt = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+
+    if (scheduledAt.isBefore(now)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a future time for the reminder.'),
+        ),
+      );
+      return;
+    }
+
+    final isScheduled = await LocalNotificationService.scheduleReminder(
+      title: 'Yatrika Reminder',
+      body: 'Your reminder time has arrived.',
+      scheduledAt: scheduledAt,
+    );
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isScheduled
+              ? 'Reminder set for ${selectedDate.day}/${selectedDate.month}/${selectedDate.year} at ${selectedTime.format(context)}'
+              : 'Could not schedule reminder on this platform.',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +114,24 @@ class TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () => _scheduleReminder(context),
+            child: Container(
+              height: 36,
+              width: 36,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.stroke),
+              ),
+              child: const Icon(
+                Icons.notifications_outlined,
+                size: 20,
+                color: Color(0xFF606F81),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           Container(
             height: 36,
             width: 36,

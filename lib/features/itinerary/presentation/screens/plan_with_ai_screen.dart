@@ -1,12 +1,4 @@
-
-
-
-// Tulsa --  Hard coded
-// 
-
-
-
-
+ 
 
 
 
@@ -15,6 +7,7 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/services/local_notification_service.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import 'itinerary_screen.dart';
@@ -37,6 +30,7 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
   final TextEditingController _notesController = TextEditingController();
 
   String? _selectedDestination;
+  DateTime? _selectedTripDate;
   final Set<String> _selectedVibes = {};
 
   final List<String> _suggestedDestinations = ['Kathmandu', 'Pokhara', 'Chitwan', 'Lumbini'];
@@ -257,7 +251,9 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                               Expanded(
                                 child: _InputField(
                                   controller: _datesController,
-                                  hint: 'Dates (flexible ok)',
+                                  hint: 'Trip start date',
+                                  readOnly: true,
+                                  onTap: () => _pickTripDate(context),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -387,8 +383,9 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          debugPrint('Generate button tapped');
+                        onPressed: () async {
+                          await _scheduleTripDateReminder(context);
+                          if (!context.mounted) return;
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const ItineraryScreen(),
@@ -434,16 +431,72 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
       ),
     );
   }
+
+  Future<void> _pickTripDate(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedTripDate ?? now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 2),
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      _selectedTripDate = picked;
+      _datesController.text =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    });
+  }
+
+  Future<void> _scheduleTripDateReminder(BuildContext context) async {
+    if (_selectedTripDate == null) return;
+
+    final now = DateTime.now();
+    DateTime scheduledAt = DateTime(
+      _selectedTripDate!.year,
+      _selectedTripDate!.month,
+      _selectedTripDate!.day,
+      9,
+      0,
+    );
+
+    if (scheduledAt.isBefore(now)) {
+      scheduledAt = now.add(const Duration(minutes: 1));
+    }
+
+    final scheduled = await LocalNotificationService.scheduleReminder(
+      title: 'Yatrika Trip Reminder',
+      body:
+          'Your trip to ${_destinationController.text.trim().isEmpty ? 'your destination' : _destinationController.text.trim()} starts today.',
+      scheduledAt: scheduledAt,
+    );
+
+    if (!context.mounted || !scheduled) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Reminder set for ${_datesController.text} at 09:00',
+        ),
+      ),
+    );
+  }
 }
 
 class _InputField extends StatelessWidget {
   const _InputField({
     required this.controller,
     required this.hint,
+    this.readOnly = false,
+    this.onTap,
   });
 
   final TextEditingController controller;
   final String hint;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -458,6 +511,8 @@ class _InputField extends StatelessWidget {
       child: Center(
         child: TextField(
           controller: controller,
+          readOnly: readOnly,
+          onTap: onTap,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
