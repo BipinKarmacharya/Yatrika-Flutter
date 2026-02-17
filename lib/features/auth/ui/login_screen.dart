@@ -162,23 +162,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Center(
       child: Column(
         children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(Icons.explore, color: Colors.white, size: 36),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Yatrika',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 26,
-              color: AppColors.primary,
-            ),
+          Image.asset(
+            'assets/logo.png',
+            width: 120,
+            height: 120,
+            fit: BoxFit.contain,
           ),
         ],
       ),

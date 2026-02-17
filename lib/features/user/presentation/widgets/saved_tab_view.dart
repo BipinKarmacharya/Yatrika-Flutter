@@ -768,7 +768,7 @@ class _SavedTabViewState extends State<SavedTabView> {
 
   Color _getTypeColor(Itinerary itinerary) {
     if (itinerary.isAdminCreated) {
-      return Colors.blue; // Expert Plan
+      return AppColors.primary; // Expert Plan
     } else if (itinerary.isPublic) {
       return Colors.green; // Public Trip
     } else {

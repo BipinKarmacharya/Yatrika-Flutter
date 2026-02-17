@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/community/presentation/screens/community_screen.dart';
 import '../../logic/home_provider.dart';
 import '../widgets/home_shimmer.dart';
@@ -165,7 +166,7 @@ class _TourBookHomeState extends State<TourBookHome> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF00BFA5),
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(

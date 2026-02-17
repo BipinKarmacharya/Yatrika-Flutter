@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/community/logic/community_provider.dart';
 import '../../data/models/community_post.dart';
 
@@ -254,12 +255,12 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
       children: widget.post.tags.map((tag) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0F7FF),
+          color: AppColors.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           "#$tag",
-          style: const TextStyle(color: Colors.blueAccent, fontSize: 13, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600),
         ),
       )).toList(),
     );
@@ -275,11 +276,11 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
       ),
       child: Column(
         children: [
-          _buildSummaryRow(Icons.location_on_rounded, "Destination", widget.post.destination ?? "Global", Colors.redAccent),
+          _buildSummaryRow(Icons.location_on_rounded, "Destination", widget.post.destination ?? "Global", AppColors.primary),
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
-          _buildSummaryRow(Icons.calendar_today_rounded, "Duration", "${widget.post.tripDurationDays} Days", Colors.blueAccent),
+          _buildSummaryRow(Icons.calendar_today_rounded, "Duration", "${widget.post.tripDurationDays} Days", AppColors.primary),
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
-          _buildSummaryRow(Icons.payments_outlined, "Estimated Budget", "Rs. ${widget.post.estimatedCost.toStringAsFixed(0)}", Colors.green),
+          _buildSummaryRow(Icons.payments_outlined, "Estimated Budget", "Rs. ${widget.post.estimatedCost.toStringAsFixed(0)}", AppColors.primary),
         ],
       ),
     );

@@ -290,20 +290,7 @@ class _PlanScreenState extends State<PlanScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
-          if (widget.onBack != null)
-            GestureDetector(
-              onTap: widget.onBack,
-              child: const Row(
-                children: [
-                  Icon(Icons.chevron_left, color: AppColors.text, size: 24),
-                  Text(
-                    'Back',
-                    style: TextStyle(color: AppColors.text, fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(width: 16),
+ 
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

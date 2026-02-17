@@ -150,12 +150,12 @@ class MyTripsTabView extends StatelessWidget {
             Icon(
               isCopied ? Icons.copy_all : Icons.person_outline,
               size: 14,
-              color: Colors.blueGrey,
+              color: AppColors.subtext,
             ),
             const SizedBox(width: 4),
             Text(
               isCopied ? "Copied Plan" : "Original Plan",
-              style: const TextStyle(fontSize: 11, color: Colors.blueGrey),
+              style: const TextStyle(fontSize: 11, color: AppColors.subtext),
             ),
             const SizedBox(width: 8),
             Icon(
@@ -359,7 +359,7 @@ class MyTripsTabView extends StatelessWidget {
                 ? Colors.red
                 : isWarning
                 ? Colors.orange
-                : Colors.blueGrey,
+                : AppColors.subtext,
           ),
           const SizedBox(width: 12),
           Text(

@@ -129,6 +129,24 @@ class MyApp extends StatelessWidget {
           seedColor: AppColors.primary,
           primary: AppColors.primary,
         ),
+        primaryColor: AppColors.primary,
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: AppColors.primary,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.primary,
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          ),
+        ),
         textTheme: GoogleFonts.ubuntuTextTheme(),
         useMaterial3: true,
       ),

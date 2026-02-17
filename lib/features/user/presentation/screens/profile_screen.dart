@@ -270,22 +270,20 @@ class _GuestProfileView extends StatelessWidget {
                   bottomRight: Radius.circular(40),
                 ),
               ),
-              child: const SafeArea(
+              child: SafeArea(
                 child: Padding(
-                  padding: EdgeInsets.all(30.0),
+                  padding: const EdgeInsets.all(30.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Yatrika',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Image.asset(
+                        'assets/logo.png',
+                        width: 110,
+                        height: 48,
+                        fit: BoxFit.contain,
                       ),
-                      Spacer(),
-                      Text(
+                      const Spacer(),
+                      const Text(
                         'Your Travel\nJournal Awaits',
                         style: TextStyle(
                           color: Colors.white,
@@ -294,8 +292,8 @@ class _GuestProfileView extends StatelessWidget {
                           height: 1.1,
                         ),
                       ),
-                      SizedBox(height: 10),
-                      Text(
+                      const SizedBox(height: 10),
+                      const Text(
                         'Sign in to sync your trips and explore more.',
                         style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
@@ -376,7 +374,7 @@ class _GuestProfileView extends StatelessWidget {
             const SizedBox(width: 20),
             _SocialBtn(
               icon: Icons.facebook,
-              color: Colors.blue.shade800,
+              color: AppColors.primary,
               label: "Facebook",
             ),
           ],

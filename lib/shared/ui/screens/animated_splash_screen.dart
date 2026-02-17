@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:tour_guide/core/theme/app_colors.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {
   final Widget child;
@@ -93,9 +94,9 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.blue.shade50,
+              Colors.green.shade50,
               Colors.white,
-              Colors.blue.shade50,
+              Colors.green.shade50,
             ],
           ),
         ),
@@ -118,7 +119,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.3),
+                                color: AppColors.primary.withOpacity(0.3),
                                 blurRadius: 30,
                                 spreadRadius: 10,
                               ),
@@ -137,14 +138,11 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                             parent: _controller,
                             curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
                           ),
-                          child: const Text(
-                            'Yatrika',
-                            style: TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                              letterSpacing: 2,
-                            ),
+                          child: Image.asset(
+                            'assets/logo.png',
+                            width: 180,
+                            height: 80,
+                            fit: BoxFit.contain,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -176,7 +174,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                             child: CircularProgressIndicator(
                               strokeWidth: 3,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.blue.shade400,
+                                AppColors.primary,
                               ),
                             ),
                           ),
