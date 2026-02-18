@@ -6,7 +6,6 @@ class Itinerary {
   final String title;
   final String? description;
   final String? theme;
-  final int? totalDays;
   final double? averageRating;
   final double? estimatedBudget;
   final bool isAdminCreated;
@@ -15,7 +14,9 @@ class Itinerary {
   final int? sourceId; // This determines if it's copied
   final String status; // e.g., 'DRAFT', 'ONGOING', 'COMPLETED'
   final DateTime? createdAt;
+  final DateTime? startDate;
   final DateTime? endDate;
+  final int? totalDays;
   final ItinerarySummary? summary;
   final List<ItineraryItem>? items;
   final UserModel? user;
@@ -32,7 +33,6 @@ class Itinerary {
     required this.title,
     this.description,
     this.theme,
-    this.totalDays,
     this.averageRating,
     this.estimatedBudget,
     required this.isAdminCreated,
@@ -41,10 +41,12 @@ class Itinerary {
     this.sourceId,
     this.status = 'DRAFT', // Default status
     this.createdAt,
+    this.startDate,
     this.endDate,
+    this.totalDays,
     this.summary,
     this.items,
-    this.user, 
+    this.user,
     this.copyCount,
     this.likeCount = 0,
     this.country,
@@ -68,17 +70,22 @@ class Itinerary {
     ItinerarySummary? summary,
     List<ItineraryItem>? items,
     int? likeCount,
-    int? copyCount, 
+    int? copyCount,
     bool? isLikedByCurrentUser,
     bool? isSavedByCurrentUser,
     List<String>? images,
+    DateTime? startDate, 
+    DateTime? endDate,   
+    int? totalDays,
   }) {
     return Itinerary(
       id: id,
       title: title ?? this.title,
       description: description ?? this.description,
       theme: theme,
-      totalDays: totalDays,
+      totalDays: totalDays ?? this.totalDays,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
       averageRating: averageRating,
       estimatedBudget: estimatedBudget,
       isAdminCreated: isAdminCreated,
@@ -87,11 +94,10 @@ class Itinerary {
       sourceId: sourceId,
       status: status ?? this.status,
       createdAt: createdAt,
-      endDate: endDate,
       summary: summary ?? this.summary,
       items: items ?? this.items,
       user: user,
-      copyCount: copyCount ?? this.copyCount, 
+      copyCount: copyCount ?? this.copyCount,
       likeCount: likeCount ?? this.likeCount,
       country: country,
       tags: tags,
@@ -107,20 +113,26 @@ class Itinerary {
       title: json['title'] as String,
       description: json['description'] as String?,
       theme: json['theme'] as String?,
-      totalDays: json['totalDays'] as int?,
       averageRating: json['averageRating']?.toDouble(),
       estimatedBudget: json['estimatedBudget']?.toDouble(),
       isAdminCreated: json['isAdminCreated'] ?? false,
       isPublic: json['isPublic'] ?? false,
-      userId: json['userId'] ?? json['user_id'] ?? (json['user'] != null ? json['user']['id'] : null),
+      userId:
+          json['userId'] ??
+          json['user_id'] ??
+          (json['user'] != null ? json['user']['id'] : null),
       sourceId: json['sourceId'] as int?,
       status: json['status'] as String? ?? 'DRAFT',
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : null,
-      endDate: json['endDate'] != null
-          ? DateTime.parse(json['endDate'] as String)
+      startDate: json['startDate'] != null
+          ? DateTime.tryParse(json['startDate'].toString())
           : null,
+      endDate: json['endDate'] != null 
+          ? DateTime.tryParse(json['endDate'].toString()) 
+          : null,
+      totalDays: json['totalDays'] as int?,
       summary: json['summary'] != null
           ? ItinerarySummary.fromJson(json['summary'] as Map<String, dynamic>)
           : null,
@@ -153,6 +165,9 @@ class Itinerary {
       'items': items?.map((i) => i.toJson()).toList(),
       'isLikedByCurrentUser': isLikedByCurrentUser,
       'isSavedByCurrentUser': isSavedByCurrentUser,
+      'startDate': startDate?.toIso8601String().split('T')[0], // YYYY-MM-DD
+      'endDate': endDate?.toIso8601String().split('T')[0],
+      'totalDays': totalDays,
     };
   }
 }

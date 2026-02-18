@@ -39,6 +39,7 @@ class CommunityService {
       _base,
       fields: {'data': jsonEncode(post.toJson())},
       files: imageFiles,
+      fileKey: 'images',
     );
     return CommunityPost.fromJson(data);
   }
@@ -53,6 +54,7 @@ class CommunityService {
       method: 'PUT',
       fields: {'data': jsonEncode(post.toJson())},
       files: newImageFiles,
+      fileKey: 'images',
     );
     return CommunityPost.fromJson(data);
   }

@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:tour_guide/core/api/api_client.dart';
 // import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tour_guide/features/auth/ui/login_screen.dart';
 import 'package:tour_guide/features/community/logic/community_provider.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/user/presentation/widgets/my_stories_tab_view.dart';
 import 'package:tour_guide/features/user/presentation/widgets/saved_tab_view.dart';
+import 'package:tour_guide/features/interest/data/models/interest.dart';
+import 'package:tour_guide/features/interest/logic/interest_provider.dart';
 
 // Ensure these paths match your project structure
 import '../../../../core/theme/app_colors.dart';
@@ -28,9 +34,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // ✅ This code runs EXACTLY ONCE when the screen is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
+      final interestProvider = context.read<InterestProvider>();
       // final community = context.read<CommunityProvider>();
 
       if (auth.isLoggedIn && auth.user != null) {
+        interestProvider.load(preselectedIds: auth.user!.interestIds);
         context.read<CommunityProvider>().fetchUserStats(
           auth.user!.id.toString(),
         );
@@ -40,16 +48,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _pickAndUploadImage(BuildContext context) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (picked == null) return;
+
+    final auth = context.read<AuthProvider>();
+    await auth.updateProfileImage(File(picked.path));
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final community = context.watch<CommunityProvider>();
+
+    final interestProvider = context.watch<InterestProvider>();
 
     // 1. Handle Guest View
     if (!auth.isLoggedIn) return const _GuestProfileView();
 
     final user = auth.user;
     final fullName = "${user?.firstName ?? 'User'} ${user?.lastName ?? ''}";
+
+    final userInterests = user?.interestIds ?? [];
 
     return DefaultTabController(
       length: 3, // Matches the tabs: Trips, Stories, Saved
@@ -93,7 +118,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
-                    // ... Avatar code remains same ...
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 48,
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage: user?.profileImage != null
+                              ? NetworkImage(
+                                  ApiClient.getFullImageUrl(user!.profileImage),
+                                )
+                              : null,
+                          child: user?.profileImage == null
+                              ? Text(
+                                  user!.fullName.isNotEmpty
+                                      ? user.fullName[0].toUpperCase()
+                                      : user.username[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        InkWell(
+                          onTap: () => _pickAndUploadImage(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(
+                              Icons.edit,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
                     const SizedBox(height: 16),
                     Text(
                       fullName,
@@ -110,14 +177,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+
                     const SizedBox(height: 12),
-                    if (user?.interests != null && user!.interests.isNotEmpty)
+                    if (userInterests.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Wrap(
                           alignment: WrapAlignment.center,
                           spacing: 8,
-                          children: user.interests.map((interest) {
+                          children: userInterests.map((id) {
+                            final interestModel = interestProvider.all
+                                .firstWhere(
+                                  (i) => i.id == id,
+                                  orElse: () =>
+                                      Interest(id: id, name: "ID: $id"),
+                                );
                             return Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -140,7 +214,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ],
                               ),
                               child: Text(
-                                "#$interest",
+                                "#${interestModel.name}",
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
@@ -163,10 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       postCount: community.myPosts.length,
                       totalLikes:
                           community.userStats?['totalLikesReceived'] ?? 0,
-                      reviewsCount: community.myPosts.fold(
-                        0,
-                        (sum, post) => sum + post.totalComments,
-                      ),
+                      followersCount: user?.followerCount ?? 0,
                     ),
                     const SizedBox(height: 10),
                   ],

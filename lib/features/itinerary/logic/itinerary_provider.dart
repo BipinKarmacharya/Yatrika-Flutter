@@ -37,7 +37,6 @@ class ItineraryProvider with ChangeNotifier {
     if (publicIndex != -1) {
       _publicPlans[publicIndex] = updatedItinerary;
     } else {
-      // If it's an Expert Plan that was liked, add it to public plans
       _publicPlans.add(updatedItinerary);
     }
 
@@ -48,7 +47,6 @@ class ItineraryProvider with ChangeNotifier {
     if (myPlanIndex != -1) {
       _myPlans[myPlanIndex] = updatedItinerary;
     }
-
     notifyListeners();
   }
 
@@ -175,29 +173,28 @@ class ItineraryProvider with ChangeNotifier {
     }
   }
 
-  Future<Itinerary?> copyTrip(int itineraryId) async {
+  Future<Itinerary?> copyTrip(int itineraryId, {DateTime? startDate}) async {
     try {
-      // Show loading indicator
       _isLoading = true;
       notifyListeners();
 
-      final newTrip = await ItineraryService.copyItinerary(itineraryId);
+      // Pass the startDate to the service
+      final newTrip = await ItineraryService.copyItinerary(
+        itineraryId,
+        startDate: startDate,
+      );
 
-      // Add to beginning of myPlans list
       _myPlans.insert(0, newTrip);
 
-      // Also update copy count in public plans if this is a public trip
-      final publicIndex = _publicPlans.indexWhere(
-        (it) => it.id == itineraryId,
-      );
+      // Update copy count in public lists
+      final publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
       if (publicIndex != -1) {
         final publicTrip = _publicPlans[publicIndex];
-        final currentCopyCount = publicTrip.copyCount ?? 0;
         _publicPlans[publicIndex] = publicTrip.copyWith(
-          copyCount: currentCopyCount + 1,
+          copyCount: (publicTrip.copyCount ?? 0) + 1,
         );
       }
-    
+
       _isLoading = false;
       notifyListeners();
       return newTrip;
@@ -205,7 +202,6 @@ class ItineraryProvider with ChangeNotifier {
       _isLoading = false;
       _errorMessage = "Failed to copy trip";
       notifyListeners();
-      debugPrint("CopyTrip Error: $e");
       return null;
     }
   }
@@ -345,6 +341,96 @@ class ItineraryProvider with ChangeNotifier {
     } catch (e) {
       debugPrint("UpdateItineraryItem Error: $e");
       rethrow;
+    }
+  }
+
+  Future<bool> addDayToTrip(int itineraryId) async {
+    try {
+      // 1. Find the trip in local state
+      final tripIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
+      if (tripIndex == -1) return false;
+
+      final currentTrip = _myPlans[tripIndex];
+      final int newTotalDays = (currentTrip.totalDays ?? 1) + 1;
+
+      // 2. Prepare data with proper Date formatting (YYYY-MM-DD)
+      final Map<String, dynamic> updateData = {
+        'title': currentTrip.title,
+        'description': currentTrip.description ?? "",
+        'totalDays': newTotalDays,
+        'theme': currentTrip.theme ?? "Adventure",
+      };
+
+      // Only add startDate if it exists, formatted specifically for backend date fields
+      if (currentTrip.startDate != null) {
+        updateData['startDate'] = currentTrip.startDate!
+            .toIso8601String()
+            .split('T')[0];
+      }
+
+      // 3. Call the service
+      // We treat the operation as successful if it doesn't throw an error
+      final response = await ItineraryService.updateItinerary(
+        itineraryId,
+        updateData,
+      );
+
+      // 4. Update local state optimistically or with response
+      _myPlans[tripIndex] = currentTrip.copyWith(
+        totalDays: newTotalDays,
+        // Ensure we don't accidentally null out the date locally
+        startDate: currentTrip.startDate,
+      );
+
+      notifyListeners();
+      return true; // Explicitly return true because the call succeeded
+    } catch (e) {
+      debugPrint("Error adding day: $e");
+      return false;
+    }
+  }
+
+  Future<bool> removeLastDay(int itineraryId) async {
+    try {
+      final tripIndex = _myPlans.indexWhere((p) => p.id == itineraryId);
+      if (tripIndex == -1) return false;
+
+      final currentTrip = _myPlans[tripIndex];
+      final int currentDays = currentTrip.totalDays ?? 1;
+
+      if (currentDays <= 1) return false;
+
+      final int newTotalDays = currentDays - 1;
+
+      // Calculate new end date locally for immediate UI update
+      DateTime? newEndDate;
+      if (currentTrip.startDate != null) {
+        newEndDate = currentTrip.startDate!.add(
+          Duration(days: newTotalDays - 1),
+        );
+      }
+
+      final Map<String, dynamic> updateData = {
+        'totalDays': newTotalDays,
+        'title': currentTrip.title,
+        'startDate': currentTrip.startDate?.toIso8601String().split('T')[0],
+        // Let the backend know we expect this new end date
+        'endDate': newEndDate?.toIso8601String().split('T')[0],
+      };
+
+      await ItineraryService.updateItinerary(itineraryId, updateData);
+
+      // Update local state with BOTH new day count and new end date
+      _myPlans[tripIndex] = currentTrip.copyWith(
+        totalDays: newTotalDays,
+        endDate: newEndDate,
+      );
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint("Error removing day: $e");
+      return false;
     }
   }
 
@@ -554,25 +640,9 @@ class ItineraryProvider with ChangeNotifier {
   /// Toggle like for any itinerary
   Future<void> toggleLike(int itineraryId, {BuildContext? context}) async {
     try {
-      final index = _publicPlans.indexWhere((it) => it.id == itineraryId);
-      if (index != -1) {
-        final itinerary = _publicPlans[index];
-        final isCurrentlyLiked = itinerary.isLikedByCurrentUser ?? false;
-        final currentLikeCount = itinerary.likeCount ?? 0;
-
-        _publicPlans[index] = itinerary.copyWith(
-          isLikedByCurrentUser: !isCurrentlyLiked,
-          likeCount: !isCurrentlyLiked
-              ? currentLikeCount + 1
-              : currentLikeCount - 1,
-        );
-        notifyListeners();
-      }
       final updatedItinerary = await ItineraryService.toggleLike(itineraryId);
-
       updateItineraryInAllLists(updatedItinerary);
     } catch (e) {
-      debugPrint('ERROR in toggleLike: $e');
       rethrow;
     }
   }

@@ -10,6 +10,7 @@ class ItineraryService {
     Map<String, dynamic> data,
   ) async {
     try {
+      print("SENDING TO BACKEND: $data");
       final response = await ApiClient.post(_featurePath, body: data);
       return Itinerary.fromJson(response);
     } catch (e) {
@@ -43,6 +44,20 @@ class ItineraryService {
     } catch (e) {
       debugPrint("Error fetching my plans: $e");
       throw Exception("Failed to load your trips");
+    }
+  }
+
+  /// FETCH RECOMMENDED ITINERARIES (for Home screen)
+  static Future<List<Itinerary>> getRecommended() async {
+    try {
+      final List<dynamic> data = await ApiClient.get(
+        '$_featurePath/recommended',
+      );
+
+      return data.map((json) => Itinerary.fromJson(json)).toList();
+    } catch (e) {
+      debugPrint("Error fetching recommended itineraries: $e");
+      return [];
     }
   }
 
@@ -117,9 +132,17 @@ class ItineraryService {
   }
 
   /// COPY ITINERARY
-  static Future<Itinerary> copyItinerary(int id) async {
+  static Future<Itinerary> copyItinerary(int id, {DateTime? startDate}) async {
     try {
-      final dynamic response = await ApiClient.post('$_featurePath/$id/copy');
+      Map<String, dynamic>? body;
+      if (startDate != null) {
+        body = {'startDate': startDate.toIso8601String().split('T')[0]};
+      }
+
+      final dynamic response = await ApiClient.post(
+        '$_featurePath/$id/copy',
+        body: body, // Now sends the chosen date to backend
+      );
       return Itinerary.fromJson(response);
     } catch (e) {
       debugPrint("Error copying itinerary: $e");
@@ -137,9 +160,17 @@ class ItineraryService {
         '$_featurePath/$id',
         body: data,
       );
+
+      // If your backend returns 204 No Content, response might be null.
+      // In that case, we can't parse it, so handle accordingly:
+      if (response == null) {
+        throw Exception("No data returned from server");
+      }
+
       return Itinerary.fromJson(response);
     } catch (e) {
       debugPrint("Error updating itinerary: $e");
+      // If it's a 400/500 error, ApiClient usually throws, which is caught here
       throw Exception("Failed to update itinerary");
     }
   }
@@ -272,13 +303,11 @@ class ItineraryService {
     // User cannot save their own itinerary
     final currentUserId = ApiClient.currentUserId;
     if (currentUserId == itinerary.userId) {
-      print('⚠️ User cannot save their own itinerary');
       return false;
     }
 
     // User cannot save if already saved
     if (itinerary.isSavedByCurrentUser == true) {
-      print('⚠️ Itinerary already saved');
       return false;
     }
 
@@ -290,7 +319,6 @@ class ItineraryService {
     // User cannot like their own itinerary
     final currentUserId = ApiClient.currentUserId;
     if (currentUserId == itinerary.userId) {
-      print('⚠️ User cannot like their own itinerary');
       return false;
     }
 
@@ -299,66 +327,44 @@ class ItineraryService {
 
   static Future<Itinerary> savePublicPlan(int itineraryId) async {
     try {
-      print('📡 [SAVE] Calling POST: /api/v1/itineraries/$itineraryId/save');
       final response = await ApiClient.post(
         '$_featurePath/$itineraryId/save',
         body: {},
       );
-      print('✅ [SAVE] Response received: $response');
-
       // Parse and return the itinerary
       final itinerary = Itinerary.fromJson(response);
-      print('✅ [SAVE] Parsed itinerary: ${itinerary.title}');
-      print('✅ [SAVE] Saved status: ${itinerary.isSavedByCurrentUser}');
-
       return itinerary;
-    } catch (e, stackTrace) {
-      print('❌ [SAVE] Error: $e');
-      print('❌ [SAVE] Stack trace: $stackTrace');
+    } catch (e) {
       throw Exception('Failed to save public plan: $e');
     }
   }
 
   static Future<Itinerary> unsavePublicPlan(int itineraryId) async {
     try {
-      print('📡 [UNSAVE] Calling DELETE: /$_featurePath/$itineraryId/save');
       final response = await ApiClient.delete(
         '$_featurePath/$itineraryId/save',
       );
-      print('✅ [UNSAVE] Response received: $response');
 
       // Parse and return the itinerary
       final itinerary = Itinerary.fromJson(response);
-      print('✅ [UNSAVE] Parsed itinerary: ${itinerary.title}');
-      print('✅ [UNSAVE] Saved status: ${itinerary.isSavedByCurrentUser}');
-
       return itinerary;
-    } catch (e, stackTrace) {
-      print('❌ [UNSAVE] Error: $e');
-      print('❌ [UNSAVE] Stack trace: $stackTrace');
+    } catch (e) {
       rethrow;
     }
   }
 
   static Future<Itinerary> toggleLike(int itineraryId) async {
     try {
-      print('📡 [LIKE] Calling POST: /$_featurePath/$itineraryId/like/toggle');
       final response = await ApiClient.post(
         '$_featurePath/$itineraryId/like/toggle',
         body: {},
       );
-      print('✅ [LIKE] Response received: $response');
 
       // Parse and return the itinerary
       final itinerary = Itinerary.fromJson(response);
-      print('✅ [LIKE] Parsed itinerary: ${itinerary.title}');
-      print('✅ [LIKE] Liked status: ${itinerary.isLikedByCurrentUser}');
-      print('✅ [LIKE] Like count: ${itinerary.likeCount}');
 
       return itinerary;
-    } catch (e, stackTrace) {
-      print('❌ [LIKE] Error: $e');
-      print('❌ [LIKE] Stack trace: $stackTrace');
+    } catch (e) {
       throw Exception('Failed to toggle like: $e');
     }
   }
@@ -366,22 +372,16 @@ class ItineraryService {
   // Update the isItinerarySaved method:
   static Future<bool> isItinerarySaved(int itineraryId) async {
     try {
-      print('🔍 Checking if itinerary $itineraryId is saved');
-
       // Use the dedicated endpoint from your controller
       final response = await ApiClient.get(
         '/api/v1/itineraries/saved/check/$itineraryId',
       );
-      print('🔍 Save check response: $response');
 
       // Response should be {"isSaved": true/false}
       final isSaved = response['isSaved'] ?? false;
-      print('🔍 Itinerary $itineraryId saved status: $isSaved');
 
       return isSaved;
-    } catch (e, stackTrace) {
-      print('❌ Error checking saved status: $e');
-      print('❌ Stack trace: $stackTrace');
+    } catch (e) {
       return false;
     }
   }

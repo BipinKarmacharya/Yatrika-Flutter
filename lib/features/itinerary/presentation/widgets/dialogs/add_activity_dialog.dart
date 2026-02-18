@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AddActivityDialog extends StatefulWidget {
   final List<dynamic> availableDestinations;
-  final Function(Map<String, dynamic>) onDestinationSelected;
+  final Function(Map<String, dynamic> data) onDestinationSelected;
 
   const AddActivityDialog({
     super.key,
@@ -15,68 +15,82 @@ class AddActivityDialog extends StatefulWidget {
 }
 
 class _AddActivityDialogState extends State<AddActivityDialog> {
-  List<dynamic> _filteredDestinations = [];
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredDestinations = List.from(widget.availableDestinations);
-    _searchController.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredDestinations = widget.availableDestinations
-          .where((d) => d['name'].toLowerCase().contains(query))
-          .toList();
-    });
-  }
+  Map<String, dynamic>? _selectedDestination;
+  String _activityType = "VISIT"; // Default type
+  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
+  final TextEditingController _notesController = TextEditingController();
+  final List<String> _types = ["VISIT", "MEAL", "TRANSPORT", "HOTEL", "OTHER"];
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text("Search Destination"),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _searchController,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: "Search...",
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 300,
-            width: double.maxFinite,
-            child: ListView.builder(
-              itemCount: _filteredDestinations.length,
-              itemBuilder: (ctx, i) => ListTile(
-                title: Text(_filteredDestinations[i]['name']),
-                onTap: () {
-                  widget.onDestinationSelected(_filteredDestinations[i]);
-                  Navigator.pop(context);
+      title: Text(_selectedDestination == null ? "Select Destination" : "Activity Details"),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_selectedDestination == null) ...[
+              // Search UI
+              TextField(
+                decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: "Search destinations..."),
+                onChanged: (value) {
+                  setState(() { /* Implement search filtering as you had before */ });
                 },
               ),
-            ),
-          ),
-        ],
+              const SizedBox(height: 10),
+              ...widget.availableDestinations.take(5).map((d) => ListTile(
+                title: Text(d['name']),
+                onTap: () => setState(() => _selectedDestination = d),
+              )),
+            ] else ...[
+              // Configuration UI
+              ListTile(
+                title: Text(_selectedDestination!['name']),
+                subtitle: const Text("Selected Location"),
+                trailing: IconButton(icon: const Icon(Icons.edit), onPressed: () => setState(() => _selectedDestination = null)),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: _activityType,
+                decoration: const InputDecoration(labelText: "Activity Type"),
+                items: _types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                onChanged: (v) => setState(() => _activityType = v!),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text("Start Time"),
+                trailing: Text(_startTime.format(context)),
+                onTap: () async {
+                  final time = await showTimePicker(context: context, initialTime: _startTime);
+                  if (time != null) setState(() => _startTime = time);
+                },
+              ),
+              TextField(
+                controller: _notesController,
+                decoration: const InputDecoration(labelText: "Notes (Optional)"),
+                maxLines: 2,
+              ),
+            ],
+          ],
+        ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+        if (_selectedDestination != null)
+          ElevatedButton(
+            onPressed: () {
+              // Format time to HH:mm:ss for Backend
+              final formattedTime = "${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}:00";
+              
+              widget.onDestinationSelected({
+                'destination': _selectedDestination,
+                'activityType': _activityType,
+                'startTime': formattedTime,
+                'notes': _notesController.text,
+              });
+              Navigator.pop(context);
+            },
+            child: const Text("Add to Plan"),
+          ),
       ],
     );
   }

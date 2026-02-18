@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:tour_guide/core/api/api_client.dart';
 
 class ParallaxHeader extends StatefulWidget {
   final String title;
@@ -40,10 +41,9 @@ class _ParallaxHeaderState extends State<ParallaxHeader> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> displayImages =
-        (widget.images != null && widget.images!.isNotEmpty)
-        ? widget.images!
-        : [_placeholderImg];
+    final List<String> displayImages = (widget.images != null && widget.images!.isNotEmpty)
+      ? widget.images!.map((path) => ApiClient.getFullImageUrl(path)).toList()
+      : [_placeholderImg];
 
     return SliverAppBar(
       expandedHeight: 280, // Increased slightly for better slider proportions

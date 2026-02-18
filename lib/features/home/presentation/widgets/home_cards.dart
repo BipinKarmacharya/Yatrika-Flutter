@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:tour_guide/features/destination/data/models/destination.dart' as MD;
-import 'package:tour_guide/features/community/data/models/community_post.dart' as CP;
+import 'package:tour_guide/features/community/data/models/community_post.dart'
+    as CP;
+import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 
 class RecommendationCard extends StatelessWidget {
-  final MD.Destination destination;
-  const RecommendationCard({super.key, required this.destination});
+  final Itinerary itinerary;
+  const RecommendationCard({super.key, required this.itinerary});
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = destination.images.isNotEmpty ? destination.images.first : null;
+    final imageUrl = itinerary.images!.isNotEmpty
+        ? itinerary.images!.first
+        : null;
+
     return Container(
       width: 180,
       margin: const EdgeInsets.only(right: 16),
@@ -20,9 +24,17 @@ class RecommendationCard extends StatelessWidget {
           child: Stack(
             children: [
               if (imageUrl != null)
-                Image.network(imageUrl, width: double.infinity, height: double.infinity, fit: BoxFit.cover)
+                Image.network(
+                  imageUrl,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                )
               else
-                Container(color: Colors.grey[200], child: const Icon(Icons.photo_outlined, size: 40)),
+                Container(
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.photo_outlined, size: 40),
+                ),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -38,8 +50,20 @@ class RecommendationCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(destination.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(destination.district ?? '', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                    Text(
+                      itinerary.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      itinerary.description ?? '',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -65,10 +89,10 @@ class CommunityCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04), 
-            blurRadius: 10, 
-            offset: const Offset(0, 4)
-          )
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -93,13 +117,17 @@ class CommunityCard extends StatelessWidget {
                   post.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 // ✅ Added Date
                 Text(
                   post.content,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 11), maxLines: 1,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                  maxLines: 1,
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -107,18 +135,25 @@ class CommunityCard extends StatelessWidget {
                     CircleAvatar(
                       radius: 10,
                       backgroundColor: Colors.grey[200],
-                      backgroundImage: post.authorAvatar != null 
-                          ? NetworkImage(post.authorAvatar!) 
+                      backgroundImage: post.authorAvatar != null
+                          ? NetworkImage(post.authorAvatar!)
                           : null,
-                      child: post.authorAvatar == null 
-                          ? const Icon(Icons.person, size: 12, color: Colors.grey) 
+                      child: post.authorAvatar == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 12,
+                              color: Colors.grey,
+                            )
                           : null,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         "@${post.authorName}",
-                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -126,33 +161,40 @@ class CommunityCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Row(
-                    children: [
-                      // ✅ THE HEART FIX: Outline if not liked, Solid Red if liked
-                      Icon(
-                        post.isLiked ? Icons.favorite : Icons.favorite_border,
-                        size: 18,
-                        color: post.isLiked ? Colors.redAccent : Colors.grey[400],
+                  children: [
+                    // ✅ THE HEART FIX: Outline if not liked, Solid Red if liked
+                    Icon(
+                      post.isLiked ? Icons.favorite : Icons.favorite_border,
+                      size: 18,
+                      color: post.isLiked ? Colors.redAccent : Colors.grey[400],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${post.totalLikes}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        "${post.totalLikes}",
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 15),
-                      Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey[400]),
-                      const SizedBox(width: 4),
-                      Text(
-                        "${post.totalComments}",
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      const Spacer(),
-                      // Date tag
-                      Text(
-                        post.formattedDate,
-                        style: TextStyle(color: Colors.grey[400], fontSize: 10),
-                      ),
-                    ],
-                  )
+                    ),
+                    const SizedBox(width: 15),
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 16,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${post.totalComments}",
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    const Spacer(),
+                    // Date tag
+                    Text(
+                      post.formattedDate,
+                      style: TextStyle(color: Colors.grey[400], fontSize: 10),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -166,8 +208,10 @@ class CommunityCard extends StatelessWidget {
     return Image.network(
       url,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => 
-          Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, size: 20)),
+      errorBuilder: (context, error, stackTrace) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.broken_image, size: 20),
+      ),
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
-import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 import '../widgets/explore_grid_delegate.dart';
 import 'package:tour_guide/features/itinerary/presentation/widgets/public_trip_card.dart';
 
@@ -12,8 +11,8 @@ class PublicTripsTab extends StatefulWidget {
   State<PublicTripsTab> createState() => _PublicTripsTabState();
 }
 
-class _PublicTripsTabState extends State<PublicTripsTab> with AutomaticKeepAliveClientMixin {
-
+class _PublicTripsTabState extends State<PublicTripsTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -40,26 +39,32 @@ class _PublicTripsTabState extends State<PublicTripsTab> with AutomaticKeepAlive
           return const Center(child: Text("No public trips found."));
         }
 
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isMobile = screenWidth < 600;
+
         return RefreshIndicator(
           onRefresh: () => provider.fetchPublicPlans(),
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: ExploreGridDelegate.getDelegate(context, false),
-            itemCount: provider.publicPlans.length,
-            itemBuilder: (context, index) {
-              final trip = provider.publicPlans[index];
-              return GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ItineraryDetailScreen(itinerary: trip),
-                  ),
+          child: isMobile
+              ? ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: provider.publicPlans.length,
+                  itemBuilder: (context, index) {
+                    final trip = provider.publicPlans[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: PublicTripCard(itinerary: trip),
+                    );
+                  },
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: ExploreGridDelegate.getDelegate(context, false),
+                  itemCount: provider.publicPlans.length,
+                  itemBuilder: (context, index) {
+                    final trip = provider.publicPlans[index];
+                    return PublicTripCard(itinerary: trip);
+                  },
                 ),
-                child: PublicTripCard(itinerary: trip),
-              );
-            },
-          ),
         );
       },
     );

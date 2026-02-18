@@ -20,7 +20,8 @@ class ApiClient {
     }
     if (Platform.isAndroid) {
       // return 'http://10.0.2.2:8080';
-      return 'https://zebralike-inquirable-almeda.ngrok-free.dev';
+      // return 'https://zebralike-inquirable-almeda.ngrok-free.dev';
+      return 'https://vanadic-semipostal-cody.ngrok-free.dev';
       // return 'https://yatrika-ympz.onrender.com';
     }
     return 'http://localhost:8080';
@@ -104,7 +105,7 @@ class ApiClient {
     Map<String, dynamic>? query,
   }) => _handleRequest(
     () => _http.post(
-      _uri(path, query), 
+      _uri(path, query),
       headers: _defaultHeaders(),
       body: body == null ? null : (body is String ? body : jsonEncode(body)),
     ),
@@ -166,35 +167,36 @@ class ApiClient {
 
   static Future<dynamic> multipart(
     String path, {
+    required List<File> files,
     String method = 'POST',
-    Map<String, String>? fields,
-    List<File>? files, 
+    Map<String, dynamic>? fields,
+    String? fileKey, // nullable; if null, default to 'file'
   }) async {
     try {
       final uri = _uri(path);
       final request = http.MultipartRequest(method, uri);
       request.headers.addAll(_defaultHeaders());
-      request.headers.remove('Content-Type');
+      request.headers.remove('Content-Type'); // let MultipartRequest set it
 
-      // 1. Handle JSON Data
       if (fields != null) {
-        fields.forEach((key, value) {
+        for (var entry in fields.entries) {
           request.files.add(
             http.MultipartFile.fromString(
-              key,
-              value,
-              contentType: MediaType('application', 'json'),
+              entry.key, // "data"
+              entry.value.toString(), // JSON string
+              contentType: MediaType('application', 'json'), // important
             ),
           );
-        });
+        }
       }
 
-      // 2. Handle Multiple Files
-      if (files != null) {
+      // Add files
+      if (files.isNotEmpty) {
+        final key = fileKey ?? 'file'; // use provided key or 'file'
         for (File file in files) {
           request.files.add(
             await http.MultipartFile.fromPath(
-              'images', 
+              key,
               file.path,
               contentType: MediaType('image', 'jpeg'),
             ),

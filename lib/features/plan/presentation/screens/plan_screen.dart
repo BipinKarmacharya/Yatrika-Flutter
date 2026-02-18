@@ -11,7 +11,7 @@ import 'package:tour_guide/features/plan/presentation/screens/plan_setup_screen.
 import 'package:tour_guide/features/plan/presentation/screens/manual_itinerary_builder_screen.dart'; // Add this
 import 'package:tour_guide/features/plan/presentation/widgets/plan_options_grid.dart';
 import 'package:tour_guide/features/plan/presentation/widgets/quick_start_section.dart';
-import 'package:tour_guide/features/itinerary/presentation/screens/plan_with_ai_screen.dart';
+import 'package:tour_guide/features/plan/presentation/screens/plan_with_ai_screen.dart';
 
 class PlanScreen extends StatefulWidget {
   final VoidCallback? onBack;

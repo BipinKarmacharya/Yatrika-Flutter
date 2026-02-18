@@ -8,6 +8,7 @@ class ItineraryItem {
   final String? endTime;
   final int dayNumber;
   final int orderInDay;
+  final String activityType;
   final bool isVisited;
   final int? destinationId;
   final Map<String, dynamic>? destination;
@@ -20,6 +21,7 @@ class ItineraryItem {
     this.endTime,
     required this.dayNumber,
     required this.orderInDay,
+    this.activityType = "VISIT",
     this.isVisited = false,
     this.destinationId,
     this.destination,
@@ -33,6 +35,7 @@ class ItineraryItem {
     String? endTime,
     int? dayNumber,
     int? orderInDay,
+    String? activityType,
     bool? isVisited,
     int? destinationId,
     Map<String, dynamic>? destination,
@@ -45,6 +48,7 @@ class ItineraryItem {
       endTime: endTime ?? this.endTime,
       dayNumber: dayNumber ?? this.dayNumber,
       orderInDay: orderInDay ?? this.orderInDay,
+      activityType: activityType ?? this.activityType,
       isVisited: isVisited ?? this.isVisited,
       destinationId: destinationId ?? this.destinationId,
       destination: destination ?? this.destination,

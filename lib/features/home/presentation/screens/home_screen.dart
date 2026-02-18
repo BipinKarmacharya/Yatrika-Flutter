@@ -37,11 +37,23 @@ class _TourBookHomeState extends State<TourBookHome> {
         child: CustomScrollView(
           slivers: [
             // 1. Top Bar with Search (Use 'sliver:' instead of 'child:')
+            // SliverPadding(
+            //   padding: const EdgeInsets.fromLTRB(16, 40, 16, 8),
+            //   // ✅ Corrected: SliverPadding uses 'sliver'
+            //   sliver: SliverToBoxAdapter(
+            //     child: TopBar(onProfileTap: widget.onProfileTap),
+            //   ),
+            // ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 40, 16, 8),
-              // ✅ Corrected: SliverPadding uses 'sliver'
+              padding: const EdgeInsets.fromLTRB(16, 48, 16, 8),
               sliver: SliverToBoxAdapter(
-                child: TopBar(onProfileTap: widget.onProfileTap),
+                child: Column(
+                  children: [
+                    TopBar(onProfileTap: widget.onProfileTap),
+                    const SizedBox(height: 20),
+                    _buildSmartSearchBar(),
+                  ],
+                ),
               ),
             ),
 
@@ -157,7 +169,7 @@ class _TourBookHomeState extends State<TourBookHome> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(left: 16),
         itemCount: items.length,
-        itemBuilder: (context, i) => RecommendationCard(destination: items[i]),
+        itemBuilder: (context, i) => RecommendationCard(itinerary: items[i]),
       ),
     );
   }
@@ -216,6 +228,53 @@ class _TourBookHomeState extends State<TourBookHome> {
           Text(
             label,
             style: const TextStyle(color: Colors.white, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmartSearchBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome, color: Color(0xFF00BFA5), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                hintText:
+                    'Plan a 3-day Pokhara trip...', // Natural language prompt
+                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              onSubmitted: (value) {
+                // TODO: Trigger AI Planning Logic
+              },
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              // TODO: Open Full Planner
+            },
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFF00BFA5),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              "Plan",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

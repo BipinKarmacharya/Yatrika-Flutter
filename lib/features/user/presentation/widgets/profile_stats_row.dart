@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 class ProfileStatsRow extends StatelessWidget {
   final int postCount;
   final int totalLikes;
-  final int reviewsCount;
+  final int followersCount;
 
   const ProfileStatsRow({
     super.key,
     this.postCount = 0,
     this.totalLikes = 0,
-    this.reviewsCount = 0,
+    this.followersCount = 0,
   });
 
   @override
@@ -23,7 +23,7 @@ class ProfileStatsRow extends StatelessWidget {
           _buildDivider(),
           _buildStatItem("Likes", totalLikes.toString()),
           _buildDivider(),
-          _buildStatItem("Reviews", reviewsCount.toString()),
+          _buildStatItem("Followers", followersCount.toString()),
         ],
       ),
     );

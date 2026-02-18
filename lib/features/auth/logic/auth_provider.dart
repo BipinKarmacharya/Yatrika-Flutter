@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:tour_guide/core/api/api_client.dart';
 import 'package:tour_guide/features/auth/data/models/user_model.dart';
@@ -18,7 +20,7 @@ class AuthProvider extends ChangeNotifier {
   String? get token => ApiClient.getToken();
 
   // --- INTERNAL HELPERS ---
-  
+
   void _setLoading(bool value) {
     if (_isLoading == value) return; // Prevent unnecessary UI rebuilds
     _isLoading = value;
@@ -83,7 +85,7 @@ class AuthProvider extends ChangeNotifier {
         } else {
           // If the login response only gives a token, fetch user profile immediately
           // Temporarily set token manually to allow the getMe() call to work
-          await ApiClient.setAuthToken(token, null); 
+          await ApiClient.setAuthToken(token, null);
           _user = await AuthService.getMe();
         }
 
@@ -110,14 +112,17 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
 
     try {
-      final response = await ApiClient.post('/api/v1/auth/register', body: userData);
+      final response = await ApiClient.post(
+        '/api/v1/auth/register',
+        body: userData,
+      );
       final token = response['token'] ?? response['accessToken'];
 
       if (token != null) {
         // Set temporary token to fetch full user model
         await ApiClient.setAuthToken(token, null);
         _user = await AuthService.getMe();
-        
+
         // Finalize token storage with ID
         await ApiClient.setAuthToken(token, int.tryParse(_user!.id.toString()));
 
@@ -141,7 +146,7 @@ class AuthProvider extends ChangeNotifier {
     required String firstName,
     required String lastName,
     required String username,
-    required List<String> interests,
+    required List<int> interestIds,
   }) async {
     _setLoading(true);
     _error = null;
@@ -149,7 +154,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       // 1. Update basic info
       await ApiClient.put(
-        '/api/users/${_user?.id}',
+        '/api/v1/users/${_user?.id}',
         body: {
           'firstName': firstName,
           'lastName': lastName,
@@ -158,10 +163,11 @@ class AuthProvider extends ChangeNotifier {
       );
 
       // 2. Update interests separately
-      await ApiClient.put('/api/users/${_user?.id}/interests', body: interests);
+      await ApiClient.put('/api/v1/users/me/interests', body: interestIds);
 
       // 3. Refresh user state from server to ensure local data is 100% accurate
-      _user = await AuthService.getMe();
+      final refreshedUser = await AuthService.getMe();
+      _user = refreshedUser;
 
       notifyListeners();
       return true;
@@ -169,6 +175,29 @@ class AuthProvider extends ChangeNotifier {
       _error = "Failed to update profile. Please try again.";
       debugPrint("Update Profile Error: $e");
       return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> updateProfileImage(File image) async {
+    _setLoading(true);
+    _error = null;
+
+    try {
+      final response = await ApiClient.multipart(
+        '/api/v1/users/me/profile-image', // ✅ match backend
+        files: [image],
+        method: 'PATCH', // ✅ specify PATCH explicitly
+        fileKey: 'file', // ✅ must match backend @RequestParam
+      );
+
+      // Update local user state
+      _user = UserModel.fromJson(response);
+      notifyListeners();
+    } catch (e) {
+      _error = "Failed to update profile image";
+      debugPrint("Profile image update error: $e");
     } finally {
       _setLoading(false);
     }

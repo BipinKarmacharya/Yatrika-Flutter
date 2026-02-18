@@ -107,16 +107,68 @@ class MyTripsTabView extends StatelessWidget {
     return Container(
       width: 110,
       decoration: BoxDecoration(
-        color: isCompleted ? const Color(0xFFE6F6EE) : const Color(0xFFFFF7E6),
+        color: isCompleted ? const Color(0xFFE6F6EE) : const Color(0xFFF0F7F7),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // Background Icon
           Icon(
-            isCompleted ? Icons.verified : Icons.edit_note,
+            isCompleted ? Icons.verified : Icons.event_available,
             size: 40,
-            color: isCompleted ? Colors.green[700] : Colors.orange[700],
+            color: isCompleted
+                ? Colors.green.withOpacity(0.2)
+                : Colors.teal.withOpacity(0.2),
           ),
+
+          // Date Badge
+          if (trip.startDate != null)
+            Positioned(
+              top: 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF009688),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        _getMonth(trip.startDate!.month),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text(
+                        "${trip.startDate!.day}",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           Positioned(
             bottom: 8,
             child: Container(
@@ -140,14 +192,106 @@ class MyTripsTabView extends StatelessWidget {
     );
   }
 
+  // Widget _buildMetaInfo(Itinerary trip) {
+  //   final bool isPublic = trip.isPublic;
+  //   final bool isCopied = trip.isCopied;
+  //   final bool isCompleted = trip.status == 'COMPLETED';
+
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Row(
+  //         children: [
+  //           Icon(
+  //             isCopied ? Icons.copy_all : Icons.person_outline,
+  //             size: 14,
+  //             color: Colors.blueGrey,
+  //           ),
+  //           const SizedBox(width: 4),
+  //           Text(
+  //             isCopied ? "Copied Plan" : "Original Plan",
+  //             style: const TextStyle(fontSize: 11, color: Colors.blueGrey),
+  //           ),
+  //           const SizedBox(width: 8),
+  //           Icon(
+  //             isPublic ? Icons.public : Icons.lock_outline,
+  //             size: 14,
+  //             color: isPublic ? Colors.green : Colors.grey,
+  //           ),
+  //           const SizedBox(width: 4),
+  //           Text(
+  //             isPublic ? "Public" : "Private",
+  //             style: TextStyle(
+  //               fontSize: 11,
+  //               color: isPublic ? Colors.green : Colors.grey,
+  //               fontWeight: isPublic ? FontWeight.bold : FontWeight.normal,
+  //             ),
+  //           ),
+  //           if (isPublic && isCompleted) const SizedBox(width: 8),
+  //           if (isPublic && isCompleted)
+  //             Container(
+  //               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+  //               decoration: BoxDecoration(
+  //                 color: Colors.green[50],
+  //                 borderRadius: BorderRadius.circular(10),
+  //                 border: Border.all(color: Colors.green[200]!),
+  //               ),
+  //               child: const Text(
+  //                 "Shared",
+  //                 style: TextStyle(
+  //                   fontSize: 10,
+  //                   color: Colors.green,
+  //                   fontWeight: FontWeight.bold,
+  //                 ),
+  //               ),
+  //             ),
+  //         ],
+  //       ),
+  //       const SizedBox(height: 4),
+  //       Text(
+  //         "Ends: ${trip.endDate != null ? _formatDate(trip.endDate!) : 'N/A'}",
+  //         style: const TextStyle(fontSize: 11, color: Colors.grey),
+  //       ),
+  //     ],
+  //   );
+  // }
+
   Widget _buildMetaInfo(Itinerary trip) {
     final bool isPublic = trip.isPublic;
     final bool isCopied = trip.isCopied;
-    final bool isCompleted = trip.status == 'COMPLETED';
+    String dateRange;
+    if (trip.startDate != null && trip.endDate != null) {
+      dateRange =
+          "${_formatShortDate(trip.startDate!)} - ${_formatShortDate(trip.endDate!)}";
+    } else if (trip.startDate != null) {
+      dateRange = "Starts: ${_formatShortDate(trip.startDate!)}";
+    } else {
+      dateRange = "Flexible Dates"; // Replaces "Dates not set"
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Icon(Icons.calendar_today, size: 12, color: Colors.teal[700]),
+            const SizedBox(width: 4),
+            Text(
+              dateRange,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.teal[900],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              "• ${trip.totalDays ?? 1} ${trip.totalDays == 1 ? 'Day' : 'Days'}",
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
             Icon(
@@ -157,8 +301,8 @@ class MyTripsTabView extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              isCopied ? "Copied Plan" : "Original Plan",
-              style: const TextStyle(fontSize: 11, color: AppColors.subtext),
+              isCopied ? "Copied" : "Original",
+              style: const TextStyle(fontSize: 11, color: Colors.blueGrey),
             ),
             const SizedBox(width: 8),
             Icon(
@@ -172,33 +316,9 @@ class MyTripsTabView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 color: isPublic ? Colors.green : Colors.grey,
-                fontWeight: isPublic ? FontWeight.bold : FontWeight.normal,
               ),
             ),
-            if (isPublic && isCompleted) const SizedBox(width: 8),
-            if (isPublic && isCompleted)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.green[200]!),
-                ),
-                child: const Text(
-                  "Shared",
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
           ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Ends: ${trip.endDate != null ? _formatDate(trip.endDate!) : 'N/A'}",
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
         ),
       ],
     );
@@ -236,7 +356,7 @@ class MyTripsTabView extends StatelessWidget {
               if (isCopied && isCompleted)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
+                    horizontal: 6,
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
@@ -248,14 +368,14 @@ class MyTripsTabView extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.info_outline,
-                        size: 12,
+                        size: 10,
                         color: Colors.orange,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         "Copied trips cannot be shared",
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 9,
                           color: Colors.orange[800],
                           fontWeight: FontWeight.w500,
                         ),
@@ -791,544 +911,40 @@ class MyTripsTabView extends StatelessWidget {
       ),
     );
   }
+
+  String _getMonth(int month) {
+    const months = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
+    ];
+    return months[month - 1];
+  }
+
+  String _formatShortDate(DateTime date) {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    return "${months[date.month - 1]} ${date.day}";
+  }
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-// import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
-// import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
-// import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
-// import 'package:tour_guide/features/itinerary/presentation/widgets/progress_stats.dart';
-
-// class MyTripsTabView extends StatelessWidget {
-//   const MyTripsTabView({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final itineraryProvider = context.watch<ItineraryProvider>();
-//     final List<Itinerary> myTrips = itineraryProvider.myPlans;
-
-//     if (itineraryProvider.isLoading) {
-//       return const Center(
-//         child: CircularProgressIndicator(color: Color(0xFF009688)),
-//       );
-//     }
-
-//     if (myTrips.isEmpty) {
-//       return _buildEmptyState(context);
-//     }
-
-//     return RefreshIndicator(
-//       color: const Color(0xFF009688),
-//       onRefresh: () async {
-//         await itineraryProvider.fetchMyPlans();
-//       },
-//       child: ListView.builder(
-//         padding: const EdgeInsets.all(16),
-//         itemCount: myTrips.length,
-//         itemBuilder: (context, index) {
-//           return _buildTripCard(context, myTrips[index]);
-//         },
-//       ),
-//     );
-//   }
-
-//   Widget _buildTripCard(BuildContext context, Itinerary trip) {
-//     final bool isCompleted = trip.status == 'COMPLETED';
-
-//     return Container(
-//       margin: const EdgeInsets.only(bottom: 16),
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(20),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.04),
-//             blurRadius: 20,
-//             offset: const Offset(0, 4),
-//           ),
-//         ],
-//       ),
-//       child: ClipRRect(
-//         borderRadius: BorderRadius.circular(20),
-//         child: Material(
-//           color: Colors.transparent,
-//           child: InkWell(
-//             onTap: () => Navigator.push(
-//               context,
-//               MaterialPageRoute(
-//                 builder: (_) => ItineraryDetailScreen(itinerary: trip),
-//               ),
-//             ),
-//             child: IntrinsicHeight(
-//               child: Row(
-//                 crossAxisAlignment: CrossAxisAlignment.stretch,
-//                 children: [
-//                   _buildTripImage(trip, isCompleted),
-//                   Expanded(
-//                     child: Padding(
-//                       padding: const EdgeInsets.all(16.0),
-//                       child: Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           _buildHeader(
-//                             context,
-//                             trip,
-//                             context.read<ItineraryProvider>(),
-//                           ),
-//                           const SizedBox(height: 8),
-//                           _buildMetaInfo(trip),
-//                           const Spacer(),
-//                           const SizedBox(height: 12),
-//                           ProgressStats.forTripCard(itinerary: trip),
-//                         ],
-//                       ),
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildTripImage(Itinerary trip, bool isCompleted) {
-//     return Container(
-//       width: 110,
-//       decoration: BoxDecoration(
-//         color: isCompleted ? const Color(0xFFE6F6EE) : const Color(0xFFFFF7E6),
-//       ),
-//       child: Stack(
-//         alignment: Alignment.center,
-//         children: [
-//           Icon(
-//             isCompleted ? Icons.verified : Icons.edit_note,
-//             size: 40,
-//             color: isCompleted ? Colors.green[700] : Colors.orange[700],
-//           ),
-//           Positioned(
-//             bottom: 8,
-//             child: Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-//               decoration: BoxDecoration(
-//                 color: Colors.white.withOpacity(0.9),
-//                 borderRadius: BorderRadius.circular(12),
-//               ),
-//               child: Text(
-//                 trip.status ?? "DRAFT",
-//                 style: TextStyle(
-//                   fontSize: 9,
-//                   fontWeight: FontWeight.bold,
-//                   color: isCompleted ? Colors.green : Colors.orange,
-//                 ),
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildMetaInfo(Itinerary trip) {
-//     final bool isPublic = trip.isPublic ?? false;
-//     final bool isCopied = trip.sourceId != null;
-
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//         Row(
-//           children: [
-//             Icon(
-//               isCopied ? Icons.copy_all : Icons.person_outline,
-//               size: 14,
-//               color: Colors.blueGrey,
-//             ),
-//             const SizedBox(width: 4),
-//             Text(
-//               isCopied ? "Copied Plan" : "Original Plan",
-//               style: const TextStyle(fontSize: 11, color: Colors.blueGrey),
-//             ),
-//             const SizedBox(width: 8),
-//             Icon(
-//               isPublic ? Icons.public : Icons.lock_outline,
-//               size: 14,
-//               color: Colors.grey,
-//             ),
-//             const SizedBox(width: 4),
-//             Text(
-//               isPublic ? "Public" : "Private",
-//               style: const TextStyle(fontSize: 11, color: Colors.grey),
-//             ),
-//           ],
-//         ),
-//         const SizedBox(height: 4),
-//         Text(
-//           "Ends: ${trip.endDate != null ? _formatDate(trip.endDate!) : 'N/A'}",
-//           style: const TextStyle(fontSize: 11, color: Colors.grey),
-//         ),
-//       ],
-//     );
-//   }
-
-//   String _formatDate(DateTime date) {
-//     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-//   }
-
-//   Widget _buildHeader(
-//     BuildContext context,
-//     Itinerary trip,
-//     ItineraryProvider provider,
-//   ) {
-//     final bool isCompleted = trip.status == 'COMPLETED';
-//     final bool isPublic = trip.isPublic;
-
-//     // Debug prints
-//     debugPrint("=== TRIP DEBUG ===");
-//     debugPrint("Trip ID: ${trip.id}");
-//     debugPrint("Title: ${trip.title}");
-//     debugPrint("Status: ${trip.status}");
-//     debugPrint("Is Public: $isPublic");
-//     debugPrint("Source ID: ${trip.sourceId}");
-//     debugPrint("Is Copied (computed): ${trip.isCopied}");
-//     debugPrint("================");
-
-//     // Conditions for showing share button:
-//     // 1. Not copied (original trip only)
-//     // 2. Trip is completed
-//     // 3. Trip is not already public
-//     final bool showShareButton = !trip.isCopied && isCompleted && !isPublic;
-
-//     debugPrint("Show Share Button: $showShareButton");
-//     debugPrint(
-//       "Reasons - Not copied: ${!trip.isCopied}, Completed: $isCompleted, Not public: ${!isPublic}",
-//     );
-
-//     return Row(
-//       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//       children: [
-//         Expanded(
-//           child: Text(
-//             trip.title,
-//             style: const TextStyle(
-//               fontWeight: FontWeight.bold,
-//               fontSize: 16,
-//               overflow: TextOverflow.ellipsis,
-//             ),
-//           ),
-//         ),
-//         PopupMenuButton<String>(
-//           shape: RoundedRectangleBorder(
-//             borderRadius: BorderRadius.circular(12),
-//           ),
-//           icon: const Icon(Icons.more_vert, color: Colors.grey),
-//           onSelected: (value) =>
-//               _handleMenuAction(context, value, trip, provider, trip.isCopied),
-//           itemBuilder: (context) => [
-//             _buildPopupItem('edit', Icons.edit_outlined, "Edit Details"),
-//             if (showShareButton)
-//               _buildPopupItem(
-//                 'share',
-//                 Icons.share_outlined,
-//                 "Share to Community",
-//               ),
-//             const PopupMenuDivider(),
-//             _buildPopupItem(
-//               'delete',
-//               Icons.delete_outline,
-//               "Delete Trip",
-//               isDestructive: true,
-//             ),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-
-//   PopupMenuItem<String> _buildPopupItem(
-//     String value,
-//     IconData icon,
-//     String text, {
-//     bool isDestructive = false,
-//   }) {
-//     return PopupMenuItem(
-//       value: value,
-//       child: Row(
-//         children: [
-//           Icon(
-//             icon,
-//             size: 20,
-//             color: isDestructive ? Colors.red : Colors.blueGrey,
-//           ),
-//           const SizedBox(width: 12),
-//           Text(
-//             text,
-//             style: TextStyle(
-//               color: isDestructive ? Colors.red : Colors.black87,
-//               fontSize: 14,
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   void _handleMenuAction(
-//     BuildContext context,
-//     String value,
-//     Itinerary trip,
-//     ItineraryProvider provider,
-//     bool isCopied,
-//   ) {
-//     switch (value) {
-//       case 'edit':
-//         _showEditDialog(context, trip);
-//         break;
-//       case 'share':
-//         _showShareConfirmation(context, provider, trip, isCopied);
-//         break;
-//       case 'delete':
-//         _showDeleteConfirmation(context, provider, trip);
-//         break;
-//     }
-//   }
-
-//   void _showShareConfirmation(
-//     BuildContext context,
-//     ItineraryProvider provider,
-//     Itinerary trip,
-//     bool isCopied,
-//   ) {
-//     if (isCopied) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text(
-//             "Copied trips cannot be shared. Only original plans can be shared.",
-//           ),
-//           backgroundColor: Colors.red,
-//         ),
-//       );
-//       return;
-//     }
-
-//     // Check if trip is completed
-//     if (trip.status != 'COMPLETED') {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text("Only completed trips can be shared."),
-//           backgroundColor: Colors.red,
-//         ),
-//       );
-//       return;
-//     }
-
-//     // Check if already public
-//     if (trip.isPublic ?? false) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text("This trip is already public."),
-//           backgroundColor: Colors.blue,
-//         ),
-//       );
-//       return;
-//     }
-
-//     showDialog(
-//       context: context,
-//       builder: (ctx) => AlertDialog(
-//         title: const Text("Share with Community?"),
-//         content: const Text(
-//           "This will make your itinerary visible on the Explore tab for other travelers to see and copy.",
-//         ),
-//         actions: [
-//           TextButton(
-//             onPressed: () => Navigator.pop(ctx),
-//             child: const Text("Cancel"),
-//           ),
-//           ElevatedButton(
-//             style: ElevatedButton.styleFrom(
-//               backgroundColor: const Color(0xFF009688),
-//             ),
-//             onPressed: () async {
-//               final success = await provider.shareTrip(trip.id);
-//               if (ctx.mounted) {
-//                 Navigator.pop(ctx);
-//                 if (success) {
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     const SnackBar(
-//                       content: Text("Trip shared successfully!"),
-//                       backgroundColor: Colors.green,
-//                     ),
-//                   );
-//                 } else {
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     const SnackBar(
-//                       content: Text(
-//                         "Failed to share trip. Please check if the trip is completed and not already public.",
-//                       ),
-//                       backgroundColor: Colors.red,
-//                     ),
-//                   );
-//                 }
-//               }
-//             },
-//             child: const Text(
-//               "Make Public",
-//               style: TextStyle(color: Colors.white),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   void _showEditDialog(BuildContext context, Itinerary trip) {
-//     final titleController = TextEditingController(text: trip.title);
-//     final descController = TextEditingController(text: trip.description);
-
-//     showDialog(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: const Text("Edit Trip Details"),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             TextField(
-//               controller: titleController,
-//               decoration: const InputDecoration(
-//                 labelText: "Trip Title",
-//                 border: OutlineInputBorder(),
-//               ),
-//             ),
-//             const SizedBox(height: 16),
-//             TextField(
-//               controller: descController,
-//               decoration: const InputDecoration(
-//                 labelText: "Description",
-//                 border: OutlineInputBorder(),
-//               ),
-//               maxLines: 3,
-//             ),
-//           ],
-//         ),
-//         actions: [
-//           TextButton(
-//             onPressed: () => Navigator.pop(context),
-//             child: const Text("Cancel"),
-//           ),
-//           ElevatedButton(
-//             style: ElevatedButton.styleFrom(
-//               backgroundColor: const Color(0xFF009688),
-//             ),
-//             onPressed: () async {
-//               final success = await context
-//                   .read<ItineraryProvider>()
-//                   .updatePlanDetails(
-//                     trip.id,
-//                     titleController.text,
-//                     descController.text,
-//                   );
-
-//               if (context.mounted) {
-//                 Navigator.pop(context);
-//                 if (!success) {
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     const SnackBar(
-//                       content: Text("Failed to update trip"),
-//                       backgroundColor: Colors.red,
-//                     ),
-//                   );
-//                 }
-//               }
-//             },
-//             child: const Text(
-//               "Save Changes",
-//               style: TextStyle(color: Colors.white),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   void _showDeleteConfirmation(
-//     BuildContext context,
-//     ItineraryProvider provider,
-//     Itinerary trip,
-//   ) {
-//     showDialog(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: const Text("Delete Trip?"),
-//         content: Text(
-//           "Are you sure you want to delete '${trip.title}'? This action cannot be undone.",
-//         ),
-//         actions: [
-//           TextButton(
-//             onPressed: () => Navigator.pop(context),
-//             child: const Text("Cancel"),
-//           ),
-//           TextButton(
-//             onPressed: () async {
-//               Navigator.pop(context);
-//               final success = await provider.deletePlan(trip.id);
-//               if (context.mounted) {
-//                 if (success) {
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     const SnackBar(
-//                       content: Text("Trip deleted successfully"),
-//                       backgroundColor: Colors.green,
-//                     ),
-//                   );
-//                 } else {
-//                   ScaffoldMessenger.of(context).showSnackBar(
-//                     const SnackBar(
-//                       content: Text("Failed to delete trip"),
-//                       backgroundColor: Colors.red,
-//                     ),
-//                   );
-//                 }
-//               }
-//             },
-//             child: const Text("Delete", style: TextStyle(color: Colors.red)),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildEmptyState(BuildContext context) {
-//     return Center(
-//       child: Column(
-//         mainAxisAlignment: MainAxisAlignment.center,
-//         children: [
-//           Icon(Icons.auto_awesome, size: 64, color: Colors.grey[300]),
-//           const SizedBox(height: 16),
-//           const Text(
-//             "No trips yet",
-//             style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-//           ),
-//           const SizedBox(height: 8),
-//           ElevatedButton(
-//             style: ElevatedButton.styleFrom(
-//               backgroundColor: const Color(0xFF009688),
-//             ),
-//             onPressed: () {
-//               // Navigate to explore or create new trip
-//               ScaffoldMessenger.of(context).showSnackBar(
-//                 const SnackBar(
-//                   content: Text("Navigate to Explore tab to find trips"),
-//                 ),
-//               );
-//             },
-//             child: const Text(
-//               "Explore Trips",
-//               style: TextStyle(color: Colors.white),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }

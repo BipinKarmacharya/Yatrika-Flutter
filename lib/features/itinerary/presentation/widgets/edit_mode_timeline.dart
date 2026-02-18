@@ -35,10 +35,12 @@ class EditModeTimeline extends StatelessWidget {
             order: index + 1,
             canEdit: true,
             isEditing: true,
-onToggleVisited: (newValue) => onToggleVisited(item.id!, newValue),             onEditNotes: () => onEditNotes(item),
+            onToggleVisited: (newValue) => onToggleVisited(item.id!, newValue),
+            onEditNotes: () => onEditNotes(item),
             onDeleteActivity: () => onDeleteActivity(item),
             onChangeTime: () => onChangeTime(item),
-            onReorder: () {}, // Not needed here as SliverReorderableList handles it
+            onReorder:
+                () {}, // Not needed here as SliverReorderableList handles it
           ),
         );
       },

@@ -6,6 +6,7 @@ import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
 import 'package:tour_guide/features/explore/presentation/screens/explore_screen.dart';
 import 'package:tour_guide/features/home/logic/home_provider.dart';
+import 'package:tour_guide/features/interest/logic/interest_provider.dart';
 import 'package:tour_guide/features/user/logic/saved_provider.dart';
 import 'package:tour_guide/features/destination/logic/destination_provider.dart';
 import 'package:tour_guide/features/home/presentation/screens/home_screen.dart';
@@ -57,56 +58,12 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ItineraryProvider()),
         ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
         ChangeNotifierProvider(create: (_) => SavedProvider()),
+        ChangeNotifierProvider(create: (_) => InterestProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
-
-// void main() async {
-//   WidgetsFlutterBinding.ensureInitialized();
-//   HttpOverrides.global = MyHttpOverrides();
-
-//   // Initialize ApiClient (Loads token from SharedPreferences)
-//   await ApiClient.init();
-
-//   Future<void> main() async {
-//     await dotenv.load(fileName: ".env"); // Load the .env file
-//     runApp(MyApp());
-//   }
-
-//   runApp(
-//     MultiProvider(
-//       providers: [
-//         ChangeNotifierProvider<AuthProvider>(
-//           create: (_) {
-//             final auth = AuthProvider();
-//             auth.checkSession(); // Call it explicitly
-//             return auth;
-//           },
-//         ),
-
-//         ChangeNotifierProvider(create: (_) => HomeProvider()),
-
-//         ChangeNotifierProvider(create: (_) => ProfileProvider()),
-
-//         ChangeNotifierProvider<CommunityProvider>(
-//           create: (_) => CommunityProvider(),
-//         ),
-
-//         ChangeNotifierProvider(create: (_) => DestinationProvider()),
-
-//         ChangeNotifierProvider(create: (_) => ItineraryProvider()),
-
-//         ChangeNotifierProvider(create: (_) => TripCreatorProvider()),
-
-//         ChangeNotifierProvider(create: (_) => SavedProvider()),
-
-//       ],
-//       child: const MyApp(),
-//     ),
-//   );
-// }
 
 class MyHttpOverrides extends HttpOverrides {
   @override

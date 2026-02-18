@@ -39,18 +39,18 @@ class DestinationService {
     }
   }
 
-  static Future<List<Destination>> getRecommendations() async {
-    try {
-      final response = await ApiClient.get('/api/destinations/recommendations');
+  // static Future<List<Destination>> getRecommendations() async {
+  //   try {
+  //     final response = await ApiClient.get('/api/destinations/recommendations');
       
-      // Using your existing _mapResponse helper to handle pagination/mapping
-      return _mapResponse(response is Map ? response : response.data);
-    } catch (e) {
-      debugPrint("Error fetching recommendations: $e");
-      // Fallback to popular if recommendations fail or user is guest
-      return popular(); 
-    }
-  }
+  //     // Using your existing _mapResponse helper to handle pagination/mapping
+  //     return _mapResponse(response is Map ? response : response.data);
+  //   } catch (e) {
+  //     debugPrint("Error fetching recommendations: $e");
+  //     // Fallback to popular if recommendations fail or user is guest
+  //     return popular(); 
+  //   }
+  // }
 
   static Future<List<Destination>> getFiltered({
     String? search,

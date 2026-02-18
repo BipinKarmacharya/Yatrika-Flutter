@@ -25,6 +25,21 @@ class TimelineActivityCard extends StatelessWidget {
     required this.onReorder,
   });
 
+  IconData _getIconForType(String type) {
+    switch (type.toUpperCase()) {
+      case 'MEAL':
+        return Icons.restaurant;
+      case 'TRANSPORT':
+        return Icons.directions_bus;
+      case 'HOTEL':
+        return Icons.hotel;
+      case 'VISIT':
+        return Icons.camera_alt;
+      default:
+        return Icons.place;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -105,6 +120,12 @@ class TimelineActivityCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        Icon(
+          _getIconForType(item.activityType),
+          size: 18,
+          color: item.isVisited ? Colors.grey : const Color(0xFF009688),
+        ),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             item.destination?['name'] ?? item.title,
