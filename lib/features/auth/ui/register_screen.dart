@@ -119,6 +119,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildBackButton(),
+                const SizedBox(height: 16),
+                _buildHeader(),
                 const SizedBox(height: 32),
                 const Text(
                   'Create Account',
@@ -271,6 +273,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  Widget _buildHeader() {
+    return Center(
+      child: Container(
+        width: 120,
+        height: 120,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: AppColors.stroke),
+        ),
+        child: ClipOval(
+          child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTermsCheckbox() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,6 +337,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (email.length > 254 || email.contains('..')) return false;
     final atIndex = email.indexOf('@');
     if (atIndex <= 0 || atIndex > 64) return false;
+    if (atIndex != email.lastIndexOf('@')) return false;
+
+    final local = email.substring(0, atIndex);
+    final domain = email.substring(atIndex + 1);
+
+    if (local.startsWith('.') || local.endsWith('.')) return false;
+    if (domain.startsWith('.') || domain.endsWith('.')) return false;
+
+    final labels = domain.split('.');
+    if (labels.length < 2) return false;
+    if (labels.any((label) => label.isEmpty)) return false;
+    if (labels.any((label) => label.startsWith('-') || label.endsWith('-'))) {
+      return false;
+    }
+
     return _emailRegex.hasMatch(email);
   }
 
