@@ -15,10 +15,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+
+  static final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
   @override
   void dispose() {
@@ -30,13 +33,14 @@ class _LoginScreenState extends State<LoginScreen> {
   // --- Logic Methods ---
 
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      _showError("Please enter your credentials");
+    final form = _formKey.currentState;
+    if (form == null) return;
+    if (!form.validate()) {
       return;
     }
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
     final auth = context.read<AuthProvider>();
     final success = await auth.login(email, password);
@@ -90,70 +94,88 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              _buildHeader(),
-              const SizedBox(height: 48),
-              _buildWelcomeText(),
-              const SizedBox(height: 32),
-              _buildTextField(
-                'Email',
-                _emailController,
-                icon: Icons.email_outlined,
-              ),
-              const SizedBox(height: 20),
-              _buildPasswordField(),
-              const SizedBox(height: 16),
-              _buildRememberForgot(),
-              const SizedBox(height: 24),
-
-              // Login Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: auth.isLoading ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: auth.isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Sign In',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+          child: Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                _buildHeader(),
+                const SizedBox(height: 48),
+                _buildWelcomeText(),
+                const SizedBox(height: 32),
+                _buildTextField(
+                  'Email',
+                  _emailController,
+                  icon: Icons.email_outlined,
+                  validator: _validateEmail,
                 ),
-              ),
+                const SizedBox(height: 20),
+                _buildPasswordField(),
+                const SizedBox(height: 16),
+                _buildRememberForgot(),
+                const SizedBox(height: 24),
 
-              const SizedBox(height: 16),
-              _buildGuestButton(),
-              const SizedBox(height: 32),
-              _buildDivider(),
-              const SizedBox(height: 24),
-              _buildSocialRow(),
-              const SizedBox(height: 32),
-              _buildSignUpLink(),
-              const SizedBox(height: 20),
-            ],
+                // Login Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: auth.isLoading ? null : _handleLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: auth.isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Sign In',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                _buildGuestButton(),
+                const SizedBox(height: 32),
+                _buildDivider(),
+                const SizedBox(height: 24),
+                _buildSocialRow(),
+                const SizedBox(height: 32),
+                _buildSignUpLink(),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String? _validateEmail(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return 'Email is required';
+    if (!_emailRegex.hasMatch(text)) return 'Enter a valid email address';
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    final text = value ?? '';
+    if (text.isEmpty) return 'Password is required';
+    return null;
   }
 
   // --- UI Helper Components ---
@@ -190,14 +212,23 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {required IconData icon}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    required IconData icon,
+    String? Function(String?)? validator,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
         const SizedBox(height: 8),
-        TextField(
+        TextFormField(
           controller: controller,
+          validator: validator,
           decoration: InputDecoration(
             hintText: 'Enter your ${label.toLowerCase()}',
             prefixIcon: Icon(icon, color: AppColors.subtext),
@@ -211,6 +242,18 @@ class _LoginScreenState extends State<LoginScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.stroke),
             ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
           ),
         ),
       ],
@@ -221,22 +264,32 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Password', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        const Text(
+          'Password',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
         const SizedBox(height: 8),
-        TextField(
+        TextFormField(
           controller: _passwordController,
           obscureText: _obscurePassword,
+          validator: _validatePassword,
           decoration: InputDecoration(
             hintText: 'Enter your password',
-            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.subtext),
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: AppColors.subtext,
+            ),
             filled: true,
             fillColor: Colors.white,
             suffixIcon: IconButton(
               icon: Icon(
-                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _obscurePassword
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 color: AppColors.subtext,
               ),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -245,6 +298,18 @@ class _LoginScreenState extends State<LoginScreen> {
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.stroke),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent),
             ),
           ),
         ),
@@ -259,7 +324,8 @@ class _LoginScreenState extends State<LoginScreen> {
         Row(
           children: [
             SizedBox(
-              height: 24, width: 24,
+              height: 24,
+              width: 24,
               child: Checkbox(
                 value: _rememberMe,
                 onChanged: (v) => setState(() => _rememberMe = v ?? false),
@@ -267,12 +333,21 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            const Text('Remember me', style: TextStyle(color: AppColors.subtext, fontSize: 14)),
+            const Text(
+              'Remember me',
+              style: TextStyle(color: AppColors.subtext, fontSize: 14),
+            ),
           ],
         ),
         TextButton(
           onPressed: () {},
-          child: const Text('Forgot password?', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Forgot password?',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
@@ -291,9 +366,14 @@ class _LoginScreenState extends State<LoginScreen> {
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppColors.stroke),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-        child: const Text('Continue as Guest', style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold)),
+        child: const Text(
+          'Continue as Guest',
+          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
@@ -304,7 +384,10 @@ class _LoginScreenState extends State<LoginScreen> {
         Expanded(child: Divider(color: AppColors.stroke)),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text('or continue with', style: TextStyle(color: AppColors.subtext, fontSize: 13)),
+          child: Text(
+            'or continue with',
+            style: TextStyle(color: AppColors.subtext, fontSize: 13),
+          ),
         ),
         Expanded(child: Divider(color: AppColors.stroke)),
       ],
@@ -326,10 +409,22 @@ class _LoginScreenState extends State<LoginScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Don't have an account? ", style: TextStyle(color: AppColors.subtext)),
+        const Text(
+          "Don't have an account? ",
+          style: TextStyle(color: AppColors.subtext),
+        ),
         GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-          child: const Text('Sign Up', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+          ),
+          child: const Text(
+            'Sign Up',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
@@ -340,7 +435,11 @@ class _SocialButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _SocialButton({required this.icon, required this.label, required this.onTap});
+  const _SocialButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -359,7 +458,10 @@ class _SocialButton extends StatelessWidget {
           children: [
             Icon(icon, size: 20),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       ),
