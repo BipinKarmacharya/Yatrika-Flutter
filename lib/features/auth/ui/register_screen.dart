@@ -27,7 +27,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
 
-  static final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+  static final RegExp _emailRegex = RegExp(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+  );
   static final RegExp _phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
   static final RegExp _specialCharRegex = RegExp(
     r'[!@#$%^&*(),.?":{}|<>_\-\\/\[\]`~+=;]',
@@ -290,6 +294,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'This field is required';
     if (text.length < 2) return 'Must be at least 2 characters';
+    if (RegExp(r'\s').hasMatch(text)) return 'Spaces are not allowed';
     return null;
   }
 
@@ -304,8 +309,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validateEmail(String? value) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'Email is required';
-    if (!_emailRegex.hasMatch(text)) return 'Enter a valid email address';
+    if (!_isStrictEmail(text)) return 'Enter a valid email address';
     return null;
+  }
+
+  bool _isStrictEmail(String email) {
+    if (email.length > 254 || email.contains('..')) return false;
+    final atIndex = email.indexOf('@');
+    if (atIndex <= 0 || atIndex > 64) return false;
+    return _emailRegex.hasMatch(email);
   }
 
   String? _validatePhone(String? value) {

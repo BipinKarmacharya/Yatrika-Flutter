@@ -21,7 +21,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _rememberMe = false;
 
-  static final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+  static final RegExp _emailRegex = RegExp(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+  );
 
   @override
   void dispose() {
@@ -168,8 +172,15 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateEmail(String? value) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'Email is required';
-    if (!_emailRegex.hasMatch(text)) return 'Enter a valid email address';
+    if (!_isStrictEmail(text)) return 'Enter a valid email address';
     return null;
+  }
+
+  bool _isStrictEmail(String email) {
+    if (email.length > 254 || email.contains('..')) return false;
+    final atIndex = email.indexOf('@');
+    if (atIndex <= 0 || atIndex > 64) return false;
+    return _emailRegex.hasMatch(email);
   }
 
   String? _validatePassword(String? value) {
