@@ -28,9 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreeToTerms = false;
 
   static final RegExp _emailRegex = RegExp(
-    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
-    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
-    r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+    r'^[a-zA-Z0-9]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,63}$',
   );
   static final RegExp _phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
   static final RegExp _specialCharRegex = RegExp(
@@ -329,30 +327,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validateEmail(String? value) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'Email is required';
-    if (!_isStrictEmail(text)) return 'Enter a valid email address';
-    return null;
-  }
-
-  bool _isStrictEmail(String email) {
-    if (email.length > 254 || email.contains('..')) return false;
-    final atIndex = email.indexOf('@');
-    if (atIndex <= 0 || atIndex > 64) return false;
-    if (atIndex != email.lastIndexOf('@')) return false;
-
-    final local = email.substring(0, atIndex);
-    final domain = email.substring(atIndex + 1);
-
-    if (local.startsWith('.') || local.endsWith('.')) return false;
-    if (domain.startsWith('.') || domain.endsWith('.')) return false;
-
-    final labels = domain.split('.');
-    if (labels.length < 2) return false;
-    if (labels.any((label) => label.isEmpty)) return false;
-    if (labels.any((label) => label.startsWith('-') || label.endsWith('-'))) {
-      return false;
+    if (!_emailRegex.hasMatch(text)) {
+      return 'Enter a valid email without spaces, dots, or special characters before @';
     }
-
-    return _emailRegex.hasMatch(email);
+    return null;
   }
 
   String? _validatePhone(String? value) {
