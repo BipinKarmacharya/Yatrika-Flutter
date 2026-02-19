@@ -31,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _refreshAllData();
     // ✅ This code runs EXACTLY ONCE when the screen is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
@@ -39,6 +40,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (auth.isLoggedIn && auth.user != null) {
         interestProvider.load(preselectedIds: auth.user!.interestIds);
+        context.read<CommunityProvider>().fetchUserStats(
+          auth.user!.id.toString(),
+        );
+        context.read<CommunityProvider>().fetchMyPosts();
+        context.read<ItineraryProvider>().fetchMyPlans();
+      }
+    });
+  }
+
+  void _refreshAllData() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.isLoggedIn && auth.user != null) {
         context.read<CommunityProvider>().fetchUserStats(
           auth.user!.id.toString(),
         );
@@ -112,163 +126,189 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         body: SafeArea(
-          child: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) => [
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 10),
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        CircleAvatar(
-                          radius: 48,
-                          backgroundColor: Colors.grey.shade200,
-                          backgroundImage: user?.profileImage != null
-                              ? NetworkImage(
-                                  ApiClient.getFullImageUrl(user!.profileImage),
-                                )
-                              : null,
-                          child: user?.profileImage == null
-                              ? Text(
-                                  user!.fullName.isNotEmpty
-                                      ? user.fullName[0].toUpperCase()
-                                      : user.username[0].toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : null,
-                        ),
-                        InkWell(
-                          onTap: () => _pickAndUploadImage(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              size: 16,
-                              color: Colors.white,
+          child: RefreshIndicator(
+            onRefresh: () async {
+              // Trigger all fetches manually
+              final auth = context.read<AuthProvider>();
+              if (auth.isLoggedIn && auth.user != null) {
+                await Future.wait([
+                  context.read<CommunityProvider>().fetchUserStats(
+                    auth.user!.id.toString(),
+                  ),
+                  context.read<CommunityProvider>().fetchMyPosts(),
+                  context.read<ItineraryProvider>().fetchMyPlans(),
+                ]);
+              }
+            },
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 48,
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage: user?.profileImage != null
+                                ? NetworkImage(
+                                    ApiClient.getFullImageUrl(
+                                      user!.profileImage,
+                                    ),
+                                  )
+                                : null,
+                            child: user?.profileImage == null
+                                ? Text(
+                                    user!.fullName.isNotEmpty
+                                        ? user.fullName[0].toUpperCase()
+                                        : user.username[0].toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          InkWell(
+                            onTap: () => _pickAndUploadImage(context),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+                      Text(
+                        fullName,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    Text(
-                      fullName,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    // Dynamic Username
-                    Text(
-                      "@${user?.username ?? 'traveler'}",
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+                      // Dynamic Username
+                      Text(
+                        "@${user?.username ?? 'traveler'}",
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 12),
-                    if (userInterests.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 8,
-                          children: userInterests.map((id) {
-                            final interestModel = interestProvider.all
-                                .firstWhere(
-                                  (i) => i.id == id,
-                                  orElse: () =>
-                                      Interest(id: id, name: "ID: $id"),
-                                );
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withOpacity(0.8),
-                                    AppColors.primary,
+                      const SizedBox(height: 12),
+                      if (userInterests.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            children: userInterests.map((id) {
+                              final interestModel = interestProvider.all
+                                  .firstWhere(
+                                    (i) => i.id == id,
+                                    orElse: () =>
+                                        Interest(id: id, name: "ID: $id"),
+                                  );
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.primary.withOpacity(0.8),
+                                      AppColors.primary,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withOpacity(0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.3),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
+                                child: Text(
+                                  "#${interestModel.name}",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                ],
-                              ),
-                              child: Text(
-                                "#${interestModel.name}",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
                                 ),
-                              ),
-                            );
-                          }).toList(),
+                              );
+                            }).toList(),
+                          ),
+                        )
+                      else
+                        const Text(
+                          "No interests added yet",
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
                         ),
-                      )
-                    else
-                      const Text(
-                        "No interests added yet",
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
 
-                    const SizedBox(height: 20),
-                    // Statistics Row
-                    ProfileStatsRow(
-                      postCount: community.myPosts.length,
-                      totalLikes:
-                          community.userStats?['totalLikesReceived'] ?? 0,
-                      followersCount: user?.followerCount ?? 0,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                ),
-              ),
-              // 6. Sticky Tabs Delegate
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverAppBarDelegate(
-                  TabBar(
-                    isScrollable: false, // Better look for 3 tabs
-                    indicatorColor: AppColors.primary,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: Colors.grey,
-                    tabs: [
-                      _TabItem(
-                        icon: Icons.location_on_outlined,
-                        label: "Trips",
+                      const SizedBox(height: 20),
+                      // Statistics Row
+                      ProfileStatsRow(
+                        postCount: community.myPosts.length,
+                        totalLikes: community.myPosts.fold<int>(
+                          0,
+                          (sum, post) => sum + post.totalLikes,
+                        ),
+                        followersCount: user?.followerCount ?? 0,
                       ),
-                      _TabItem(
-                        icon: Icons.auto_awesome_mosaic_outlined,
-                        label: "Stories",
-                      ),
-                      _TabItem(icon: Icons.bookmark_border, label: "Saved"),
+                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
+                // 6. Sticky Tabs Delegate
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      isScrollable: false, // Better look for 3 tabs
+                      indicatorColor: AppColors.primary,
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: Colors.grey,
+                      tabs: [
+                        _TabItem(
+                          icon: Icons.location_on_outlined,
+                          label: "Trips",
+                        ),
+                        _TabItem(
+                          icon: Icons.auto_awesome_mosaic_outlined,
+                          label: "Stories",
+                        ),
+                        _TabItem(icon: Icons.bookmark_border, label: "Saved"),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              body: const TabBarView(
+                children: [
+                  MyTripsTabView(),
+                  MyStoriesTabView(),
+                  SavedTabView(),
+                ],
               ),
-            ],
-            body: const TabBarView(
-              children: [MyTripsTabView(), MyStoriesTabView(), SavedTabView()],
             ),
           ),
         ),

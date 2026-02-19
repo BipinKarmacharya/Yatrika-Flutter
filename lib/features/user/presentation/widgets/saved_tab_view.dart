@@ -29,9 +29,7 @@ class _SavedTabViewState extends State<SavedTabView> {
 
   Future<void> _loadSavedItems() async {
     final savedProvider = context.read<SavedProvider>();
-    if (savedProvider.savedItems.isEmpty) {
-      await savedProvider.fetchSavedItineraries();
-    }
+    await savedProvider.fetchSavedItineraries();
   }
 
   @override
@@ -132,9 +130,9 @@ class _SavedTabViewState extends State<SavedTabView> {
           // You'll need to implement this when you have destination saving
           return false;
         case 2: // Plans (itineraries that are not public)
-          return itinerary.isPublic == false;
+          return itinerary.isAdminCreated == true;
         case 3: // Public Trips
-          return itinerary.isPublic == true;
+          return itinerary.isPublic == true && itinerary.isAdminCreated == false;
         default:
           return true;
       }

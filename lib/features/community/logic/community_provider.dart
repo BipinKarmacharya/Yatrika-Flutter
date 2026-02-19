@@ -52,12 +52,20 @@ class CommunityProvider extends ChangeNotifier {
     }
   }
 
+  void clearUserData() {
+    _myPosts = [];
+    _userStats = null;
+    notifyListeners();
+  }
+
   Future<void> fetchMyPosts() async {
     try {
       _myPosts = await CommunityService.getMyPosts();
       notifyListeners();
     } catch (e) {
+      _myPosts = [];
       debugPrint("Error fetching my posts: $e");
+      notifyListeners();
     }
   }
 
@@ -87,6 +95,7 @@ class CommunityProvider extends ChangeNotifier {
     try {
       await CommunityService.create(post, images);
       await refreshPosts();
+      await fetchMyPosts();
       return true;
     } catch (e) {
       _errorMessage = e.toString();

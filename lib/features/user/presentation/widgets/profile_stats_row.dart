@@ -7,9 +7,9 @@ class ProfileStatsRow extends StatelessWidget {
 
   const ProfileStatsRow({
     super.key,
-    this.postCount = 0,
-    this.totalLikes = 0,
-    this.followersCount = 0,
+    required this.postCount,
+    required this.totalLikes,
+    required this.followersCount,
   });
 
   @override
@@ -36,19 +36,12 @@ class ProfileStatsRow extends StatelessWidget {
           value,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.grey, fontSize: 13),
-        ),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
       ],
     );
   }
 
   Widget _buildDivider() {
-    return Container(
-      height: 30,
-      width: 1,
-      color: Colors.grey[300],
-    );
+    return Container(height: 30, width: 1, color: Colors.grey[300]);
   }
 }

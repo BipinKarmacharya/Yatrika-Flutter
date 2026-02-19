@@ -1,9 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:tour_guide/core/api/api_client.dart';
 import 'package:tour_guide/features/auth/data/models/user_model.dart';
 import 'package:tour_guide/features/auth/data/services/auth_service.dart';
+import 'package:tour_guide/features/community/logic/community_provider.dart';
+import 'package:tour_guide/features/user/logic/saved_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   UserModel? _user;
@@ -60,7 +63,7 @@ class AuthProvider extends ChangeNotifier {
       _isGuest = false;
     } catch (e) {
       debugPrint("Session check failed: $e");
-      await logout(); // Token likely expired
+      await _internalLogout(); 
     } finally {
       _setLoading(false);
     }
@@ -203,14 +206,31 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
-    _setLoading(true);
+  Future<void> _internalLogout() async {
     try {
       await ApiClient.logout();
+    } catch (e) {
+      debugPrint("Silent logout error: $e");
     } finally {
       _user = null;
       _isGuest = false;
       _error = null;
+      notifyListeners();
+    }
+  }
+
+  /// Use this for UI-triggered logouts
+  Future<void> logout(BuildContext context) async {
+    _setLoading(true);
+    try {
+      await _internalLogout();
+
+      // Clear other providers now that we have context
+      if (context.mounted) {
+        context.read<SavedProvider>().clear();
+        context.read<CommunityProvider>().clearUserData();
+      }
+    } finally {
       _setLoading(false);
     }
   }
