@@ -1,42 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({
-    super.key,
-    required this.title,
-    this.actionText,
-    this.onActionTap,
-  });
-
   final String title;
-  final String? actionText;
-  final VoidCallback? onActionTap;
+  final VoidCallback? onSeeAll;
+
+  const SectionHeader({super.key, required this.title, this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-        ),
-        if (actionText != null)
-          InkWell(
-            onTap: onActionTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+          ),
+          if (onSeeAll != null)
+            GestureDetector(
+              onTap: onSeeAll,
               child: Text(
-                actionText!,
-                style: const TextStyle(
-                  color: Color(0xFF3B82F6),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+                "See All",
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 14),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

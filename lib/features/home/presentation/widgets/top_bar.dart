@@ -1,13 +1,10 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:tour_guide/core/services/local_notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class TopBar extends StatefulWidget {
-  const TopBar({super.key, this.onProfileTap});
-
-  final VoidCallback? onProfileTap;
+  const TopBar({super.key}); // Removed onProfileTap since it's in BottomNav
 
   @override
   State<TopBar> createState() => _TopBarState();
@@ -25,7 +22,7 @@ class _TopBarState extends State<TopBar> {
     super.initState();
     _refreshNotificationStatus();
     _pollTimer = Timer.periodic(
-      const Duration(seconds: 1),
+      const Duration(seconds: 5),
       (_) => _refreshNotificationStatus(),
     );
   }
@@ -37,7 +34,7 @@ class _TopBarState extends State<TopBar> {
   }
 
   Future<void> _refreshNotificationStatus() async {
-    if (_isProcessingDue) return;
+    if (_isProcessingDue || !mounted) return;
     _isProcessingDue = true;
     try {
       final refreshedDue =
@@ -45,16 +42,18 @@ class _TopBarState extends State<TopBar> {
       final refreshedUpcoming =
           await LocalNotificationService.getUpcomingScheduledNotifications();
 
-      if (!mounted) return;
-      setState(() {
-        _dueItems = refreshedDue;
-        _upcomingItems = refreshedUpcoming;
-        _dueCount = refreshedDue.length;
-      });
+      if (mounted) {
+        setState(() {
+          _dueItems = refreshedDue;
+          _upcomingItems = refreshedUpcoming;
+          _dueCount = refreshedDue.length;
+        });
+      }
     } finally {
       _isProcessingDue = false;
     }
   }
+
 
   Future<void> _showUpcomingSchedules(BuildContext context) async {
     await _refreshNotificationStatus();
@@ -71,150 +70,114 @@ class _TopBarState extends State<TopBar> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // 1. Branding & Location (The "Smart" part)
           Row(
             children: [
-              Image.asset(
-                'assets/logo.png',
-                width: 60,
-                height: 60,
-                fit: BoxFit.contain,
+              const CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary,
+                child: Icon(Icons.map_outlined, color: Colors.white, size: 20),
               ),
-            ],
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 220,
-            child: Container(
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.stroke),
-              ),
-              child: const Row(
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.search, color: Color(0xFF86909C), size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Search places, trips, people',
-                      style: TextStyle(color: Color(0xFF86909C), fontSize: 14),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  const Text(
+                    "Explore",
+                    style: TextStyle(color: AppColors.subtext, fontSize: 12),
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => _showUpcomingSchedules(context),
-            onLongPress: () async {
-              final info = await LocalNotificationService.getDebugInfo();
-              if (!context.mounted) return;
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('Notification Debug'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text('Enabled: ${info.notificationsEnabled}'),
-                      Text('Exact alarm allowed: ${info.exactAlarmAllowed}'),
-                      Text('Pending in plugin: ${info.pendingNotificationCount}'),
-                      Text('Stored upcoming: ${info.storedUpcomingCount}'),
                       Text(
-                        'Next upcoming: ${info.nextUpcomingAt?.toLocal().toString() ?? 'None'}',
+                        "Butwal, Nepal",
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 16,
+                        color: AppColors.primary,
                       ),
                     ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Close'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: Container(
-              height: 36,
-              width: 36,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.stroke),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Center(
-                    child: Icon(
-                      Icons.notifications_outlined,
-                      size: 20,
-                      color: Color(0xFF606F81),
-                    ),
-                  ),
-                  if (_dueCount > 0)
-                    Positioned(
-                      right: -2,
-                      top: -2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          _dueCount > 99 ? '99+' : '$_dueCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Container(
-            height: 36,
-            width: 36,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.stroke),
-            ),
-            child: const Icon(
-              Icons.language,
-              size: 20,
-              color: Color(0xFF606F81),
-            ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: widget.onProfileTap,
-            child: const CircleAvatar(
-              radius: 18,
-              backgroundImage: NetworkImage(
-                'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=60',
-              ),
-            ),
+
+          // 2. Action Icons (Notifications & Language)
+          Row(
+            children: [
+              _buildNotificationIcon(),
+              const SizedBox(width: 8),
+              _buildLanguageIcon(),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationIcon() {
+    return GestureDetector(
+      onTap: () => _showUpcomingSchedules(context),
+      child: Container(
+        height: 40,
+        width: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.stroke),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(
+              Icons.notifications_none_rounded,
+              size: 22,
+              color: AppColors.textPrimary,
+            ),
+            if (_dueCount > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    // border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageIcon() {
+    return Container(
+      height: 40,
+      width: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.stroke),
+      ),
+      child: const Icon(
+        Icons.translate_rounded,
+        size: 20,
+        color: AppColors.textPrimary,
       ),
     );
   }
@@ -257,8 +220,11 @@ class _UpcomingNotificationsDialogState
             .where((i) => i.scheduledAt.isAfter(now))
             .toList();
         _dueItems = _dueItems
-            .where((i) =>
-                !i.scheduledAt.isBefore(now.subtract(const Duration(days: 1))))
+            .where(
+              (i) => !i.scheduledAt.isBefore(
+                now.subtract(const Duration(days: 1)),
+              ),
+            )
             .toList();
       });
       return mounted;

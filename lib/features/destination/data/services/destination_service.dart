@@ -12,19 +12,11 @@ class DestinationService {
     // 1. Extract the list from various possible Spring Boot structures
     if (response is Map<String, dynamic>) {
       if (response.containsKey('content')) {
-        // This is a Spring Data Page object (Common in paged lists)
         list = response['content'];
       } else if (response.containsKey('data')) {
-        // This is your custom wrapper (if you use one)
-        final dataField = response['data'];
-        if (dataField is List) {
-          list = dataField;
-        } else if (dataField is Map && dataField.containsKey('content')) {
-          list = dataField['content'];
-        }
+        list = response['data'] is List ? response['data'] : [];
       }
     } else if (response is List) {
-      // This is a direct list (Common in 'popular' or 'top' endpoints)
       list = response;
     }
 
@@ -38,19 +30,6 @@ class DestinationService {
       return [];
     }
   }
-
-  // static Future<List<Destination>> getRecommendations() async {
-  //   try {
-  //     final response = await ApiClient.get('/api/destinations/recommendations');
-      
-  //     // Using your existing _mapResponse helper to handle pagination/mapping
-  //     return _mapResponse(response is Map ? response : response.data);
-  //   } catch (e) {
-  //     debugPrint("Error fetching recommendations: $e");
-  //     // Fallback to popular if recommendations fail or user is guest
-  //     return popular(); 
-  //   }
-  // }
 
   static Future<List<Destination>> getFiltered({
     String? search,
@@ -87,8 +66,7 @@ class DestinationService {
         query: queryParams,
       );
 
-      // IMPORTANT: If ApiClient returns a Dio Response object, pass response.data
-      return _mapResponse(response is Map ? response : response.data);
+      return _mapResponse(response);
     } catch (e) {
       debugPrint("Error in getFiltered: $e");
       return [];
@@ -98,7 +76,7 @@ class DestinationService {
   static Future<List<Destination>> popular() async {
     try {
       final response = await ApiClient.get('/api/destinations/popular');
-      return _mapResponse(response); // Uses the refined helper
+      return _mapResponse(response); 
     } catch (e) {
       debugPrint("Error in DestinationService.popular: $e");
       return [];
@@ -108,7 +86,7 @@ class DestinationService {
   static Future<Destination> getById(String id) async {
     try {
       final response = await ApiClient.get('/api/destinations/$id');
-      return Destination.fromJson(response.data as Map<String, dynamic>);
+      return Destination.fromJson(response as Map<String, dynamic>);
     } catch (e) {
       debugPrint("Error in DestinationService.getById: $e");
       rethrow;
@@ -149,12 +127,12 @@ class DestinationService {
     return _mapResponse(response);
   }
 
-  static Future<Destination> create(Map<String, dynamic> body) async {
-    final response = await ApiClient.post('/api/destinations', body: body);
-    return Destination.fromJson(response.data as Map<String, dynamic>);
-  }
+  // static Future<Destination> create(Map<String, dynamic> body) async {
+  //   final response = await ApiClient.post('/api/destinations', body: body);
+  //   return Destination.fromJson(response.data as Map<String, dynamic>);
+  // }
 
-  static Future<void> delete(String id) async {
-    await ApiClient.delete('/api/destinations/$id');
-  }
+  // static Future<void> delete(String id) async {
+  //   await ApiClient.delete('/api/destinations/$id');
+  // }
 }

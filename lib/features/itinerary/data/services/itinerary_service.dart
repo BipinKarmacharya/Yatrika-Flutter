@@ -61,32 +61,48 @@ class ItineraryService {
     }
   }
 
-  /// FETCH PUBLIC: Get all public trips
-  static Future<List<Itinerary>> getPublicTrips() async {
+  static List<Itinerary> _mapItineraryList(dynamic responseData) {
+    if (responseData == null) return [];
+    
+    List<dynamic> list = [];
+    if (responseData is Map) {
+      list = responseData['content'] ?? responseData['data'] ?? [];
+    } else if (responseData is List) {
+      list = responseData;
+    }
+
+    return list.map((json) {
+      try {
+        return Itinerary.fromJson(json as Map<String, dynamic>);
+      } catch (e) {
+        debugPrint("❌ Failed to parse Itinerary item: $e");
+        // We return a 'null' or skip to prevent the whole screen from crashing
+        return null; 
+      }
+    }).whereType<Itinerary>().toList(); // Removes any nulls from failed parses
+  }
+
+  // Then update your methods to use that helper:
+  static Future<List<Itinerary>> getExpertTemplates() async {
     try {
-      final dynamic responseData = await ApiClient.get(
-        '$_featurePath/community',
-      );
-      final List<dynamic> data = responseData['content'] ?? [];
-      return data.map((json) => Itinerary.fromJson(json)).toList();
+      final response = await ApiClient.get('$_featurePath/admin-templates');
+      return _mapItineraryList(response);
     } catch (e) {
-      debugPrint("Error fetching public trips: $e");
-      throw Exception("Failed to load public trips");
+      debugPrint("Expert Templates Error: $e");
+      return [];
     }
   }
 
-  /// FETCH TEMPLATES: Get admin/expert templates
-  static Future<List<Itinerary>> getExpertTemplates() async {
+  static Future<List<Itinerary>> getPublicTrips() async {
     try {
-      final List<dynamic> data = await ApiClient.get(
-        '$_featurePath/admin-templates',
-      );
-      return data.map((json) => Itinerary.fromJson(json)).toList();
+      final response = await ApiClient.get('$_featurePath/community');
+      return _mapItineraryList(response);
     } catch (e) {
-      debugPrint("Error fetching expert templates: $e");
-      throw Exception("Failed to load templates");
+      debugPrint("Public Trips Error: $e");
+      return [];
     }
   }
+
 
   /// FETCH BY DESTINATION
   static Future<List<Itinerary>> getItinerariesByDestination(

@@ -34,6 +34,7 @@ class MLService {
     required List<String> interests,
     required int days,
     required Map<String, List<String>> itineraryData,
+    required DateTime startDate,
   }) async {
     return await ApiClient.post(
       '/api/v1/ml/save',
@@ -43,6 +44,7 @@ class MLService {
           "budget": budget,
           "interests": interests,
           "days": days,
+          "startDate": startDate.toIso8601String().split('T')[0],
         },
         "itineraryData": itineraryData,
       },

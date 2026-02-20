@@ -56,22 +56,19 @@ class ItineraryItem {
   }
 
   factory ItineraryItem.fromJson(Map<String, dynamic> json) {
-    // Debug to see what we're getting
-    debugPrint("🔍 Parsing ItineraryItem JSON: ${json.keys.toList()}");
-    debugPrint("   isVisited value: ${json['isVisited']}");
-    
     return ItineraryItem(
-      id: json['id'] as int?,
-      title: (json['title'] as String?) ?? '',
-      notes: json['notes'] as String?,
-      startTime: (json['startTime'] as String?) ?? '09:00:00',
-      endTime: json['endTime'] as String?,
-      dayNumber: (json['dayNumber'] as int?) ?? 1,
-      orderInDay: (json['orderInDay'] as int?) ?? 0,
-      // Fixed: Just check json['isVisited'] - your logs show it exists
-      isVisited: json['isVisited'] as bool? ?? false,
-      destinationId: json['destinationId'] as int?,
-      destination: json['destination'] as Map<String, dynamic>?,
+      id: json['id'] is int ? json['id'] : null,
+      title: json['title']?.toString() ?? '', // Safe string conversion
+      notes: json['notes']?.toString(),
+      startTime: json['startTime']?.toString() ?? '09:00:00',
+      endTime: json['endTime']?.toString(),
+      dayNumber: json['dayNumber'] is int ? json['dayNumber'] : 1,
+      orderInDay: json['orderInDay'] is int ? json['orderInDay'] : 0,
+      activityType: json['activityType']?.toString() ?? "VISIT",
+      // Force boolean check
+      isVisited: (json['isVisited'] == true), 
+      destinationId: json['destinationId'] is int ? json['destinationId'] : null,
+      destination: json['destination'] is Map<String, dynamic> ? json['destination'] : null,
     );
   }
 

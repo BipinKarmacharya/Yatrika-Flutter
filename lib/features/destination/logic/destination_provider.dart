@@ -29,7 +29,7 @@ class DestinationProvider with ChangeNotifier {
       final bool isBudgetAny = (budget == null || budget == "Any budget");
 
       if (isSearchEmpty && isTagsEmpty && isBudgetAny) {
-        _destinations = await DestinationService.popular();
+        _destinations = await DestinationService.getAll();
       } else {
         _destinations = await DestinationService.getFiltered(
           search: search,

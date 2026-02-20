@@ -1,33 +1,22 @@
-import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 class LocalNotificationService {
-  static const bool _inAppOnly = false;
-  static const String _scheduledKey = 'scheduled_notifications';
-  static const int _maxNotificationId = 2147483647; // 32-bit signed int max
-  static const String _channelId = 'yatrika_reminders_v3';
-  static const String _channelName = 'Yatrika Reminders';
-  static const String _channelDescription =
-      'Local trip and itinerary reminder alerts';
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
-  static int _lastNotificationId = 0;
+  static const _scheduledKey = 'scheduled_notifications';
 
-  static Future<void> initialize() async {
-    if (_initialized || kIsWeb) {
-      return;
-    }
+  static Future<void> initialize({bool inAppOnly = false}) async {
+    if (_initialized || kIsWeb) return;
 
+    // --- Timezone setup ---
     tz.initializeTimeZones();
     try {
       final timezoneName = await FlutterTimezone.getLocalTimezone();
@@ -37,30 +26,39 @@ class LocalNotificationService {
       debugPrint('Failed to set local timezone, using default: $e');
     }
 
-    if (!_inAppOnly) {
-      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-      const iosSettings = DarwinInitializationSettings();
-      const settings = InitializationSettings(
-        android: androidSettings,
-        iOS: iosSettings,
-      );
-
-      await _notificationsPlugin.initialize(settings);
-      await requestPermissions();
-    }
-    _initialized = true;
-  }
-
-  static Future<void> requestPermissions() async {
-    if (kIsWeb || _inAppOnly) {
+    if (inAppOnly) {
+      _initialized = true;
       return;
     }
 
-    final androidImplementation = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    await androidImplementation?.requestNotificationsPermission();
+    // --- Platform-specific initialization ---
+    final androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    final iosSettings = DarwinInitializationSettings();
+    final linuxSettings = LinuxInitializationSettings(defaultActionName: 'Open');
+
+    final settings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+      linux: Platform.isLinux ? linuxSettings : null,
+    );
+
+    await _notificationsPlugin.initialize(settings);
+
+    // --- Request permissions ---
+    await _requestPermissions();
+
+    _initialized = true;
+  }
+
+  static Future<void> _requestPermissions() async {
+    if (kIsWeb) return;
+
+    // Android
     if (Platform.isAndroid) {
+      final androidImplementation = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidImplementation?.requestNotificationsPermission();
       final canScheduleExact =
           await androidImplementation?.canScheduleExactNotifications();
       if (canScheduleExact == false) {
@@ -68,195 +66,49 @@ class LocalNotificationService {
       }
     }
 
-    final iosImplementation = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
-    await iosImplementation?.requestPermissions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-  }
-
-  static Future<bool> areNotificationsEnabled() async {
-    if (_inAppOnly) return true;
-    if (kIsWeb) return false;
-
-    final androidImplementation = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    final androidEnabled = await androidImplementation?.areNotificationsEnabled();
-    if (androidEnabled != null) {
-      return androidEnabled;
+    // iOS
+    if (Platform.isIOS || Platform.isMacOS) {
+      final iosImplementation = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+      await iosImplementation?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
     }
 
-    // iOS plugin does not expose a direct "enabled" check here; assume true after permission prompt.
-    return true;
+    // Linux currently does not require explicit permissions
   }
 
+  // --- Example for showing an instant notification ---
   static Future<void> showInstantNotification({
     required String title,
     required String body,
   }) async {
-    if (kIsWeb || _inAppOnly) return;
-    if (!_initialized) {
-      await initialize();
-    }
+    if (kIsWeb) return;
+    if (!_initialized) await initialize();
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
-        _channelId,
-        _channelName,
-        channelDescription: _channelDescription,
+        'default_channel',
+        'Default Channel',
+        channelDescription: 'General notifications',
         importance: Importance.max,
         priority: Priority.high,
-        channelShowBadge: true,
-        category: AndroidNotificationCategory.alarm,
-        playSound: true,
-        enableVibration: true,
-        audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
       iOS: DarwinNotificationDetails(),
+      linux: LinuxNotificationDetails(),
     );
 
     await _notificationsPlugin.show(
-      _nextNotificationId(),
+      DateTime.now().millisecondsSinceEpoch.remainder(100000), // unique id
       title,
       body,
       details,
     );
   }
 
-  static Future<bool> scheduleReminder({
-    required String title,
-    required String body,
-    required DateTime scheduledAt,
-  }) async {
-    try {
-      if (kIsWeb) {
-        return false;
-      }
-
-      if (!_initialized) {
-        await initialize();
-      }
-
-      if (scheduledAt.isBefore(DateTime.now())) {
-        return false;
-      }
-
-      final id = _nextNotificationId();
-
-      if (_inAppOnly) {
-        await _storeScheduledNotification(
-          ScheduledNotification(
-            id: id,
-            title: title,
-            body: body,
-            scheduledAt: scheduledAt,
-          ),
-        );
-        return true;
-      }
-
-      await requestPermissions();
-      final enabled = await areNotificationsEnabled();
-      if (!enabled) {
-        throw Exception('Notifications are disabled in system settings');
-      }
-
-      const details = NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDescription,
-          importance: Importance.max,
-          priority: Priority.high,
-          category: AndroidNotificationCategory.alarm,
-          playSound: true,
-          enableVibration: true,
-          channelShowBadge: true,
-          audioAttributesUsage: AudioAttributesUsage.alarm,
-        ),
-        iOS: DarwinNotificationDetails(),
-      );
-
-      // id generated above
-      AndroidScheduleMode scheduleMode =
-          AndroidScheduleMode.inexactAllowWhileIdle;
-
-      final androidImplementation = _notificationsPlugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      if (Platform.isAndroid) {
-        final canScheduleExact =
-            await androidImplementation?.canScheduleExactNotifications();
-        scheduleMode = (canScheduleExact ?? false)
-            ? AndroidScheduleMode.alarmClock
-            : AndroidScheduleMode.inexactAllowWhileIdle;
-      }
-
-      await _notificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tz.TZDateTime.from(scheduledAt, tz.local),
-        details,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        androidScheduleMode: scheduleMode,
-      );
-
-      await _storeScheduledNotification(
-        ScheduledNotification(
-          id: id,
-          title: title,
-          body: body,
-          scheduledAt: scheduledAt,
-        ),
-      );
-
-      return true;
-    } catch (e, st) {
-      debugPrint('scheduleReminder error: $e');
-      debugPrint('$st');
-      rethrow;
-    }
-  }
-
-  static int _nextNotificationId() {
-    final seed = DateTime.now().millisecondsSinceEpoch % _maxNotificationId;
-    if (seed <= _lastNotificationId) {
-      _lastNotificationId += 1;
-    } else {
-      _lastNotificationId = seed;
-    }
-    if (_lastNotificationId <= 0 || _lastNotificationId >= _maxNotificationId) {
-      _lastNotificationId = 1;
-    }
-    return _lastNotificationId;
-  }
-
-  static Future<void> _storeScheduledNotification(
-    ScheduledNotification notification,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = await _getStoredScheduledNotifications();
-
-    list.removeWhere((n) => n.id == notification.id);
-    list.removeWhere(
-      (n) =>
-          n.title == notification.title &&
-          n.body == notification.body &&
-          n.scheduledAt.isAtSameMomentAs(notification.scheduledAt),
-    );
-    list.add(notification);
-    list.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-
-    final encoded = list.map((n) => jsonEncode(n.toJson())).toList();
-    await prefs.setStringList(_scheduledKey, encoded);
-  }
-
+  /// Get all upcoming notifications
   static Future<List<ScheduledNotification>> getUpcomingScheduledNotifications() async {
     final all = await _getStoredScheduledNotifications();
     final now = DateTime.now();
@@ -264,102 +116,40 @@ class LocalNotificationService {
       ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
   }
 
+  /// Get due notifications (within past 1 day)
   static Future<List<ScheduledNotification>> getDueScheduledNotifications() async {
     final all = await _getStoredScheduledNotifications();
     final now = DateTime.now();
     final recentWindow = now.subtract(const Duration(days: 1));
-    return all
-        .where(
-          (n) =>
-              !n.scheduledAt.isAfter(now) &&
-              n.scheduledAt.isAfter(recentWindow),
-        )
-        .toList()
+    return all.where((n) => !n.scheduledAt.isAfter(now) && n.scheduledAt.isAfter(recentWindow)).toList()
       ..sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
   }
 
-  static Future<void> removeScheduledNotificationById(int id) async {
-    if (!_inAppOnly) {
-      await _notificationsPlugin.cancel(id);
-    }
-    final all = await _getStoredScheduledNotifications();
-    final kept = all.where((n) => n.id != id).toList();
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = kept.map((n) => jsonEncode(n.toJson())).toList();
-    await prefs.setStringList(_scheduledKey, encoded);
-  }
-
-  static Future<void> clearTripReminders() async {
-    final all = await _getStoredScheduledNotifications();
-    final tripItems =
-        all.where((n) => n.title == 'Yatrika Trip Reminder').toList();
-
-    if (!_inAppOnly) {
-      for (final item in tripItems) {
-        await _notificationsPlugin.cancel(item.id);
-      }
-    }
-
-    final kept = all.where((n) => n.title != 'Yatrika Trip Reminder').toList();
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = kept.map((n) => jsonEncode(n.toJson())).toList();
-    await prefs.setStringList(_scheduledKey, encoded);
-  }
-
+  /// Internal: fetch stored notifications from SharedPreferences
   static Future<List<ScheduledNotification>> _getStoredScheduledNotifications() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_scheduledKey) ?? <String>[];
+    final raw = prefs.getStringList(_scheduledKey) ?? [];
     final parsed = <ScheduledNotification>[];
-
     for (final item in raw) {
       try {
         final map = jsonDecode(item) as Map<String, dynamic>;
         parsed.add(ScheduledNotification.fromJson(map));
       } catch (_) {}
     }
-
-    final now = DateTime.now();
-    final keepAfter = now.subtract(const Duration(days: 1));
-    final kept = parsed.where((n) => n.scheduledAt.isAfter(keepAfter)).toList()
-      ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-
-    // Keep storage clean by removing old entries.
-    final encoded = kept.map((n) => jsonEncode(n.toJson())).toList();
-    await prefs.setStringList(_scheduledKey, encoded);
-
-    return kept;
+    return parsed;
   }
 
-  static Future<NotificationDebugInfo> getDebugInfo() async {
-    if (!_initialized && !kIsWeb) {
-      await initialize();
-    }
-
-    final enabled = await areNotificationsEnabled();
-    bool exactAllowed = false;
-
-    final androidImplementation = _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    if (!kIsWeb && Platform.isAndroid) {
-      exactAllowed =
-          await androidImplementation?.canScheduleExactNotifications() ?? false;
-    }
-
-    final pending = _inAppOnly
-        ? <PendingNotificationRequest>[]
-        : await _notificationsPlugin.pendingNotificationRequests();
-    final upcoming = await getUpcomingScheduledNotifications();
-
-    return NotificationDebugInfo(
-      notificationsEnabled: enabled,
-      exactAlarmAllowed: exactAllowed,
-      pendingNotificationCount: pending.length,
-      storedUpcomingCount: upcoming.length,
-      nextUpcomingAt: upcoming.isNotEmpty ? upcoming.first.scheduledAt : null,
-    );
+  /// Save a notification to local storage
+  static Future<void> storeScheduledNotification(ScheduledNotification n) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = await _getStoredScheduledNotifications();
+    list.removeWhere((x) => x.id == n.id);
+    list.add(n);
+    final encoded = list.map((x) => jsonEncode(x.toJson())).toList();
+    await prefs.setStringList(_scheduledKey, encoded);
   }
 }
+
 
 class ScheduledNotification {
   ScheduledNotification({
@@ -375,11 +165,11 @@ class ScheduledNotification {
   final DateTime scheduledAt;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'body': body,
-    'scheduledAt': scheduledAt.toIso8601String(),
-  };
+        'id': id,
+        'title': title,
+        'body': body,
+        'scheduledAt': scheduledAt.toIso8601String(),
+      };
 
   factory ScheduledNotification.fromJson(Map<String, dynamic> json) {
     return ScheduledNotification(
@@ -389,20 +179,4 @@ class ScheduledNotification {
       scheduledAt: DateTime.parse(json['scheduledAt'] as String),
     );
   }
-}
-
-class NotificationDebugInfo {
-  NotificationDebugInfo({
-    required this.notificationsEnabled,
-    required this.exactAlarmAllowed,
-    required this.pendingNotificationCount,
-    required this.storedUpcomingCount,
-    required this.nextUpcomingAt,
-  });
-
-  final bool notificationsEnabled;
-  final bool exactAlarmAllowed;
-  final int pendingNotificationCount;
-  final int storedUpcomingCount;
-  final DateTime? nextUpcomingAt;
 }

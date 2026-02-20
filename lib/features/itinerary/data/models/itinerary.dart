@@ -137,20 +137,29 @@ class Itinerary {
           ? ItinerarySummary.fromJson(json['summary'] as Map<String, dynamic>)
           : null,
       items: json['items'] != null
-          ? (json['items'] as List<dynamic>)
-                .map((i) => ItineraryItem.fromJson(i as Map<String, dynamic>))
-                .toList()
-          : null,
+        ? (json['items'] as List)
+            .map((i) => ItineraryItem.fromJson(i as Map<String, dynamic>))
+            .toList()
+        : null,
       user: json['user'] != null
           ? UserModel.fromJson(json['user'] as Map<String, dynamic>)
           : null,
       copyCount: json['copyCount'] as int? ?? 0,
       likeCount: json['likeCount'] as int? ?? 0,
       country: json['countryCode'] as String?, // API returns countryCode
-      tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
+      tags: json['tags'] != null 
+        ? (json['tags'] as List).map((e) => e.toString()).toList() 
+        : null,
       isLikedByCurrentUser: json['isLikedByCurrentUser'] ?? false,
       isSavedByCurrentUser: json['isSavedByCurrentUser'] ?? false,
-      images: json['images'] != null ? List<String>.from(json['images']) : [],
+      images: json['images'] != null
+    ? (json['images'] as List).map((img) {
+        if (img is Map) {
+          return (img['url'] ?? img['imageUrl'] ?? "").toString();
+        }
+        return img.toString();
+      }).where((s) => s.isNotEmpty).toList()
+    : [],
     );
   }
 

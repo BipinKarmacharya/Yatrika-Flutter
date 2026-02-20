@@ -1,145 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tour_guide/core/theme/app_colors.dart';
-import 'package:tour_guide/features/community/presentation/screens/community_screen.dart';
-import '../../logic/home_provider.dart';
-import '../widgets/home_shimmer.dart';
-import '../widgets/home_cards.dart';
-import '../widgets/top_bar.dart';
-import '../widgets/category_chips.dart';
+import 'package:tour_guide/features/home/logic/home_provider.dart';
+import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
+
+import '../widgets/home_header.dart';
+import '../widgets/smart_search_section.dart';
+import '../widgets/dynamic_hero.dart';
 import '../widgets/section_header.dart';
+import '../widgets/itinerary_card.dart';
+import '../widgets/community_card.dart';
+import '../widgets/home_shimmer.dart';
 
 class TourBookHome extends StatefulWidget {
-  const TourBookHome({super.key, this.onProfileTap});
-  final VoidCallback? onProfileTap;
+  const TourBookHome({super.key});
 
   @override
   State<TourBookHome> createState() => _TourBookHomeState();
 }
 
 class _TourBookHomeState extends State<TourBookHome> {
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HomeProvider>().loadHomeData();
+      // Load initial data
+      context.read<HomeProvider>().loadHomeData(context);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch providers for changes
+    final myPlans = context.watch<ItineraryProvider>().myPlans;
     final home = context.watch<HomeProvider>();
+    
+    // Get visible trips (sorted/filtered)
+    final visibleTrips = home.getVisibleTrips(myPlans);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: RefreshIndicator(
-        onRefresh: home.loadHomeData,
+        onRefresh: () => home.loadHomeData(context),
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
-            // 1. Top Bar with Search (Use 'sliver:' instead of 'child:')
-            // SliverPadding(
-            //   padding: const EdgeInsets.fromLTRB(16, 40, 16, 8),
-            //   // ✅ Corrected: SliverPadding uses 'sliver'
-            //   sliver: SliverToBoxAdapter(
-            //     child: TopBar(onProfileTap: widget.onProfileTap),
-            //   ),
-            // ),
+            // 1. Header (Greeting + Notifications)
+            const SliverToBoxAdapter(child: HomeHeader()),
+
+            // 2. Search & Prompts (UNCOMMENTED AND FIXED)
+            SliverToBoxAdapter(
+              child: SmartSearchSection(
+                controller: _searchController,
+                isProcessing: home.isAiPlanning,
+                onSearch: (query) {
+                  // Call the new refactored method
+                  home.planWithSmartAI(context, query);
+                  _searchController.clear(); // Optional: clear after search
+                },
+              ),
+            ),
+
+            // 3. AI Planner/Active Trip Hero
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 48, 16, 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               sliver: SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    TopBar(onProfileTap: widget.onProfileTap),
-                    const SizedBox(height: 20),
-                    _buildSmartSearchBar(),
-                  ],
+                child: DynamicHero(
+                  trips: visibleTrips,
+                  onPlanTap: () => FocusScope.of(context).nextFocus(),
+                  onDismiss: (id) => home.dismissTrip(id),
                 ),
               ),
             ),
 
-            // 2. Categories
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              // ✅ Corrected: SliverPadding uses 'sliver'
-              sliver: SliverToBoxAdapter(
-                child: CategoryChips(
-                  chips: const ['All', 'Nearby', 'Popular', 'Budget', 'Nature'],
-                ),
+            // 4. Recommendations
+            SliverToBoxAdapter(
+              child: SectionHeader(
+                title: "Recommended for You",
+                onSeeAll: () {},
               ),
             ),
+            SliverToBoxAdapter(child: _buildRecommendationList(home)),
 
-            // 3. Teal Hero Planner Card
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              // ✅ Corrected: SliverPadding uses 'sliver'
-              sliver: SliverToBoxAdapter(child: _buildPlannerHero()),
-            ),
-
-            // 4. Recommended Section
-            _buildSectionHeader("Recommended for You"),
+            // 5. Community Feed
             SliverToBoxAdapter(
-              child: home.isLoading
-                  ? const HomeShimmer()
-                  : _buildHorizontalList(home.recommended),
+              child: SectionHeader(
+                title: "From the Community",
+                onSeeAll: () {},
+              ),
             ),
-
-            // 5. Popular/Featured Destinations
-            _buildSectionHeader("Popular Destinations"),
-            SliverToBoxAdapter(
-              child: home.isLoading
-                  ? const HomeShimmer(isLarge: true)
-                  : _buildHorizontalList(home.featured, isLarge: true),
-            ),
-
-            // 6. Community Section
-            _buildSectionHeader(
-              "Community Highlights",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CommunityScreen(),
-                  ),
-                );
-              },
-            ),
-
-            // 7. Community Highlight List
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: home.isLoading
-                  ? const SliverToBoxAdapter(
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF00BFA5),
-                        ),
-                      ),
-                    )
-                  : home.communityPosts.isEmpty
-                  ? const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(
-                          child: Text(
-                            "No community highlights yet ✨",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ),
-                      ),
-                    )
-                  : SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final post = home.communityPosts[index];
-                          return CommunityCard(post: post);
-                        },
-                        // ✅ We show top 3 from the home provider's list
-                        childCount: home.communityPosts.length > 3
-                            ? 3
-                            : home.communityPosts.length,
-                      ),
-                    ),
-            ),
+            _buildCommunityFeed(home),
 
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
@@ -148,135 +100,39 @@ class _TourBookHomeState extends State<TourBookHome> {
     );
   }
 
-  // ✅ Helper method updated to use 'sliver:'
-  Widget _buildSectionHeader(String title, {VoidCallback? onTap}) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      sliver: SliverToBoxAdapter(
-        child: SectionHeader(
-          title: title,
-          actionText: "See all",
-          onActionTap: onTap,
-        ),
-      ),
-    );
-  }
+  Widget _buildRecommendationList(HomeProvider home) {
+    if (home.isLoading) return const HomeShimmer();
+    if (home.recommended.isEmpty) return const SizedBox.shrink();
 
-  Widget _buildHorizontalList(List items, {bool isLarge = false}) {
     return SizedBox(
-      height: isLarge ? 260 : 200,
+      height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(left: 16),
-        itemCount: items.length,
-        itemBuilder: (context, i) => RecommendationCard(itinerary: items[i]),
+        itemCount: home.recommended.length,
+        itemBuilder: (context, index) =>
+            ItineraryCard(itinerary: home.recommended[index]),
       ),
     );
   }
 
-  Widget _buildPlannerHero() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Plan your next escape",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "Discover destinations and build itineraries with AI",
-            style: TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _heroAction(Icons.explore, "Explore"),
-              _heroAction(Icons.calendar_month, "Planner"),
-              _heroAction(Icons.map, "Itinerary"),
-              _heroAction(Icons.auto_awesome, "AI Suggest"),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildCommunityFeed(HomeProvider home) {
+    if (home.isLoading) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      );
+    }
 
-  Widget _heroAction(IconData icon, String label) {
-    return Container(
-      width: 70,
-      height: 85,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSmartSearchBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.auto_awesome, color: Color(0xFF00BFA5), size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText:
-                    'Plan a 3-day Pokhara trip...', // Natural language prompt
-                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              onSubmitted: (value) {
-                // TODO: Trigger AI Planning Logic
-              },
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              // TODO: Open Full Planner
-            },
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF00BFA5),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              "Plan",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => CommunityCard(post: home.communityPosts[index]),
+          childCount: home.communityPosts.length,
+        ),
       ),
     );
   }

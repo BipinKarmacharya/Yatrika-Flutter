@@ -123,12 +123,15 @@ class ItineraryProvider with ChangeNotifier {
   /// Fetch public trips
   Future<void> fetchPublicPlans() async {
     _isPublicLoading = true;
+    _errorMessage = null; // Reset error message
     notifyListeners();
 
     try {
       _publicPlans = await ItineraryService.getPublicTrips();
+      debugPrint("Fetched ${_publicPlans.length} public plans");
     } catch (e) {
       debugPrint("FetchPublicPlans Error: $e");
+      _errorMessage = "Could not load community trips."; // Set user-friendly error
     } finally {
       _isPublicLoading = false;
       notifyListeners();
@@ -137,11 +140,19 @@ class ItineraryProvider with ChangeNotifier {
 
   /// Fetch expert/admin templates
   Future<List<Itinerary>> fetchExpertTemplates() async {
+    _isLoading = true; // Use a loading state
+    notifyListeners();
     try {
-      return await ItineraryService.getExpertTemplates();
+      final templates = await ItineraryService.getExpertTemplates();
+      return templates;
     } catch (e) {
       debugPrint("FetchExpertTemplates Error: $e");
+      // Don't just return []; set an error state so the UI knows why it's empty
+      _errorMessage = "Failed to load expert templates.";
       return [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -651,18 +662,14 @@ class ItineraryProvider with ChangeNotifier {
   Future<void> _fetchUpdatedItinerary(int itineraryId) async {
     try {
       final response = await ApiClient.get('/api/v1/itineraries/$itineraryId');
-
-      final updatedItinerary = Itinerary.fromJson(response);
-
-      // Update in public plans
-      final publicIndex = _publicPlans.indexWhere((it) => it.id == itineraryId);
-      if (publicIndex != -1) {
-        _publicPlans[publicIndex] = updatedItinerary;
-        notifyListeners();
+      
+      // Ensure response is cast as a Map before passing to fromJson
+      if (response is Map<String, dynamic>) {
+        final updatedItinerary = Itinerary.fromJson(response);
+        updateItineraryInAllLists(updatedItinerary);
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint("Failed to fetch updated itinerary $itineraryId: $e");
-      debugPrint("Stack trace: $stackTrace");
     }
   }
 

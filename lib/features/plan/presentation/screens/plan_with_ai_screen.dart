@@ -94,7 +94,7 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Call ML service
+      final DateTime tripStartDate = _selectedTripDate ?? DateTime.now();
       final result = await MLService.getPrediction(
         city: _destinationController.text,
         budget: _budgetController.text.isEmpty ? 'Medium' : _budgetController.text,
@@ -105,9 +105,9 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
       if (!mounted) return;
 
       // Schedule notifications (if date/time are set)
-      if (_selectedTripDate != null && _selectedTripTime != null) {
-        await _scheduleTripDateReminder();
-      }
+      // if (_selectedTripDate != null && _selectedTripTime != null) {
+      //   await _scheduleTripDateReminder();
+      // }
 
       // Navigate to ItineraryScreen with real data
       Navigator.of(context).push(
@@ -118,6 +118,7 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
             days: int.parse(_daysController.text),
             budget: _budgetController.text.isEmpty ? 'Medium' : _budgetController.text,
             interests: _selectedVibes.toList(),
+            startDate: tripStartDate,
           ),
         ),
       );
@@ -137,83 +138,83 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
     );
   }
 
-  // ---------- Notification Reminders ----------
-  Future<void> _scheduleTripDateReminder() async {
-    try {
-      await LocalNotificationService.requestPermissions();
+  // // ---------- Notification Reminders ----------
+  // Future<void> _scheduleTripDateReminder() async {
+  //   try {
+  //     await LocalNotificationService.requestPermissions();
 
-      final now = DateTime.now();
-      final destination = _destinationController.text.trim().isEmpty
-          ? 'your destination'
-          : _destinationController.text.trim();
+  //     final now = DateTime.now();
+  //     final destination = _destinationController.text.trim().isEmpty
+  //         ? 'your destination'
+  //         : _destinationController.text.trim();
 
-      final selectedTime = _selectedTripTime ?? const TimeOfDay(hour: 9, minute: 0);
+  //     final selectedTime = _selectedTripTime ?? const TimeOfDay(hour: 9, minute: 0);
 
-      DateTime tripStart = DateTime(
-        _selectedTripDate!.year,
-        _selectedTripDate!.month,
-        _selectedTripDate!.day,
-        selectedTime.hour,
-        selectedTime.minute,
-      );
-      if (tripStart.isBefore(now)) {
-        tripStart = now.add(const Duration(minutes: 1));
-      }
+  //     DateTime tripStart = DateTime(
+  //       _selectedTripDate!.year,
+  //       _selectedTripDate!.month,
+  //       _selectedTripDate!.day,
+  //       selectedTime.hour,
+  //       selectedTime.minute,
+  //     );
+  //     if (tripStart.isBefore(now)) {
+  //       tripStart = now.add(const Duration(minutes: 1));
+  //     }
 
-      int scheduledCount = 0;
-      final reminderOffsets = <Duration>[
-        const Duration(days: 1),
-        const Duration(minutes: 60),
-        const Duration(minutes: 10),
-        Duration.zero,
-      ];
+  //     int scheduledCount = 0;
+  //     final reminderOffsets = <Duration>[
+  //       const Duration(days: 1),
+  //       const Duration(minutes: 60),
+  //       const Duration(minutes: 10),
+  //       Duration.zero,
+  //     ];
 
-      for (final offset in reminderOffsets) {
-        final scheduledAt = tripStart.subtract(offset);
-        if (!scheduledAt.isAfter(now)) continue;
+  //     for (final offset in reminderOffsets) {
+  //       final scheduledAt = tripStart.subtract(offset);
+  //       if (!scheduledAt.isAfter(now)) continue;
 
-        String body;
-        if (offset.inDays >= 1) {
-          body = 'Your trip to $destination starts tomorrow.';
-        } else if (offset == Duration.zero) {
-          body = 'Your trip to $destination starts now.';
-        } else {
-          body = 'Your trip to $destination starts in ${offset.inMinutes} minutes.';
-        }
+  //       String body;
+  //       if (offset.inDays >= 1) {
+  //         body = 'Your trip to $destination starts tomorrow.';
+  //       } else if (offset == Duration.zero) {
+  //         body = 'Your trip to $destination starts now.';
+  //       } else {
+  //         body = 'Your trip to $destination starts in ${offset.inMinutes} minutes.';
+  //       }
 
-        final scheduled = await LocalNotificationService.scheduleReminder(
-          title: 'Yatrika Trip Reminder',
-          body: body,
-          scheduledAt: scheduledAt,
-        );
-        if (scheduled) scheduledCount++;
-      }
+  //       final scheduled = await LocalNotificationService.scheduleReminder(
+  //         title: 'Yatrika Trip Reminder',
+  //         body: body,
+  //         scheduledAt: scheduledAt,
+  //       );
+  //       if (scheduled) scheduledCount++;
+  //     }
 
-      if (!mounted) return;
+  //     if (!mounted) return;
 
-      if (scheduledCount == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not schedule reminders. Check notification permission.'),
-          ),
-        );
-        return;
-      }
+  //     if (scheduledCount == 0) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Could not schedule reminders. Check notification permission.'),
+  //         ),
+  //       );
+  //       return;
+  //     }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$scheduledCount reminders scheduled before your trip.'),
-        ),
-      );
-    } catch (e) {
-      debugPrint('Reminder scheduling failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Notification setup failed: $e')),
-        );
-      }
-    }
-  }
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('$scheduledCount reminders scheduled before your trip.'),
+  //       ),
+  //     );
+  //   } catch (e) {
+  //     debugPrint('Reminder scheduling failed: $e');
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Notification setup failed: $e')),
+  //       );
+  //     }
+  //   }
+  // }
 
   // ---------- Date/Time Pickers ----------
   Future<void> _pickTripDate(BuildContext context) async {
@@ -310,7 +311,6 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
             child: const Row(
               children: [
                 Icon(Icons.chevron_left, color: AppColors.text, size: 24),
-                Text('Back', style: TextStyle(color: AppColors.text, fontSize: 16)),
               ],
             ),
           ),
@@ -329,27 +329,6 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
             ],
           ),
           const Spacer(),
-          const CircleAvatar(
-            radius: 18,
-            backgroundImage: NetworkImage(
-              'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=60',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            height: 36,
-            width: 36,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.stroke),
-            ),
-            child: const Icon(
-              Icons.notifications_outlined,
-              size: 20,
-              color: Color(0xFF606F81),
-            ),
-          ),
         ],
       ),
     );

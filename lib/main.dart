@@ -129,15 +129,9 @@ class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
 
   List<Widget> get _screens => [
-    TourBookHome(
-      onProfileTap: () => setState(() => _currentIndex = 4),
-      // onNavigateToDiscover: () => setState(() => _currentIndex = 1),
-    ),
+    const TourBookHome(),
     const ExploreScreen(),
-    PlanScreen(
-      onBack: () => setState(() => _currentIndex = 0),
-      onNavigateToDiscover: () => setState(() => _currentIndex = 1),
-    ),
+    const PlanScreen(),
     const CommunityScreen(),
     const ProfileScreen(),
   ];
@@ -145,37 +139,51 @@ class _MainNavigatorState extends State<MainNavigator> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      extendBody: true, 
+      body: IndexedStack(
+        index: _currentIndex, 
+        children: _screens
+      ),
       bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: const Color.fromARGB(0, 8, 2, 2),
+        // backgroundColor: const Color.fromARGB(0, 8, 2, 2),
+        backgroundColor: Colors.transparent,
         color: Colors.white,
         buttonBackgroundColor: AppColors.primary,
-        height: 70,
+        height: 65,
         index: _currentIndex,
         animationDuration: const Duration(milliseconds: 300),
-        items: const [
+        items: [
           CurvedNavigationBarItem(
-            child: Icon(Icons.home_outlined),
+            child: Icon(Icons.home_filled, 
+              color: _currentIndex == 0 ? Colors.white : AppColors.textSecondary),
             label: 'Home',
           ),
           CurvedNavigationBarItem(
-            child: Icon(Icons.explore_outlined),
+            child: Icon(Icons.explore, 
+              color: _currentIndex == 1 ? Colors.white : AppColors.textSecondary),
             label: 'Explore',
           ),
           CurvedNavigationBarItem(
-            child: Icon(Icons.add_circle_outline),
+            child: Icon(Icons.auto_awesome, // AI/Plan icon
+              color: _currentIndex == 2 ? Colors.white : AppColors.textSecondary),
             label: 'Plan',
           ),
           CurvedNavigationBarItem(
-            child: Icon(Icons.article_outlined),
-            label: 'Posts',
+            child: Icon(Icons.people_alt, 
+              color: _currentIndex == 3 ? Colors.white : AppColors.textSecondary),
+            label: 'Feed',
           ),
           CurvedNavigationBarItem(
-            child: Icon(Icons.person_outline),
+            child: Icon(Icons.person, 
+              color: _currentIndex == 4 ? Colors.white : AppColors.textSecondary),
             label: 'Profile',
           ),
         ],
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
       ),
     );
   }
