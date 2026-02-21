@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/plan/logic/trip_creator_provider.dart';
 import 'manual_itinerary_builder_screen.dart';
 
@@ -84,7 +85,7 @@ class _PlanSetupScreenState extends State<PlanSetupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Create Memories", style: TextStyle(color: Colors.teal[700], fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        Text("Create Memories", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
         const Text("Where to next?", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
       ],
     );
@@ -115,7 +116,7 @@ class _PlanSetupScreenState extends State<PlanSetupScreen> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, color: const Color(0xFF009688)),
+        prefixIcon: Icon(icon, color: AppColors.primary),
         filled: true,
         fillColor: Colors.grey[50],
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -129,7 +130,7 @@ class _PlanSetupScreenState extends State<PlanSetupScreen> {
       initialValue: _selectedTheme,
       decoration: InputDecoration(
         labelText: "Trip Theme",
-        prefixIcon: const Icon(Icons.palette, color: Color(0xFF009688)),
+        prefixIcon: const Icon(Icons.palette, color: AppColors.primary),
         filled: true,
         fillColor: Colors.grey[50],
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -158,7 +159,7 @@ class _PlanSetupScreenState extends State<PlanSetupScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: Colors.teal[50], borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.calendar_month, color: Color(0xFF009688)),
+            child: const Icon(Icons.calendar_month, color: AppColors.primary),
           ),
           const SizedBox(width: 16),
           Column(
@@ -213,10 +214,10 @@ class _PlanSetupScreenState extends State<PlanSetupScreen> {
       height: 56,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF009688),
+          backgroundColor: AppColors.primary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 5,
-          shadowColor: const Color(0xFF009688).withOpacity(0.4),
+          shadowColor: AppColors.primary.withOpacity(0.4),
         ),
         onPressed: _proceedToBuilder,
         child: const Text("Plan Activities →", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),

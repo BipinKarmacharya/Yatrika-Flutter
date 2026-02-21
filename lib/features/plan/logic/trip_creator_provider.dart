@@ -155,7 +155,7 @@ class TripCreatorProvider extends ChangeNotifier {
             'notes': item.notes ?? "",
             'activityType': item.activityType ?? "VISIT",
           };
-          await ItineraryService.addActivity(createdTrip.id, itemData);
+          await ItineraryService.addItem(createdTrip.id, itemData);
         }
 
         _draftItinerary = null; // Clear draft on success

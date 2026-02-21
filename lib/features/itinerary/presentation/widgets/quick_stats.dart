@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 
 class QuickStats extends StatelessWidget {
@@ -43,7 +44,7 @@ class QuickStats extends StatelessWidget {
   Widget _statTile(IconData icon, String value, String label) {
     return Column(
       children: [
-        Icon(icon, size: 20, color: const Color(0xFF009688)),
+        Icon(icon, size: 20, color: AppColors.primary),
         const SizedBox(height: 4),
         Text(
           value,

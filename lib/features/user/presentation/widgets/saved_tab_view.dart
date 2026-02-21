@@ -114,16 +114,16 @@ class _SavedTabViewState extends State<SavedTabView> {
       itemCount: filteredItems.length,
       itemBuilder: (context, index) {
         final itinerary = filteredItems[index];
-        return _buildSavedItemCard(itinerary, context);
+        return _buildSavedItemCard(itinerary, savedProvider, context);
       },
     );
   }
 
   List<Itinerary> _filterItems(List<Itinerary> items, int tabIndex) {
     // tabIndex: 0=All, 1=Destinations, 2=Plans, 3=Public Trips
-    
+
     if (tabIndex == 0) return items; // All
-    
+
     return items.where((itinerary) {
       switch (tabIndex) {
         case 1: // Destinations
@@ -132,17 +132,23 @@ class _SavedTabViewState extends State<SavedTabView> {
         case 2: // Plans (itineraries that are not public)
           return itinerary.isAdminCreated == true;
         case 3: // Public Trips
-          return itinerary.isPublic == true && itinerary.isAdminCreated == false;
+          return itinerary.isPublic == true &&
+              itinerary.isAdminCreated == false;
         default:
           return true;
       }
     }).toList();
   }
 
-  Widget _buildSavedItemCard(Itinerary itinerary, BuildContext context) {
+  Widget _buildSavedItemCard(
+    Itinerary itinerary,
+    SavedProvider savedProvider,
+    BuildContext context,
+  ) {
     // Get first destination image for the cover
     final String? coverImageUrl = _getCoverImageUrl(itinerary);
-    
+    final bool isSaved = savedProvider.isItinerarySaved(itinerary.id);
+
     return Dismissible(
       key: Key('saved_${itinerary.id}'),
       direction: DismissDirection.endToStart,
@@ -174,10 +180,8 @@ class _SavedTabViewState extends State<SavedTabView> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ItineraryDetailScreen(
-                itinerary: itinerary,
-                isReadOnly: true,
-              ),
+              builder: (context) =>
+                  ItineraryDetailScreen(itinerary: itinerary, isReadOnly: true),
             ),
           );
         },
@@ -213,9 +217,8 @@ class _SavedTabViewState extends State<SavedTabView> {
                           ? CachedNetworkImage(
                               imageUrl: coverImageUrl,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                color: Colors.grey.shade200,
-                              ),
+                              placeholder: (context, url) =>
+                                  Container(color: Colors.grey.shade200),
                               errorWidget: (context, url, error) => Container(
                                 color: Colors.grey.shade200,
                                 child: const Icon(
@@ -235,7 +238,7 @@ class _SavedTabViewState extends State<SavedTabView> {
                             ),
                     ),
                   ),
-                  
+
                   // Save Badge
                   Positioned(
                     top: 12,
@@ -318,17 +321,19 @@ class _SavedTabViewState extends State<SavedTabView> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(
-                            Icons.bookmark,
-                            color: Colors.red,
+                          icon: Icon(
+                            isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            color: isSaved ? Colors.red : Colors.grey,
                           ),
-                          onPressed: () => _unsaveItem(itinerary.id),
+                          onPressed: () =>
+                              savedProvider.toggleSaveStatus(itinerary.id),
                         ),
                       ],
                     ),
 
                     // Description
-                    if (itinerary.description != null && itinerary.description!.isNotEmpty)
+                    if (itinerary.description != null &&
+                        itinerary.description!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 4, bottom: 8),
                         child: Text(
@@ -346,12 +351,14 @@ class _SavedTabViewState extends State<SavedTabView> {
                     Row(
                       children: [
                         // Duration
-                        if (itinerary.totalDays != null && itinerary.totalDays! > 0)
+                        if (itinerary.totalDays != null &&
+                            itinerary.totalDays! > 0)
                           _buildStatItem(
                             Icons.calendar_today,
                             '${itinerary.totalDays} day${itinerary.totalDays! > 1 ? 's' : ''}',
                           ),
-                        if (itinerary.totalDays != null && itinerary.totalDays! > 0)
+                        if (itinerary.totalDays != null &&
+                            itinerary.totalDays! > 0)
                           const SizedBox(width: 16),
 
                         // Likes
@@ -362,12 +369,11 @@ class _SavedTabViewState extends State<SavedTabView> {
                         const SizedBox(width: 16),
 
                         // Copy Count
-                        if (itinerary.copyCount != null && itinerary.copyCount! > 0)
-                          _buildStatItem(
-                            Icons.copy,
-                            '${itinerary.copyCount}',
-                          ),
-                        if (itinerary.copyCount != null && itinerary.copyCount! > 0)
+                        if (itinerary.copyCount != null &&
+                            itinerary.copyCount! > 0)
+                          _buildStatItem(Icons.copy, '${itinerary.copyCount}'),
+                        if (itinerary.copyCount != null &&
+                            itinerary.copyCount! > 0)
                           const SizedBox(width: 16),
 
                         // Budget
@@ -388,23 +394,25 @@ class _SavedTabViewState extends State<SavedTabView> {
                           runSpacing: 4,
                           children: itinerary.tags!
                               .take(3)
-                              .map((tag) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
+                              .map(
+                                (tag) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    tag,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey.shade700,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                  ))
+                                  ),
+                                ),
+                              )
                               .toList(),
                         ),
                       ),
@@ -415,11 +423,14 @@ class _SavedTabViewState extends State<SavedTabView> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // Copy button for public trips
-                        if (itinerary.isPublic == true && itinerary.sourceId == null)
+                        if (itinerary.isPublic == true &&
+                            itinerary.sourceId == null)
                           ElevatedButton.icon(
                             onPressed: () => _copyItinerary(itinerary.id),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary.withOpacity(0.1),
+                              backgroundColor: AppColors.primary.withOpacity(
+                                0.1,
+                              ),
                               foregroundColor: AppColors.primary,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -454,7 +465,7 @@ class _SavedTabViewState extends State<SavedTabView> {
   String? _getCoverImageUrl(Itinerary itinerary) {
     if (itinerary.items != null && itinerary.items!.isNotEmpty) {
       final firstItem = itinerary.items!.first;
-      return null; 
+      return null;
     }
     return null;
   }
@@ -464,13 +475,7 @@ class _SavedTabViewState extends State<SavedTabView> {
       children: [
         Icon(icon, size: 16, color: Colors.grey.shade600),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
-        ),
+        Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
       ],
     );
   }
@@ -488,9 +493,7 @@ class _SavedTabViewState extends State<SavedTabView> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Remove'),
           ),
         ],
@@ -516,7 +519,7 @@ class _SavedTabViewState extends State<SavedTabView> {
     try {
       final itineraryProvider = context.read<ItineraryProvider>();
       await itineraryProvider.copyTrip(itineraryId);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Trip copied to your plans!'),
@@ -632,77 +635,37 @@ class _SavedTabViewState extends State<SavedTabView> {
             children: [
               // Illustration
               Container(
-                width: 200,
-                height: 200,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.bookmark_border,
-                  size: 80,
+                  size: 40,
                   color: AppColors.primary.withOpacity(0.6),
                 ),
               ),
-              const SizedBox(height: 32),
-              
+              const SizedBox(height: 28),
+
               // Title
               const Text(
                 'No Saved Items Yet',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              
+
               // Description
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
                   'Save interesting destinations, itineraries, and public trips to find them here later.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ),
               const SizedBox(height: 32),
-              
-              // Explore Button
-              ElevatedButton(
-                onPressed: () {
-                  // Navigate to Explore screen
-                  // You might want to use your app's navigation system
-                  Navigator.pushNamed(context, '/explore');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.explore, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text(
-                      'Explore Content',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
@@ -715,26 +678,16 @@ class _SavedTabViewState extends State<SavedTabView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            _getTabIcon(tabName),
-            size: 64,
-            color: Colors.grey.shade300,
-          ),
+          Icon(_getTabIcon(tabName), size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
             'No $tabName saved',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 8),
           Text(
             'Start exploring and save your favorite $tabName',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),

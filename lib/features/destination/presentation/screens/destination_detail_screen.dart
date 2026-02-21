@@ -1,23 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/destination/data/models/destination.dart';
-import 'package:tour_guide/features/itinerary/data/services/itinerary_service.dart';
-// import 'package:provider/provider.dart';
+import 'package:tour_guide/features/destination/data/models/review_model.dart';
+import 'package:tour_guide/features/destination/data/services/review_service.dart';
+import 'package:tour_guide/features/destination/presentation/widgets/review_list_item.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
-// import 'package:tour_guide/features/plan/presentation/screens/plan_screen.dart';
-// import '../../../auth/logic/auth_provider.dart';
 
-class DestinationDetailScreen extends StatelessWidget {
+class DestinationDetailScreen extends StatefulWidget {
   final Destination destination;
-  // final ItineraryService _itineraryService = ItineraryService();
-
   const DestinationDetailScreen({super.key, required this.destination});
+
+  @override
+  State<DestinationDetailScreen> createState() =>
+      _DestinationDetailScreenState();
+}
+
+class _DestinationDetailScreenState extends State<DestinationDetailScreen> {
+  Key _reviewKey = UniqueKey();
+
+  void _refreshReviews() {
+    setState(() {
+      _reviewKey = UniqueKey();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF8F9FA,
-      ), // Light grey background like screenshot
+      backgroundColor: const Color(0xFFF8F9FA),
       body: CustomScrollView(
         slivers: [
           // 1. IMAGE HEADER SECTION
@@ -28,7 +38,7 @@ class DestinationDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(8.0),
               child: CircleAvatar(
                 backgroundColor: Colors.white,
-                child: BackButton(color: Colors.teal[800]),
+                child: BackButton(color: AppColors.primary),
               ),
             ),
             actions: [
@@ -36,7 +46,7 @@ class DestinationDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(8.0),
                 child: CircleAvatar(
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.bookmark_border, color: Colors.teal[800]),
+                  child: Icon(Icons.bookmark_border, color: AppColors.primary),
                 ),
               ),
             ],
@@ -45,10 +55,10 @@ class DestinationDetailScreen extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Hero(
-                    tag: 'dest_image_${destination.id}',
+                    tag: 'dest_image_${widget.destination.id}',
                     child: Image.network(
-                      destination.images.isNotEmpty
-                          ? destination.images[0]
+                      widget.destination.images.isNotEmpty
+                          ? widget.destination.images[0]
                           : '',
                       fit: BoxFit.cover,
                       headers: const {"ngrok-skip-browser-warning": "true"},
@@ -74,13 +84,13 @@ class DestinationDetailScreen extends StatelessWidget {
                       children: [
                         Wrap(
                           spacing: 8,
-                          children: destination.tags
+                          children: widget.destination.tags
                               .map((tag) => _buildHeaderTag(tag))
                               .toList(),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          destination.name,
+                          widget.destination.name,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 36,
@@ -96,7 +106,7 @@ class DestinationDetailScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              destination.district ?? "Location",
+                              widget.destination.district ?? "Location",
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 18,
@@ -107,6 +117,7 @@ class DestinationDetailScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -129,7 +140,7 @@ class DestinationDetailScreen extends StatelessWidget {
                       _buildInfoCard(
                         Icons.attach_money,
                         "Daily Cost",
-                        "~\$${destination.cost.toInt()}",
+                        "~\$${widget.destination.cost.toInt()}",
                         Colors.teal,
                       ),
                       _buildInfoCard(
@@ -141,13 +152,14 @@ class DestinationDetailScreen extends StatelessWidget {
                       _buildInfoCard(
                         Icons.star_border,
                         "Rating",
-                        "${destination.averageRating}/5",
+                        "${widget.destination.averageRating}/5",
                         Colors.orange,
                       ),
                       _buildInfoCard(
                         Icons.people_outline,
                         "Reviews",
-                        "2,847",
+                        widget.destination.totalReviews
+                            .toString(), // Use widget.destination
                         Colors.teal,
                       ),
                     ],
@@ -173,44 +185,45 @@ class DestinationDetailScreen extends StatelessWidget {
 
                   // 4. ABOUT SECTION
                   _buildContentCard(
-                    title: "About ${destination.name}",
+                    title: "About ${widget.destination.name}",
                     content:
-                        destination.description ?? "No description available.",
+                        widget.destination.description ??
+                        "No description available.",
                   ),
                   const SizedBox(height: 16),
 
                   // 5. SUGGESTED ITINERARIES SECTION
-                  _buildContentCard(
-                    title: "Suggested Itineraries",
-                    icon: Icons.auto_awesome_outlined,
-                    child: FutureBuilder<List<Itinerary>>(
-                      future: ItineraryService.getItinerariesByDestination(
-                        int.parse(destination.id.toString()),
-                      ),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        } else if (snapshot.hasError ||
-                            !snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          return const Text(
-                            "No curated itineraries for this spot yet.",
-                          );
-                        }
+                  // _buildContentCard(
+                  //   title: "Suggested Itineraries",
+                  //   icon: Icons.auto_awesome_outlined,
+                  //   child: FutureBuilder<List<Itinerary>>(
+                  //     future: ItineraryService.getItinerariesByDestination(
+                  //       int.parse(destination.id.toString()),
+                  //     ),
+                  //     builder: (context, snapshot) {
+                  //       if (snapshot.connectionState ==
+                  //           ConnectionState.waiting) {
+                  //         return const Center(
+                  //           child: CircularProgressIndicator(),
+                  //         );
+                  //       } else if (snapshot.hasError ||
+                  //           !snapshot.hasData ||
+                  //           snapshot.data!.isEmpty) {
+                  //         return const Text(
+                  //           "No curated itineraries for this spot yet.",
+                  //         );
+                  //       }
 
-                        final itineraries = snapshot.data!;
-                        return Column(
-                          children: itineraries
-                              .map((it) => _buildItineraryCard(it))
-                              .toList(),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  //       final itineraries = snapshot.data!;
+                  //       return Column(
+                  //         children: itineraries
+                  //             .map((it) => _buildItineraryCard(it))
+                  //             .toList(),
+                  //       );
+                  //     },
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 16),
 
                   // 6. LOCATION SECTION
                   _buildContentCard(
@@ -219,7 +232,7 @@ class DestinationDetailScreen extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
-                        'https://static-maps.yandex.ru/1.x/?lang=en_US&ll=${destination.lng},${destination.lat}&z=12&l=map&size=600,300',
+                        'https://static-maps.yandex.ru/1.x/?lang=en_US&ll=${widget.destination.lng},${widget.destination.lat}&z=12&l=map&size=600,300',
                         height: 200,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -228,80 +241,56 @@ class DestinationDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
 
-                  // 7. PLAN YOUR TRIP SECTION (Green Banner)
-                  // Container(
-                  //   width: double.infinity,
-                  //   padding: const EdgeInsets.all(24),
-                  //   decoration: BoxDecoration(
-                  //     color: const Color(0xFF009688),
-                  //     borderRadius: BorderRadius.circular(16),
-                  //   ),
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.start,
-                  //     children: [
-                  //       const Text(
-                  //         "Plan Your Trip",
-                  //         style: TextStyle(
-                  //           color: Colors.white,
-                  //           fontSize: 22,
-                  //           fontWeight: FontWeight.bold,
-                  //         ),
-                  //       ),
-                  //       const SizedBox(height: 8),
-                  //       const Text(
-                  //         "Create a custom itinerary for your adventure.",
-                  //         style: TextStyle(color: Colors.white70, fontSize: 14),
-                  //       ),
-                  //       const SizedBox(height: 20),
-                  //       SizedBox(
-                  //         width: double.infinity,
-                  //         height: 50,
-                  //         child: ElevatedButton(
-                  //           onPressed: () {
-                  //             // ✅ FIX: Use Provider to check if a token exists
-                  //             final authProvider = context.read<AuthProvider>();
-                  //             final bool isLoggedIn =
-                  //                 authProvider.token != null;
-
-                  //             if (isLoggedIn) {
-                  //               Navigator.push(
-                  //                 context,
-                  //                 MaterialPageRoute(
-                  //                   builder: (context) => PlanScreen(
-                  //                     // destination: destination,
-                  //                   ),
-                  //                 ),
-                  //               );
-                  //             } else {
-                  //               ScaffoldMessenger.of(context).showSnackBar(
-                  //                 const SnackBar(
-                  //                   content: Text(
-                  //                     "Please login to create an itinerary.",
-                  //                   ),
-                  //                   backgroundColor: Colors.orange,
-                  //                 ),
-                  //               );
-                  //               // Ensure '/login' route is defined in main.dart
-                  //               Navigator.pushNamed(context, '/login');
-                  //             }
-                  //           },
-                  //           style: ElevatedButton.styleFrom(
-                  //             backgroundColor: Colors.white,
-                  //             foregroundColor: const Color(0xFF009688),
-                  //             shape: RoundedRectangleBorder(
-                  //               borderRadius: BorderRadius.circular(12),
-                  //             ),
-                  //           ),
-                  //           child: const Text(
-                  //             "Start Planning",
-                  //             style: TextStyle(fontWeight: FontWeight.bold),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-                  // const SizedBox(height: 100), // Space for bottom
+                  _buildContentCard(
+                    title: "User Reviews",
+                    icon: Icons.rate_review_outlined,
+                    child: Column(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _showAddReviewSheet(context),
+                          icon: const Icon(Icons.add),
+                          label: const Text("Write a Review"),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.teal,
+                            side: const BorderSide(color: Colors.teal),
+                            minimumSize: const Size(double.infinity, 45),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FutureBuilder<List<Review>>(
+                          key: _reviewKey, // Using the key to refresh
+                          future: ReviewService.getReviewsByDestination(
+                            widget.destination.id,
+                          ),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            if (snapshot.hasError ||
+                                !snapshot.hasData ||
+                                snapshot.data!.isEmpty) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: Text(
+                                  "No reviews yet. Be the first to share your experience!",
+                                ),
+                              );
+                            }
+                            return Column(
+                              children: snapshot.data!
+                                  .take(3) // Show only latest 3 on detail page
+                                  .map((rev) => ReviewListItem(review: rev))
+                                  .toList(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -489,6 +478,101 @@ class DestinationDetailScreen extends StatelessWidget {
             ),
             // We can add a button here to "View Full Plan"
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddReviewSheet(BuildContext context) {
+    final commentController = TextEditingController();
+    double localRating = 5.0; // Temporary local state
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        // Added StatefulBuilder here
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                "Rate your experience",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (index) => IconButton(
+                    icon: Icon(
+                      Icons.star,
+                      color: index < localRating
+                          ? Colors.orange
+                          : Colors.grey[300],
+                      size: 32,
+                    ),
+                    onPressed: () =>
+                        setModalState(() => localRating = index + 1.0),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: commentController,
+                decoration: const InputDecoration(
+                  hintText: "How was your visit?",
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: () async {
+                  final success = await ReviewService.postReview(
+                    destinationId: int.parse(widget.destination.id),
+                    rating: localRating,
+                    comment: commentController.text,
+                    visitedDate: DateTime.now().toIso8601String().split('T')[0],
+                  );
+                  if (success) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Review submitted!")),
+                    );
+                    _refreshReviews(); // Refresh the list!
+                  }
+                },
+                child: const Text(
+                  "Submit Review",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

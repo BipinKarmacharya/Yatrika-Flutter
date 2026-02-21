@@ -54,7 +54,6 @@ class _TopBarState extends State<TopBar> {
     }
   }
 
-
   Future<void> _showUpcomingSchedules(BuildContext context) async {
     await _refreshNotificationStatus();
     if (!context.mounted) return;
@@ -88,25 +87,8 @@ class _TopBarState extends State<TopBar> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Explore",
+                    "Yatrika",
                     style: TextStyle(color: AppColors.subtext, fontSize: 12),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        "Butwal, Nepal",
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -118,7 +100,7 @@ class _TopBarState extends State<TopBar> {
             children: [
               _buildNotificationIcon(),
               const SizedBox(width: 8),
-              _buildLanguageIcon(),
+              // _buildLanguageIcon(),
             ],
           ),
         ],
@@ -165,22 +147,22 @@ class _TopBarState extends State<TopBar> {
     );
   }
 
-  Widget _buildLanguageIcon() {
-    return Container(
-      height: 40,
-      width: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.stroke),
-      ),
-      child: const Icon(
-        Icons.translate_rounded,
-        size: 20,
-        color: AppColors.textPrimary,
-      ),
-    );
-  }
+  // Widget _buildLanguageIcon() {
+  //   return Container(
+  //     height: 40,
+  //     width: 40,
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       shape: BoxShape.circle,
+  //       border: Border.all(color: AppColors.stroke),
+  //     ),
+  //     child: const Icon(
+  //       Icons.translate_rounded,
+  //       size: 20,
+  //       color: AppColors.textPrimary,
+  //     ),
+  //   );
+  // }
 }
 
 class _UpcomingNotificationsDialog extends StatefulWidget {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary_item.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 
@@ -18,7 +19,7 @@ class ProgressStats extends StatelessWidget {
     required this.visitedCount,
     required this.totalCount,
     this.title,
-    this.color = const Color(0xFF009688),
+    this.color = AppColors.primary,
     this.height = 8.0,
     this.showTitle = false,
     this.showPercentage = true,
@@ -37,7 +38,7 @@ class ProgressStats extends StatelessWidget {
       visitedCount: visitedCount,
       totalCount: totalCount,
       title: title,
-      color: const Color(0xFF009688),
+      color: AppColors.primary,
       height: 8.0,
       showTitle: true,
       showPercentage: true,
@@ -51,7 +52,7 @@ class ProgressStats extends StatelessWidget {
       visitedCount: itinerary.summary?.completedActivities ?? 0,
       totalCount: itinerary.summary?.activityCount ?? 0,
       title: null,
-      color: const Color(0xFF10B981),
+      color: AppColors.primary,
       height: 6.0,
       showTitle: false,
       showPercentage: false,
@@ -81,7 +82,7 @@ class ProgressStats extends StatelessWidget {
                 ),
                 // Celebration Icon if finished
                 if (isFinished)
-                  const Icon(Icons.check_circle, color: Color(0xFF009688), size: 20),
+                  const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
               ],
             ),
           ),
@@ -101,7 +102,7 @@ class ProgressStats extends StatelessWidget {
                     value: animatedValue, // Use the animated value here!
                     backgroundColor: Colors.grey[200],
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      isFinished ? const Color(0xFF009688) : color,
+                      isFinished ? AppColors.primary : color,
                     ),
                     minHeight: height,
                   ),
@@ -119,7 +120,7 @@ class ProgressStats extends StatelessWidget {
                       Text(
                         "${(animatedValue * 100).toInt()}%",
                         style: TextStyle(
-                          color: isFinished ? const Color(0xFF009688) : color,
+                          color: isFinished ? AppColors.primary : color,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),

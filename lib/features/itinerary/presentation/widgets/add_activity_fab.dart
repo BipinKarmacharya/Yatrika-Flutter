@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 
 class AddActivityFAB extends StatelessWidget {
   final VoidCallback onPressed;
@@ -9,7 +10,7 @@ class AddActivityFAB extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
       onPressed: onPressed,
-      backgroundColor: const Color(0xFF009688),
+      backgroundColor: AppColors.primary,
       icon: const Icon(Icons.add_location_alt, color: Colors.white),
       label: const Text("Add Activity", style: TextStyle(color: Colors.white)),
     );

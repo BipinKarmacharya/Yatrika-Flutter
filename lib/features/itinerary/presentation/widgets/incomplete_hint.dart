@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary_item.dart';
 
 class IncompleteHint extends StatelessWidget {
@@ -20,7 +21,7 @@ class IncompleteHint extends StatelessWidget {
         child: Text(
           "Almost there! Just click finish to complete your journey.",
           style: TextStyle(
-            color: Color(0xFF009688),
+            color: AppColors.primary,
             fontSize: 12,
             fontWeight: FontWeight.bold,
           ),

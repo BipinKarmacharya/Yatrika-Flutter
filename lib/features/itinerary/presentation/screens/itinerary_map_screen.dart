@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:tour_guide/core/theme/app_colors.dart';
 
 class ItineraryMapScreen extends StatefulWidget {
   final List activities;
@@ -163,7 +164,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
               Text(
                 activity['title'] ?? "Scheduled Activity",
                 style: TextStyle(
-                  color: Colors.teal[700],
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -176,7 +177,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF009688),
+                  backgroundColor: AppColors.primary,
                   minimumSize: const Size(double.infinity, 45),
                 ),
                 onPressed: () => Navigator.pop(context),
@@ -228,7 +229,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
                 polylines: [
                   Polyline(
                     points: roadPoints.isNotEmpty ? roadPoints : stopPoints,
-                    color: const Color(0xFF009688),
+                    color: AppColors.primary,
                     strokeWidth: 5,
                     strokeCap: StrokeCap.round,
                     strokeJoin: StrokeJoin.round,
@@ -281,7 +282,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
                   children: [
                     Icon(
                       _getProfileIcon(),
-                      color: const Color(0xFF009688),
+                      color: AppColors.primary,
                       size: 24,
                     ),
                     const SizedBox(width: 12),
@@ -328,7 +329,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
                   );
                 }
               },
-              child: const Icon(Icons.my_location, color: Color(0xFF009688)),
+              child: const Icon(Icons.my_location, color: AppColors.primary),
             ),
           ),
 
@@ -336,7 +337,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
             Container(
               color: Colors.black12,
               child: const Center(
-                child: CircularProgressIndicator(color: Color(0xFF009688)),
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
             ),
         ],
@@ -373,7 +374,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
       onTap: () => _fetchFullRoute(profile),
       child: Icon(
         icon,
-        color: isSelected ? const Color(0xFF009688) : Colors.grey[400],
+        color: isSelected ? AppColors.primary : Colors.grey[400],
         size: 28,
       ),
     );
@@ -382,7 +383,7 @@ class _ItineraryMapScreenState extends State<ItineraryMapScreen> {
   Widget _buildNumberedMarker(int number) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF009688),
+        color: AppColors.primary,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],

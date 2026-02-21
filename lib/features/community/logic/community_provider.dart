@@ -118,9 +118,14 @@ class CommunityProvider extends ChangeNotifier {
     try {
       final updatedPost = await CommunityService.update(id, post, newImages);
 
-      final index = _posts.indexWhere((p) => p.id == id);
-      if (index != -1) {
-        _posts[index] = updatedPost;
+      final feedIndex = _posts.indexWhere((p) => p.id == id);
+      if (feedIndex != -1) {
+        _posts[feedIndex] = updatedPost;
+      }
+
+      final myIndex = _myPosts.indexWhere((p) => p.id == id);
+      if (myIndex != -1) {
+        _myPosts[myIndex] = updatedPost;
       }
 
       return true;
@@ -185,6 +190,7 @@ class CommunityProvider extends ChangeNotifier {
     try {
       await CommunityService.deletePost(id);
       _posts.removeWhere((p) => p.id == id);
+      _myPosts.removeWhere((p) => p.id == id);
       notifyListeners();
       return true;
     } catch (e) {

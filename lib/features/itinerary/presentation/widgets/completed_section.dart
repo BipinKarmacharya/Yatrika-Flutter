@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 
 class CompletedSection extends StatelessWidget {
@@ -25,19 +26,19 @@ class CompletedSection extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF009688).withOpacity(0.1),
+            color: AppColors.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF009688)),
+            border: Border.all(color: AppColors.primary),
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.verified, color: Color(0xFF009688)),
+              Icon(Icons.verified, color: AppColors.primary),
               SizedBox(width: 8),
               Text(
                 "JOURNEY COMPLETED",
                 style: TextStyle(
-                  color: Color(0xFF009688),
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),
@@ -110,7 +111,7 @@ class CompletedSection extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.public, color: Colors.green[800]),
+                  Icon(Icons.public, color: AppColors.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -118,7 +119,7 @@ class CompletedSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green[800],
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -127,7 +128,7 @@ class CompletedSection extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 "This trip is visible to other travelers on the Explore tab.",
-                style: TextStyle(fontSize: 14, color: Colors.green[700]),
+                style: TextStyle(fontSize: 14, color: AppColors.primary),
               ),
             ],
           ),
@@ -161,7 +162,7 @@ class CompletedSection extends StatelessWidget {
         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green[700],
+        backgroundColor: AppColors.primary,
         minimumSize: const Size(double.infinity, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

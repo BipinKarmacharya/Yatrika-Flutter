@@ -740,10 +740,10 @@ class MyTripsTabView extends StatelessWidget {
             onPressed: () async {
               final success = await context
                   .read<ItineraryProvider>()
-                  .updatePlanDetails(
+                  .updateItineraryHeaders(
                     trip.id,
-                    titleController.text,
-                    descController.text,
+                    title: titleController.text,
+                    description: descController.text,
                   );
 
               if (context.mounted) {
@@ -788,7 +788,7 @@ class MyTripsTabView extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              final success = await provider.deletePlan(trip.id);
+              final success = await provider.deleteTrip(trip.id);
               if (context.mounted) {
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(

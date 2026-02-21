@@ -22,6 +22,8 @@ class _CreatePostModalState extends State<CreatePostModal> {
   final _destinationCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
   final _costCtrl = TextEditingController();
+  final _durationCtrl = TextEditingController();
+  int _tripDuration = 1;
 
   final List<XFile> _selectedNewImages = [];
   List<String> _existingMediaUrls = []; // Track existing images in edit mode
@@ -50,6 +52,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
       _titleCtrl.text = post.title;
       _destinationCtrl.text = post.destination ?? "";
       _contentCtrl.text = post.content;
+      _tripDuration = widget.postToEdit!.tripDurationDays;
       _costCtrl.text = post.estimatedCost.toString();
       _selectedTags.addAll(post.tags);
       _existingMediaUrls = post.media.map((m) => m.mediaUrl).toList();
@@ -66,6 +69,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
     _destinationCtrl.dispose();
     _contentCtrl.dispose();
     _costCtrl.dispose();
+    _durationCtrl.dispose();
     super.dispose();
   }
 
@@ -73,6 +77,10 @@ class _CreatePostModalState extends State<CreatePostModal> {
   Future<void> _handlePost() async {
     if (_titleCtrl.text.isEmpty || _destinationCtrl.text.isEmpty) {
       _showSnack("Title and Destination are required.");
+      return;
+    }
+    if (_selectedNewImages.isEmpty) {
+      _showSnack("At least one image is required.");
       return;
     }
 
@@ -91,7 +99,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
         destination: _destinationCtrl.text.trim(),
         content: _contentCtrl.text.trim(),
         tags: _selectedTags.toList(),
-        tripDurationDays: widget.postToEdit?.tripDurationDays ?? 1,
+        tripDurationDays: _tripDuration,
         estimatedCost: double.tryParse(_costCtrl.text) ?? 0.0,
         coverImageUrl: isEditMode ? widget.postToEdit!.coverImageUrl : "",
         media: [],
@@ -126,47 +134,218 @@ class _CreatePostModalState extends State<CreatePostModal> {
 
   @override
   Widget build(BuildContext context) {
-    // Note: You should add an 'isUpdating' bool to your provider similar to 'isCreating'
     final isLoading = context.watch<CommunityProvider>().isCreating;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          _buildTopBar(),
-          if (isLoading)
-            const LinearProgressIndicator(color: AppColors.primary),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildSectionCard("Trip Overview", [
-                    _inputLabel("Trip Title *"),
-                    _customField(_titleCtrl, "e.g., Swiss Alps"),
-                    _inputLabel("Destination *"),
-                    _customField(_destinationCtrl, "e.g., Switzerland"),
-                    _inputLabel("Description"),
-                    _customField(_contentCtrl, "Highlights...", maxLines: 3),
-                    _inputLabel("Total Budget (Rs.)"),
-                    _customField(_costCtrl, "e.g., 2000", isNumber: true),
-                    _inputLabel("Tags"),
-                    _buildTagWrap(),
-                  ]),
-                  const SizedBox(height: 16),
-                  _buildSectionCard("Photos *", [_buildImageUploader()]),
-                  const SizedBox(height: 16),
-                  _buildActionButton(isLoading),
-                  const SizedBox(height: 20),
-                ],
+    return Scaffold(
+      backgroundColor: Colors.transparent, // Keep the background transparent
+      body: Container(
+        // height: MediaQuery.of(context).size.height * 0.9,
+        decoration: const BoxDecoration(
+          color: Color(
+            0xFFF3F4F6,
+          ), // Slightly darker background to make cards pop
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            _buildTopBar(),
+            if (isLoading)
+              const LinearProgressIndicator(
+                color: AppColors.primary,
+                minHeight: 2,
               ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Column(
+                  children: [
+                    _buildSectionCard("Trip Overview", [
+                      _inputLabel("Trip Title *"),
+                      _customField(
+                        _titleCtrl,
+                        "e.g., Swiss Alps Adventure",
+                        prefixIcon: Icons.landscape_outlined,
+                      ),
+
+                      _inputLabel("Destination *"),
+                      _customField(
+                        _destinationCtrl,
+                        "e.g., Switzerland",
+                        prefixIcon: Icons.location_on_outlined,
+                      ),
+
+                      _inputLabel("Description"),
+                      _customField(
+                        _contentCtrl,
+                        "Tell us about your highlights...",
+                        maxLines: 3,
+                        prefixIcon: Icons.notes_outlined,
+                      ),
+
+                      _inputLabel("Trip Duration (Days) *"),
+                      _buildInteractiveStepper(),
+
+                      _inputLabel("Total Budget (Rs.)"),
+                      _customField(
+                        _costCtrl,
+                        "e.g., 2000",
+                        isNumber: true,
+                        prefixIcon: Icons.account_balance_wallet_outlined,
+                      ),
+
+                      const SizedBox(height: 8),
+                      _inputLabel("Relevant Tags"),
+                      _buildTagWrap(),
+                    ]),
+
+                    _buildSectionCard("Visual Story *", [
+                      _buildImageUploader(),
+                    ]),
+
+                    const SizedBox(height: 8),
+                    _buildActionButton(isLoading),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInteractiveStepper() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 20,
+                color: Colors.grey[600],
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                "Duration",
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Row(
+              children: [
+                _stepperButton(Icons.remove, () {
+                  if (_tripDuration > 1) setState(() => _tripDuration--);
+                }),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 40),
+                  child: Text(
+                    "$_tripDuration",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                _stepperButton(Icons.add, () {
+                  if (_tripDuration < 30) setState(() => _tripDuration++);
+                }),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _customField(
+    TextEditingController ctrl,
+    String hint, {
+    int maxLines = 1,
+    bool isNumber = false,
+    IconData? prefixIcon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: ctrl,
+        maxLines: maxLines,
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        style: const TextStyle(fontSize: 15),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+          prefixIcon: prefixIcon != null
+              ? Icon(
+                  prefixIcon,
+                  size: 20,
+                  color: AppColors.primary.withOpacity(0.7),
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.white,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // The Stepper buttons now look like modern rounded icons
+  @override
+  Widget _stepperButton(IconData icon, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+          ),
+          child: Icon(icon, size: 18, color: AppColors.primary),
+        ),
       ),
     );
   }
@@ -225,22 +404,28 @@ class _CreatePostModalState extends State<CreatePostModal> {
     ),
   );
 
-  Widget _customField(
-    TextEditingController ctrl,
-    String hint, {
-    int maxLines = 1,
-    bool isNumber = false,
-  }) {
-    return TextField(
-      controller: ctrl,
-      maxLines: maxLines,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
+  // Widget _customField(
+  //   TextEditingController ctrl,
+  //   String hint, {
+  //   int maxLines = 1,
+  //   bool isNumber = false,
+  //   IconData? prefixIcon,
+  // }) {
+  //   return TextField(
+  //     controller: ctrl,
+  //     maxLines: maxLines,
+  //     keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+  //     decoration: InputDecoration(
+  //       hintText: hint,
+  //       prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 20) : null,
+  //       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+  //       contentPadding: const EdgeInsets.symmetric(
+  //         horizontal: 12,
+  //         vertical: 12,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildTagWrap() {
     return Wrap(
@@ -386,7 +571,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
       child: ElevatedButton(
         onPressed: loading ? null : _handlePost,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF047857),
+          backgroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

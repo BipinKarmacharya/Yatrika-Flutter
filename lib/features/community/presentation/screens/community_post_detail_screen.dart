@@ -280,7 +280,7 @@ class _CommunityPostDetailScreenState extends State<CommunityPostDetailScreen> {
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
           _buildSummaryRow(Icons.calendar_today_rounded, "Duration", "${widget.post.tripDurationDays} Days", AppColors.primary),
           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
-          _buildSummaryRow(Icons.payments_outlined, "Estimated Budget", "Rs. ${widget.post.estimatedCost.toStringAsFixed(0)}", AppColors.primary),
+          _buildSummaryRow(Icons.payments_outlined, "Estimated Budget", "\$${widget.post.estimatedCost.toStringAsFixed(0)}.00", AppColors.primary),
         ],
       ),
     );

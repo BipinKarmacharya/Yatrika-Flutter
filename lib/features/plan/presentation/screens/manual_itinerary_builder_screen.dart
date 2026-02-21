@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/plan/logic/trip_creator_provider.dart';
 import '../../../itinerary/data/models/itinerary_item.dart';
 import '../../../itinerary/data/services/itinerary_service.dart';
@@ -143,7 +144,7 @@ class _ManualItineraryBuilderScreenState
               child: const Text(
                 "FINISH",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -171,7 +172,7 @@ class _ManualItineraryBuilderScreenState
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.teal.shade700,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -206,7 +207,7 @@ class _ManualItineraryBuilderScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddActivity,
-        backgroundColor: const Color(0xFF009688),
+        backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add_location_alt, color: Colors.white),
         label: const Text("Add Stop", style: TextStyle(color: Colors.white)),
       ),

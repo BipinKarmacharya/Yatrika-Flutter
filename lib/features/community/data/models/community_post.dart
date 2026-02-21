@@ -125,7 +125,6 @@ class CommunityPost {
     "tripDurationDays": tripDurationDays,
     "estimatedCost": estimatedCost,
     "isPublic": isPublic,
-    // We don't send coverImageUrl here if we are uploading a NEW file
     "media": media.map((m) => m.toJson()).toList(),
     "days": days.map((d) => d.toJson()).toList(),
   };

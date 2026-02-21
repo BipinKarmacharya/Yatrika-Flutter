@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 
 class FinishTripButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -13,7 +14,7 @@ class FinishTripButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE0F2F1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF009688).withOpacity(0.3)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -21,7 +22,7 @@ class FinishTripButton extends StatelessWidget {
             "Reached the end of your adventure?",
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: Color(0xFF004D40),
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(height: 12),
@@ -33,7 +34,7 @@ class FinishTripButton extends StatelessWidget {
               style: TextStyle(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF009688),
+              backgroundColor: AppColors.primary,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

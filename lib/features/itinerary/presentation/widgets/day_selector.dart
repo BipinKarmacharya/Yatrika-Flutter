@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 
 class DaySelector extends StatelessWidget {
   final int totalDays;
@@ -46,10 +47,10 @@ class DaySelector extends StatelessWidget {
                 duration: const Duration(milliseconds: 250),
                 width: 60, // Fixed width looks better for circular/square bubbles
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF009688) : Colors.white,
+                  color: isSelected ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: isSelected 
-                      ? [BoxShadow(color: Colors.teal.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] 
+                      ? [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] 
                       : [],
                   border: Border.all(
                     color: isSelected ? Colors.transparent : Colors.grey[300]!,

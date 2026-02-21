@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tour_guide/core/services/local_notification_service.dart';
 import 'package:tour_guide/features/plan/data/service/ml_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../itinerary/presentation/screens/itinerary_screen.dart';
@@ -19,10 +18,10 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
   final TextEditingController _daysController = TextEditingController();
   final TextEditingController _datesController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _travelersController = TextEditingController();
+  // final TextEditingController _travelersController = TextEditingController();
   final TextEditingController _budgetController = TextEditingController();
-  final TextEditingController _paceController = TextEditingController();
-  final TextEditingController _notesController = TextEditingController();
+  // final TextEditingController _paceController = TextEditingController();
+  // final TextEditingController _notesController = TextEditingController();
 
   // State variables
   String? _selectedDestination;
@@ -36,7 +35,7 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
     'Kathmandu',
     'Pokhara',
     'Chitwan',
-    'Lumbini'
+    'Butwal',
   ];
   final List<String> _vibeOptions = [
     'Food',
@@ -44,7 +43,7 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
     'Culture',
     'Adventure',
     'Nightlife',
-    'Family'
+    'Family',
   ];
   final List<String> _budgetOptions = ['Low', 'Medium', 'High'];
 
@@ -67,10 +66,10 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
     _daysController.dispose();
     _datesController.dispose();
     _timeController.dispose();
-    _travelersController.dispose();
+    // _travelersController.dispose();
     _budgetController.dispose();
-    _paceController.dispose();
-    _notesController.dispose();
+    // _paceController.dispose();
+    // _notesController.dispose();
     super.dispose();
   }
 
@@ -97,28 +96,25 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
       final DateTime tripStartDate = _selectedTripDate ?? DateTime.now();
       final result = await MLService.getPrediction(
         city: _destinationController.text,
-        budget: _budgetController.text.isEmpty ? 'Medium' : _budgetController.text,
+        budget: _budgetController.text.isEmpty
+            ? 'Medium'
+            : _budgetController.text,
         interests: _selectedVibes.map((v) => v.toLowerCase()).toList(),
         days: int.parse(_daysController.text),
       );
 
       if (!mounted) return;
 
-      // Schedule notifications (if date/time are set)
-      // if (_selectedTripDate != null && _selectedTripTime != null) {
-      //   await _scheduleTripDateReminder();
-      // }
-
       // Navigate to ItineraryScreen with real data
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ItineraryScreen(
-            itineraryData: result,
-            city: _destinationController.text,
-            days: int.parse(_daysController.text),
-            budget: _budgetController.text.isEmpty ? 'Medium' : _budgetController.text,
-            interests: _selectedVibes.toList(),
+            itinerary: result,
             startDate: tripStartDate,
+            budget: _budgetController.text.isEmpty
+                ? 'Medium'
+                : _budgetController.text,
+            selectedVibes: _selectedVibes.toList(),
           ),
         ),
       );
@@ -131,90 +127,9 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
   }
-
-  // // ---------- Notification Reminders ----------
-  // Future<void> _scheduleTripDateReminder() async {
-  //   try {
-  //     await LocalNotificationService.requestPermissions();
-
-  //     final now = DateTime.now();
-  //     final destination = _destinationController.text.trim().isEmpty
-  //         ? 'your destination'
-  //         : _destinationController.text.trim();
-
-  //     final selectedTime = _selectedTripTime ?? const TimeOfDay(hour: 9, minute: 0);
-
-  //     DateTime tripStart = DateTime(
-  //       _selectedTripDate!.year,
-  //       _selectedTripDate!.month,
-  //       _selectedTripDate!.day,
-  //       selectedTime.hour,
-  //       selectedTime.minute,
-  //     );
-  //     if (tripStart.isBefore(now)) {
-  //       tripStart = now.add(const Duration(minutes: 1));
-  //     }
-
-  //     int scheduledCount = 0;
-  //     final reminderOffsets = <Duration>[
-  //       const Duration(days: 1),
-  //       const Duration(minutes: 60),
-  //       const Duration(minutes: 10),
-  //       Duration.zero,
-  //     ];
-
-  //     for (final offset in reminderOffsets) {
-  //       final scheduledAt = tripStart.subtract(offset);
-  //       if (!scheduledAt.isAfter(now)) continue;
-
-  //       String body;
-  //       if (offset.inDays >= 1) {
-  //         body = 'Your trip to $destination starts tomorrow.';
-  //       } else if (offset == Duration.zero) {
-  //         body = 'Your trip to $destination starts now.';
-  //       } else {
-  //         body = 'Your trip to $destination starts in ${offset.inMinutes} minutes.';
-  //       }
-
-  //       final scheduled = await LocalNotificationService.scheduleReminder(
-  //         title: 'Yatrika Trip Reminder',
-  //         body: body,
-  //         scheduledAt: scheduledAt,
-  //       );
-  //       if (scheduled) scheduledCount++;
-  //     }
-
-  //     if (!mounted) return;
-
-  //     if (scheduledCount == 0) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text('Could not schedule reminders. Check notification permission.'),
-  //         ),
-  //       );
-  //       return;
-  //     }
-
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Text('$scheduledCount reminders scheduled before your trip.'),
-  //       ),
-  //     );
-  //   } catch (e) {
-  //     debugPrint('Reminder scheduling failed: $e');
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Notification setup failed: $e')),
-  //       );
-  //     }
-  //   }
-  // }
 
   // ---------- Date/Time Pickers ----------
   Future<void> _pickTripDate(BuildContext context) async {
@@ -225,12 +140,32 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
       firstDate: now,
       lastDate: DateTime(now.year + 2),
     );
-    if (picked == null) return;
-    setState(() {
-      _selectedTripDate = picked;
-      _datesController.text =
-          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-    });
+    if (picked != null) {
+      setState(() {
+        _updateDateController(picked);
+      });
+    }
+  }
+
+  void _updateDateController(DateTime picked) {
+    _selectedTripDate = picked;
+    // Short format: "Feb 20, 2026" or "20 Feb 2026"
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    _datesController.text =
+        "${months[picked.month - 1]} ${picked.day}, ${picked.year}";
   }
 
   Future<void> _pickTripTime(BuildContext context) async {
@@ -307,7 +242,9 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => widget.onBack != null ? widget.onBack!() : Navigator.pop(context),
+            onTap: () => widget.onBack != null
+                ? widget.onBack!()
+                : Navigator.pop(context),
             child: const Row(
               children: [
                 Icon(Icons.chevron_left, color: AppColors.text, size: 24),
@@ -450,7 +387,7 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                   height: 52,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.stroke),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -460,7 +397,10 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                           : _budgetController.text,
                       hint: const Text(
                         'Budget',
-                        style: TextStyle(fontSize: 13, color: AppColors.subtext),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.subtext,
+                        ),
                       ),
                       isExpanded: true,
                       items: _budgetOptions.map((value) {
@@ -503,24 +443,6 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          // Row 3: Travelers + Pace (optional)
-          Row(
-            children: [
-              Expanded(
-                child: _InputField(
-                  controller: _travelersController,
-                  hint: 'Travelers',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _InputField(
-                  controller: _paceController,
-                  hint: 'Pace (relaxed • mixed • packed)',
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -564,7 +486,10 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFFE6F6EE) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -585,25 +510,6 @@ class _PlanWithAIScreenState extends State<PlanWithAIScreen> {
             }).toList(),
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.stroke),
-            ),
-            child: TextField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Anything we should know? (diet, mobility, must‑sees)',
-                hintStyle: TextStyle(color: AppColors.subtext, fontSize: 14),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -656,7 +562,6 @@ class _InputField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -668,12 +573,17 @@ class _InputField extends StatelessWidget {
           keyboardType: keyboardType,
           readOnly: readOnly,
           onTap: onTap,
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(color: AppColors.subtext, fontSize: 13),
             border: InputBorder.none,
             isDense: true,
-            contentPadding: EdgeInsets.zero,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 0,
+            ),
             suffixIcon: suffixIcon == null
                 ? null
                 : Icon(suffixIcon, size: 18, color: AppColors.subtext),

@@ -115,6 +115,11 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
   }
 
   void _confirmDeletion(BuildContext context) {
+    // Capture these BEFORE the async gap
+    final provider = context.read<CommunityProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -127,13 +132,23 @@ class _CommunityPostFeedCardState extends State<CommunityPostFeedCard> {
           ),
           TextButton(
             onPressed: () async {
-              final provider = context.read<CommunityProvider>();
-              Navigator.pop(ctx); // Close Dialog
+              Navigator.pop(ctx); // Close Dialog first
 
               final success = await provider.deletePost(widget.post.id!);
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+
+              if (success) {
+                scaffoldMessenger.showSnackBar(
                   const SnackBar(content: Text("Post deleted successfully")),
+                );
+                // If you are in a detail screen, go back to the feed
+                if (navigator.canPop()) {
+                  navigator.pop();
+                }
+              } else {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text("Delete failed: ${provider.errorMessage}"),
+                  ),
                 );
               }
             },

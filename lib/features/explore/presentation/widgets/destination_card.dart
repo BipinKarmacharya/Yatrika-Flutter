@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tour_guide/features/destination/data/models/destination.dart';
 // import 'package:url_launcher/url_launcher.dart';
-import '../screens/destination_detail_screen.dart';
+import '../../../destination/presentation/screens/destination_detail_screen.dart';
 
 
 class DestinationCard extends StatelessWidget {

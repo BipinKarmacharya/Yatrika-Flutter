@@ -102,15 +102,23 @@ class _CommunityScreenState extends State<CommunityScreen> {
               }
             },
           ),
-          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(
+              Icons.add_circle_outline,
+              color: AppColors.primary,
+              size: 28,
+            ),
+            onPressed: _handleCreatePost,
+          ),
+          const SizedBox(width: 10),
         ],
       ),
       // Floating Action Button for better reachability
-      floatingActionButton: FloatingActionButton(
-        onPressed: _handleCreatePost,
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: _handleCreatePost,
+      //   backgroundColor: AppColors.primary,
+      //   child: const Icon(Icons.add, color: Colors.white),
+      // ),
       body: RefreshIndicator(
         onRefresh: () => provider.refreshPosts(),
         color: AppColors.primary,

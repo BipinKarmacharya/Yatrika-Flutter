@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tour_guide/core/theme/app_colors.dart';
 import 'package:tour_guide/features/itinerary/data/models/itinerary_item.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_map_screen.dart';
 
@@ -37,7 +38,7 @@ class MapFAB extends StatelessWidget {
             ),
       backgroundColor: validActivities.isEmpty
           ? Colors.grey
-          : const Color(0xFF009688),
+          : AppColors.primary,
       label: const Text("Show Route", style: TextStyle(color: Colors.white)),
       icon: const Icon(Icons.directions_outlined, color: Colors.white),
     );

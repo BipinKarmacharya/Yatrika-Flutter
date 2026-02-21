@@ -56,10 +56,7 @@ class Itinerary {
     this.images,
   });
 
-  // Computed property - trip is copied if sourceId is not null
   bool get isCopied => sourceId != null;
-
-  // Computed property - trip is original if sourceId is null
   bool get isOriginal => sourceId == null;
 
   Itinerary copyWith({

@@ -1,8 +1,8 @@
 import 'package:tour_guide/core/api/api_client.dart';
+import 'package:tour_guide/features/plan/data/model/ml_models.dart';
 
 class MLService {
-  /// Calls FastAPI through Spring Boot to get the itinerary preview
-  static Future<Map<String, List<String>>> getPrediction({
+  static Future<MLPredictResponse> getPrediction({
     required String city,
     required String budget,
     required List<String> interests,
@@ -18,11 +18,8 @@ class MLService {
       },
     );
 
-    // Casting the dynamic response to the required Map structure
-    if (response is Map) {
-      return response.map(
-        (key, value) => MapEntry(key, List<String>.from(value)),
-      );
+    if (response is Map<String, dynamic>) {
+      return MLPredictResponse.fromJson(response);
     }
     throw Exception("Invalid response format");
   }
@@ -39,13 +36,11 @@ class MLService {
     return await ApiClient.post(
       '/api/v1/ml/save',
       body: {
-        "metadata": {
-          "city": city,
-          "budget": budget,
-          "interests": interests,
-          "days": days,
-          "startDate": startDate.toIso8601String().split('T')[0],
-        },
+        "city": city,
+        "budget": budget,
+        "interests": interests,
+        "days": days,
+        "startDate": startDate.toIso8601String().split('T')[0], // yyyy-MM-dd
         "itineraryData": itineraryData,
       },
     );

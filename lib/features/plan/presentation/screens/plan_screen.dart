@@ -6,11 +6,10 @@ import 'package:tour_guide/features/itinerary/data/models/itinerary.dart';
 import 'package:tour_guide/features/itinerary/logic/itinerary_provider.dart';
 import 'package:tour_guide/features/itinerary/presentation/screens/itinerary_detail_screen.dart';
 import 'package:tour_guide/features/itinerary/presentation/widgets/progress_stats.dart';
-import 'package:tour_guide/features/plan/logic/trip_creator_provider.dart'; // Add this
+// Add this
 import 'package:tour_guide/features/plan/presentation/screens/plan_setup_screen.dart'; // Add this
-import 'package:tour_guide/features/plan/presentation/screens/manual_itinerary_builder_screen.dart'; // Add this
+// Add this
 import 'package:tour_guide/features/plan/presentation/widgets/plan_options_grid.dart';
-import 'package:tour_guide/features/plan/presentation/widgets/quick_start_section.dart';
 import 'package:tour_guide/features/plan/presentation/screens/plan_with_ai_screen.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -43,61 +42,61 @@ class _PlanScreenState extends State<PlanScreen> {
   }
 
   // Handle the Quick Start (Input field + Start button)
-  void _onQuickStart() {
-    final destination = _quickDestinationController.text.trim();
-    if (destination.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a destination first')),
-      );
-      return;
-    }
+  // void _onQuickStart() {
+  //   final destination = _quickDestinationController.text.trim();
+  //   if (destination.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Please enter a destination first')),
+  //     );
+  //     return;
+  //   }
 
-    // 1. Initialize the draft via Provider
-    context.read<TripCreatorProvider>().initNewTrip(
-      title: 'Trip to $destination',
-      totalDays: 3, // Default for quick start
-    );
+  //   // 1. Initialize the draft via Provider
+  //   context.read<TripCreatorProvider>().initNewTrip(
+  //     title: 'Trip to $destination',
+  //     totalDays: 3, // Default for quick start
+  //   );
 
-    // 2. Clear input and jump straight to activity builder
-    _quickDestinationController.clear();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ManualItineraryBuilderScreen(),
-      ),
-    );
-  }
+  //   // 2. Clear input and jump straight to activity builder
+  //   _quickDestinationController.clear();
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => const ManualItineraryBuilderScreen(),
+  //     ),
+  //   );
+  // }
 
-  void _onPickDestination() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Destination'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDestinationTile('Kathmandu, Nepal'),
-              _buildDestinationTile('Pokhara, Nepal'),
-              _buildDestinationTile('Tokyo, Japan'),
-              _buildDestinationTile('Paris, France'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // void _onPickDestination() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Select Destination'),
+  //       content: SingleChildScrollView(
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             _buildDestinationTile('Kathmandu, Nepal'),
+  //             _buildDestinationTile('Pokhara, Nepal'),
+  //             _buildDestinationTile('Tokyo, Japan'),
+  //             _buildDestinationTile('Paris, France'),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  Widget _buildDestinationTile(String destination) {
-    return ListTile(
-      leading: const Icon(Icons.location_on_outlined),
-      title: Text(destination),
-      onTap: () {
-        setState(() => _quickDestinationController.text = destination);
-        Navigator.pop(context);
-      },
-    );
-  }
+  // Widget _buildDestinationTile(String destination) {
+  //   return ListTile(
+  //     leading: const Icon(Icons.location_on_outlined),
+  //     title: Text(destination),
+  //     onTap: () {
+  //       setState(() => _quickDestinationController.text = destination);
+  //       Navigator.pop(context);
+  //     },
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -124,13 +123,13 @@ class _PlanScreenState extends State<PlanScreen> {
                 const SizedBox(height: 24),
 
                 // Pass the local controller here
-                QuickStartSection(
-                  destinationController: _quickDestinationController,
-                  onUseAI: _navigateToAIPlan,
-                  onStartTrip: _onQuickStart,
-                  onPickDestination: _onPickDestination,
-                ),
-                const SizedBox(height: 16),
+                // QuickStartSection(
+                //   destinationController: _quickDestinationController,
+                //   onUseAI: _navigateToAIPlan,
+                //   onStartTrip: _onQuickStart,
+                //   onPickDestination: _onPickDestination,
+                // ),
+                // const SizedBox(height: 16),
               ],
 
               if (!isLoggedIn) ...[
@@ -141,7 +140,7 @@ class _PlanScreenState extends State<PlanScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'Tip: You can add flights, stays, and activities after creating your trip.',
+                  'Tip: You can add activities, notes and schedules after creating your trip.',
                   style: TextStyle(color: AppColors.subtext, fontSize: 13),
                 ),
               ),
@@ -180,7 +179,7 @@ class _PlanScreenState extends State<PlanScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Continue Planning",
+                "My Trips",
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
               ),
               Text(
@@ -320,39 +319,39 @@ class _PlanScreenState extends State<PlanScreen> {
           ),
           const Spacer(),
           // User avatar and notifications
-          _buildUserSection(),
+          // _buildUserSection(),
         ],
       ),
     );
   }
 
-  Widget _buildUserSection() {
-    return Row(
-      children: [
-        const CircleAvatar(
-          radius: 18,
-          backgroundImage: NetworkImage(
-            'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=60',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Container(
-          height: 36,
-          width: 36,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.stroke),
-          ),
-          child: const Icon(
-            Icons.notifications_outlined,
-            size: 20,
-            color: Color(0xFF606F81),
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildUserSection() {
+  //   return Row(
+  //     children: [
+  //       const CircleAvatar(
+  //         radius: 18,
+  //         backgroundImage: NetworkImage(
+  //           'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=60',
+  //         ),
+  //       ),
+  //       const SizedBox(width: 12),
+  //       Container(
+  //         height: 36,
+  //         width: 36,
+  //         decoration: BoxDecoration(
+  //           color: Colors.white,
+  //           shape: BoxShape.circle,
+  //           border: Border.all(color: AppColors.stroke),
+  //         ),
+  //         child: const Icon(
+  //           Icons.notifications_outlined,
+  //           size: 20,
+  //           color: Color(0xFF606F81),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildTitleSection() {
     return const Padding(
