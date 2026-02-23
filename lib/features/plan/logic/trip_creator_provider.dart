@@ -143,7 +143,7 @@ class TripCreatorProvider extends ChangeNotifier {
       // 3. Create the Header
       final createdTrip = await ItineraryService.createNewItinerary(tripData);
 
-      if (createdTrip != null && _draftItinerary!.items != null) {
+      if (_draftItinerary!.items != null) {
         // 4. Save items sequentially
         for (var item in _draftItinerary!.items!) {
           final itemData = {

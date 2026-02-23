@@ -382,8 +382,9 @@ class _ItineraryDetailScreenState extends State<ItineraryDetailScreen> {
           try {
             final destination = data['destination'];
             final destinationId = destination['id'];
-            if (destinationId == null)
+            if (destinationId == null) {
               throw Exception("Destination ID missing");
+            }
 
             final newItemData = {
               'destinationId': destinationId,

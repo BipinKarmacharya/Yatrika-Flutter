@@ -51,7 +51,7 @@ class ItineraryService {
 
   /// Create an empty draft itinerary
   static Future<Itinerary> createNewItinerary(Map<String, dynamic> data) async {
-    final response = await ApiClient.post('$_featurePath/empty', body: data);
+    final response = await ApiClient.post(_featurePath, body: data);
     return Itinerary.fromJson(response);
   }
 
