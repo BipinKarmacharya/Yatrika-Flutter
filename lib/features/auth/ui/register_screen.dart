@@ -273,17 +273,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildHeader() {
     return Center(
-      child: Container(
+      child: SizedBox(
         width: 120,
         height: 120,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: AppColors.stroke),
-        ),
         child: ClipOval(
-          child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+          child: Image.asset(
+            'assets/logo.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+          ),
         ),
       ),
     );
@@ -311,8 +309,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validateName(String? value) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'This field is required';
-    if (text.length < 2) return 'Must be at least 2 characters';
-    if (RegExp(r'\s').hasMatch(text)) return 'Spaces are not allowed';
+    if (text.length < 3) return 'Must be at least 3 characters';
+    if (!RegExp(r'^[A-Za-z]+$').hasMatch(text)) {
+      return 'Only letters are allowed';
+    }
     return null;
   }
 

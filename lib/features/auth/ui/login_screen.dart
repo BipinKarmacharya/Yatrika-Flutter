@@ -186,17 +186,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildHeader() {
     return Center(
-      child: Container(
+      child: SizedBox(
         width: 120,
         height: 120,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: AppColors.stroke),
-        ),
         child: ClipOval(
-          child: Image.asset('assets/logo.png', fit: BoxFit.contain),
+          child: Image.asset(
+            'assets/logo.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+          ),
         ),
       ),
     );
