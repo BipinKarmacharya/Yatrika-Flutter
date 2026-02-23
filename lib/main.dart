@@ -111,7 +111,7 @@ class MyApp extends StatelessWidget {
       ),
       // ✅ Now showing animated splash screen first
       home: const AnimatedSplashScreen(
-        duration: Duration(seconds: 3),
+        duration: Duration(seconds: 6),
         child: AuthWrapper(),
       ),
     );

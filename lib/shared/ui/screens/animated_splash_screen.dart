@@ -11,7 +11,7 @@ class AnimatedSplashScreen extends StatefulWidget {
   const AnimatedSplashScreen({
     super.key,
     required this.child,
-    this.duration = const Duration(seconds: 3),
+    this.duration = const Duration(seconds: 6),
   });
 
   @override
@@ -280,8 +280,12 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                   -140 +
                   ((constraints.maxWidth + 280) *
                       _planeProgressAnimation.value);
+              final upwardDrift =
+                  (constraints.maxHeight * 0.22) *
+                  _planeProgressAnimation.value;
               final planeY =
-                  (constraints.maxHeight * 0.22) +
+                  (constraints.maxHeight * 0.27) -
+                  upwardDrift +
                   _planeVerticalAnimation.value;
 
               return Container(
@@ -325,10 +329,10 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                             const SizedBox(width: 12),
                             Transform.rotate(
                               angle:
-                                  (math.pi / 2) + _planeRotationAnimation.value,
+                                  (math.pi / 4) + _planeRotationAnimation.value,
                               child: Icon(
                                 Icons.airplanemode_active_rounded,
-                                size: 46,
+                                size: 55,
                                 color: AppColors.primary.withValues(
                                   alpha: 0.92,
                                 ),
