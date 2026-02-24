@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -19,8 +18,9 @@ class AnimatedSplashScreen extends StatefulWidget {
 }
 
 class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
+  bool _hasNavigated = false;
 
   late Animation<double> _pageFadeAnimation;
   late Animation<double> _logoScaleAnimation;
@@ -45,6 +45,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _controller = AnimationController(vsync: this, duration: widget.duration);
 
@@ -225,32 +226,73 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
           ),
         );
 
-    _planeOpacityAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.10, 0.34, curve: Curves.easeOut),
-    );
-
-    _controller.forward();
-
-    Timer(widget.duration, () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                widget.child,
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-            transitionDuration: const Duration(milliseconds: 800),
+    _planeOpacityAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween<double>(
+              begin: 0.0,
+              end: 1.0,
+            ).chain(CurveTween(curve: Curves.easeOut)),
+            weight: 22,
+          ),
+          TweenSequenceItem(tween: ConstantTween<double>(1.0), weight: 58),
+          TweenSequenceItem(
+            tween: Tween<double>(
+              begin: 1.0,
+              end: 0.75,
+            ).chain(CurveTween(curve: Curves.easeInOut)),
+            weight: 20,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.05, 1.0, curve: Curves.linear),
           ),
         );
-      }
+
+    _controller.addStatusListener(_handleAnimationStatus);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _startSplashAnimation();
     });
+  }
+
+  void _startSplashAnimation() {
+    if (_hasNavigated || !mounted) return;
+    _controller.stop();
+    _controller.forward(from: 0.0);
+  }
+
+  void _handleAnimationStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed || _hasNavigated || !mounted) {
+      return;
+    }
+    _hasNavigated = true;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => widget.child,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When user relaunches while splash is still mounted, restart from frame 0.
+    if (state == AppLifecycleState.resumed &&
+        !_hasNavigated &&
+        !_controller.isAnimating) {
+      _startSplashAnimation();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.removeStatusListener(_handleAnimationStatus);
     _controller.dispose();
     super.dispose();
   }
@@ -302,46 +344,6 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                 ),
                 child: Stack(
                   children: [
-                    Positioned(
-                      left: planeX,
-                      top: planeY,
-                      child: Opacity(
-                        opacity: _planeOpacityAnimation.value,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 108,
-                              height: 4.2,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                gradient: LinearGradient(
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.0),
-                                    AppColors.primary.withValues(alpha: 0.12),
-                                    AppColors.primary.withValues(alpha: 0.30),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Transform.rotate(
-                              angle:
-                                  (math.pi / 4) + _planeRotationAnimation.value,
-                              child: Icon(
-                                Icons.airplanemode_active_rounded,
-                                size: 55,
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.92,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                     Center(
                       child: FadeTransition(
                         opacity: _pageFadeAnimation,
@@ -477,6 +479,46 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                                       AppColors.primary,
                                     ),
                                   ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: planeX,
+                      top: planeY,
+                      child: Opacity(
+                        opacity: _planeOpacityAnimation.value,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 108,
+                              height: 4.2,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [
+                                    AppColors.primary.withValues(alpha: 0.0),
+                                    AppColors.primary.withValues(alpha: 0.12),
+                                    AppColors.primary.withValues(alpha: 0.30),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Transform.rotate(
+                              angle:
+                                  (math.pi / 4) + _planeRotationAnimation.value,
+                              child: Icon(
+                                Icons.airplanemode_active_rounded,
+                                size: 55,
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.92,
                                 ),
                               ),
                             ),
